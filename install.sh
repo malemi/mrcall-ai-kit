@@ -10,27 +10,27 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CONFIG_DIR="$HOME/.config/opencode"
 
-MODE="symlink"
+MODE="copy"
 FORCE=false
 DRY_RUN=false
 
 # ── Parse flags ──────────────────────────────────────────────
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --copy)   MODE="copy"   ; shift ;;
-    --force)  FORCE=true    ; shift ;;
-    --dry-run) DRY_RUN=true ; shift ;;
+    --symlink) MODE="symlink" ; shift ;;
+    --force)   FORCE=true     ; shift ;;
+    --dry-run) DRY_RUN=true   ; shift ;;
     --help|-h)
-      echo "Usage: $(basename "$0") [--copy] [--force] [--dry-run]"
+      echo "Usage: $(basename "$0") [--symlink] [--force] [--dry-run]"
       echo ""
-      echo "  --copy     Copy files instead of symlinking"
+      echo "  --symlink  Symlink files instead of copying (edit repo = edit config)"
       echo "  --force    Overwrite existing files"
       echo "  --dry-run  Show what would be done without doing it"
       exit 0
       ;;
     *)
       echo "Unknown option: $1"
-      echo "Usage: $(basename "$0") [--copy] [--force] [--dry-run]"
+      echo "Usage: $(basename "$0") [--symlink] [--force] [--dry-run]"
       exit 1
       ;;
   esac
