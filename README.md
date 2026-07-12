@@ -34,7 +34,7 @@ A curated collection of OpenCode configuration: skills for migration and orchest
 ## Install
 
 ```bash
-git clone https://github.com/mrcall/mrcall-opencode-kit.git
+git clone https://github.com/malemi/mrcall-opencode-kit.git
 cd mrcall-opencode-kit
 ./install.sh
 ```
