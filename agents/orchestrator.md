@@ -20,8 +20,8 @@ permission:
   todowrite: allow
   webfetch: allow
   websearch: allow
-  edit: ask
-  bash: ask
+  edit: allow
+  bash: allow
 ---
 
 # Orchestrator — INTERACTIVE MODE

@@ -9,8 +9,8 @@ permission:
   list: allow
   webfetch: allow
   todowrite: allow
-  edit: ask
-  bash: ask
+  edit: allow
+  bash: allow
   task:
     "*": deny
     worker-*: allow
