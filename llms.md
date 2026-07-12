@@ -9,7 +9,7 @@ Metadata for all LLMs available to the orchestrator. Used for informed task dele
 | Claude Opus 4.8 | `opencode/claude-opus-4-8` | $5.00 / $25.00 | 1M | Complex reasoning, orchestrator default |
 | Claude Fable 5 | `opencode/claude-fable-5` | $10.00 / $50.00 | 1M | Premium reasoning, adaptive thinking |
 | GPT-5.6 Sol | `opencode/gpt-5.6-sol` | ? / ? | 1M | Flagship OpenAI, frontier capability |
-| Big Pickle | `opencode/big-pickle` | ? / ? | ? | Custom model, if available |
+| Big Pickle | `opencode/big-pickle` | ? / ? | ? | Custom model — default orchestrator |
 
 ## Scaleway Workers (paid, European sovereign cloud)
 
