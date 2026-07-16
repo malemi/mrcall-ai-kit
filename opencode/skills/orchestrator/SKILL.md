@@ -107,65 +107,85 @@ Use `~/.config/opencode/llms.md` Selection Guide to pick the right LLM per task.
 
 Only after Phase 4 approval, delegate to workers.
 
-### Worker Prompt Template
+  ### Worker Prompt Template
 
-```
-## Context
-Project: <project>
-Module: <module path>
-Files: <list>
-<1-2 paragraphs: what files do, how they fit>
+  ```
+  ## Context
+  Project: <project>
+  Module: <module path>
+  Files: <list>
+  <1-2 paragraphs: what files do, how they fit>
 
-## Task
-<Precise change description>
+  ## Task
+  <Precise change description>
 
-## Conventions
-- <naming from existing code>
-- <error handling pattern>
-- See @<reference-file> for pattern
+  ## Conventions
+  - <naming from existing code>
+  - <error handling pattern>
+  - See @<reference-file> for pattern
 
-## Verification
-After implementing, run:
-- <lint>
-- <typecheck>
-- <test>
+  ## Verification
+  After implementing, run:
+  - <lint>
+  - <typecheck>
+  - <test>
 
-Report: files changed, what you did, verification results.
-```
+  Report: files changed, what you did, verification results.
+  
+  **Workers must end with `## Done` or `## Blocked` exactly; unbounded `python -c` without timeout is forbidden.**
+  ```
 
 ### Parallel vs Sequential
 
 Multiple `task` calls in one message → parallel. One at a time → sequential.
 Parallelize when independent. Serialize when B depends on A.
 
-### Circuit Breaker
+  ### Circuit Breaker
 
-#### Tool-level failures
+  #### Tool-level failures
 
-If `task()` fails (empty output, timeout, model unavailable, rate limit):
-- **Attempt 1**: Retry with different worker model.
-- **Attempt 2**: STOP and report to user.
+  If `task()` fails (empty output, timeout, model unavailable, rate limit):
+  - **Immediate check**: The worker MUST respond within a reasonable timeframe (~2 minutes). If response time exceeds this, consider the worker hung, cancel the task, and proceed to Attempt 1.
+  - **Attempt 1**: Retry with a DIFFERENT worker model. NEVER retry with the same model and same prompt.
+  - **Attempt 2**: STOP and report to user. Never leave a worker hanging for more than 2 minutes.
 
-After each worker returns:
-1. Check output for `## Done` or `## Blocked`
-2. Verify via `bash` (lint/test)
-3. Success → proceed
-4. Failure:
-   - **Attempt 1**: Re-delegate with DIFFERENT approach. Pass previous `task_id` to resume if possible.
-   - **Attempt 2**: STOP. Ask user via `question`:
+  After each worker returns:
+  1. Check output for `## Done` or `## Blocked`
+  2. Verify via `bash` (lint/test)
+  3. Success → proceed
+  4. Failure:
+    - **Attempt 1**: Re-delegate with DIFFERENT approach. Pass previous `task_id` to resume if possible.
+    - **Attempt 2**: STOP. Ask user via `question`:
+      ```
+      question: [{
+        question: "Task N fallito dopo 2 tentativi. Cosa vuoi fare?",
+        header: "Task failed",
+        options: [
+          {label: "Worker diverso", description: "Prova con un LLM diverso"},
+          {label: "Dividi in parti", description: "Split in task più piccoli"},
+          {label: "Lo faccio io", description: "Lo faccio manualmente"},
+          {label: "Salta", description: "Skip questo task"}
+        ]
+      }]
+      ```
+    - **NEVER** retry with the same prompt.
+
+  #### Post-task gate (mechanical)
+
+  After EVERY `task()` return the orchestrator MUST:
+  1. Write the full worker return text to `/tmp/opencode/last_worker_out.txt` (create dir if needed)
+  2. Run:
+     ```bash
+     python3 ~/.config/opencode/skills/orchestrator/scripts/post_task_gate.py \
+       --input /tmp/opencode/last_worker_out.txt \
+       [--expect-files path1,path2] \
+       [--run 'verify command']
      ```
-     question: [{
-       question: "Task N fallito dopo 2 tentativi. Cosa vuoi fare?",
-       header: "Task failed",
-       options: [
-         {label: "Worker diverso", description: "Prova con un LLM diverso"},
-         {label: "Dividi in parti", description: "Split in task più piccoli"},
-         {label: "Lo faccio io", description: "Lo faccio manualmente"},
-         {label: "Salta", description: "Skip questo task"}
-       ]
-     }]
-     ```
-   - **NEVER** retry with the same prompt.
+     (paths relative to kit source during dev: same script under the skill dir)
+  3. If exit code ≠ 0 → treat as tool-level failure (circuit breaker). **Do NOT start the next task.**
+  4. Never claim worker success without exit 0 from this script.
+
+  Note: hung worker = cancel task, then gate not needed; failed return = always run gate.
 
 ## Phase 6: Verification — YOU MUST ASK
 
