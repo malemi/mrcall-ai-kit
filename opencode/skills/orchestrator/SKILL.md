@@ -28,6 +28,14 @@ When activated, **STOP and execute this sequence BEFORE doing anything else**:
 1. Read `~/.config/opencode/skills/orchestrator/memory.md`
 2. Read `<project>/docs/plans/execution.md` (skip if doesn't exist)
 3. Read `~/.config/opencode/llms.md`
+4. **Start watchdog daemon** (if not already running):
+   ```bash
+   python3 ~/.config/opencode/skills/orchestrator/scripts/watchdog-cli status 2>/dev/null || \
+   nohup python3 ~/.config/opencode/skills/orchestrator/scripts/watchdog.py \
+     --log-dir ~/.opencode/watchdog \
+     --parent-session-id <current_session_id> \
+     > /tmp/watchdog_daemon.log 2>&1 &
+   ```
 
 Then **immediately proceed to Phase 1**. Do NOT analyze the user's request yet. Do NOT explore the codebase yet. Do NOT plan anything yet. The FIRST thing you do after startup is ask the model selection question.
 
@@ -144,31 +152,49 @@ Parallelize when independent. Serialize when B depends on A.
 
   #### Tool-level failures
 
-  If `task()` fails (empty output, timeout, model unavailable, rate limit):
-  - **Immediate check**: The worker MUST respond within a reasonable timeframe (~2 minutes). If response time exceeds this, consider the worker hung, cancel the task, and proceed to Attempt 1.
+  The watchdog daemon monitors all workers. If a worker exceeds its timeout or budget, the watchdog kills it automatically. After each `task()` return, check `watchdog-cli check` — if kills were logged, the worker was terminated by the watchdog. Retry with a different worker model.
+
+  **MANDATORY watchdog protocol for every `task()` delegation:**
+
+  1. **BEFORE `task()`**: Register the task with the watchdog
+     ```bash
+     python3 ~/.config/opencode/skills/orchestrator/scripts/watchdog-cli register <task_id> <timeout_s> <budget_usd>
+     ```
+
+  2. **Call `task()`** with timeout:
+     ```
+     task(description=..., subagent_type=..., timeout=timeout_s*1000)
+     ```
+
+  3. **AFTER `task()` returns**: Check if watchdog killed the worker
+     ```bash
+     python3 ~/.config/opencode/skills/orchestrator/scripts/watchdog-cli check
+     ```
+     - If kills logged for this task_id → worker was killed by watchdog → RETRY with different worker model (NEVER same model)
+     - If no kills → worker completed normally → proceed with output
+
+  4. **ON COMPLETION**: Deregister the task
+     ```bash
+     python3 ~/.config/opencode/skills/orchestrator/scripts/watchdog-cli deregister <task_id>
+     ```
+
+  **Task ID convention:** `<letter>` (e.g., `task_A`, `task_B`, `task_C`) — matches the delegation letter.
+
+  **Timeout/budget defaults:**
+  - Simple tasks (docs, formatting): timeout=120s, budget=$2.0
+  - Medium tasks (implementation): timeout=300s, budget=$5.0
+  - Complex tasks (architecture, debugging): timeout=600s, budget=$10.0
+
+  #### Retry policy
+
   - **Attempt 1**: Retry with a DIFFERENT worker model. NEVER retry with the same model and same prompt.
-  - **Attempt 2**: STOP and report to user. Never leave a worker hanging for more than 2 minutes.
+  - **Attempt 2**: STOP and report to user via `question`. Never leave a worker hanging.
 
   After each worker returns:
   1. Check output for `## Done` or `## Blocked`
   2. Verify via `bash` (lint/test)
   3. Success → proceed
-  4. Failure:
-    - **Attempt 1**: Re-delegate with DIFFERENT approach. Pass previous `task_id` to resume if possible.
-    - **Attempt 2**: STOP. Ask user via `question`:
-      ```
-      question: [{
-        question: "Task N fallito dopo 2 tentativi. Cosa vuoi fare?",
-        header: "Task failed",
-        options: [
-          {label: "Worker diverso", description: "Prova con un LLM diverso"},
-          {label: "Dividi in parti", description: "Split in task più piccoli"},
-          {label: "Lo faccio io", description: "Lo faccio manualmente"},
-          {label: "Salta", description: "Skip questo task"}
-        ]
-      }]
-      ```
-    - **NEVER** retry with the same prompt.
+  4. Failure → apply retry policy above
 
   #### Post-task gate (mechanical)
 
@@ -181,11 +207,10 @@ Parallelize when independent. Serialize when B depends on A.
        [--expect-files path1,path2] \
        [--run 'verify command']
      ```
-     (paths relative to kit source during dev: same script under the skill dir)
   3. If exit code ≠ 0 → treat as tool-level failure (circuit breaker). **Do NOT start the next task.**
   4. Never claim worker success without exit 0 from this script.
 
-  Note: hung worker = cancel task, then gate not needed; failed return = always run gate.
+  Note: hung worker = watchdog killed it, then gate not needed; failed return = always run gate.
 
 ## Phase 6: Verification — YOU MUST ASK
 

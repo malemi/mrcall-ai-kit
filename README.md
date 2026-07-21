@@ -16,6 +16,7 @@ opencode/   OpenCode-only
   commands/   orchestrator, migrate-check
   agents/     build, plan, reviewer, + 15 worker models
   skills/     orchestrator, migrate-from-cc
+              watchdog.py, watchdog-cli, watchdog_client.py
 ```
 
 ## The doc-harness (cross-tool)
@@ -45,6 +46,8 @@ core.hooksPath .githooks`). Enforcement here flows through the commands.
 - **orchestration** — `/orchestrator` + the `build`/`plan`/`reviewer` agents.
 - **worker agents** — 15 models (DeepSeek, Gemini, GLM, GPT, Kimi, Llama, MiMo,
   Mistral, Nemotron, Qwen, Sonnet) for multi-model delegation.
+- **watchdog** — daemon that monitors workers via SSE + SQLite, kills hung ones
+  on timeout or budget excess. Automatic circuit breaker for cost control.
 - **migrate-from-cc** — `/migrate-check` + the migration skill.
 
 ## Install

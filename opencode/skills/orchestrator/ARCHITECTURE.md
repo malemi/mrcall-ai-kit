@@ -13,7 +13,12 @@ The orchestrator is a **skill** that transforms any agent into an interactive pr
 ├── skills/orchestrator/
 │   ├── SKILL.md              # Runtime protocol (what to do)
 │   ├── ARCHITECTURE.md       # This file (why it's designed this way)
-│   └── memory.md             # Global orchestrator memory
+│   ├── memory.md             # Global orchestrator memory
+│   └── scripts/
+│       ├── watchdog.py       # Watchdog daemon (timeout/budget enforcement)
+│       ├── watchdog-cli      # CLI for task registration/check/deregister
+│       ├── watchdog_client.py# Python client library
+│       └── post_task_gate.py # Post-task verification gate
 ├── llms.md                   # LLM metadata
 ├── agents/
 │   ├── orchestrator.md       # Primary agent — loads skill on startup
@@ -49,6 +54,20 @@ OpenCode handles concurrency internally. Multiple `task` calls in one message �
 **Serialize** when B depends on A's output.
 
 ## Error Handling (Circuit Breaker)
+
+### Watchdog enforcement
+
+The watchdog daemon monitors all workers via SSE events and SQLite polling.
+When a worker exceeds its timeout or budget, the watchdog kills it automatically
+via `POST /session/{id}/abort`.
+
+**Orchestrator protocol for every `task()` delegation:**
+1. `watchdog-cli register <task_id> <timeout_s> <budget_usd>`
+2. `task(...)` — worker starts
+3. `watchdog-cli check` — if kills logged, worker was terminated → retry with different model
+4. `watchdog-cli deregister <task_id>` — on completion
+
+### Retry policy
 
 - Max 2 attempts per task
 - NEVER retry with the same prompt

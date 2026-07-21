@@ -1,0 +1,140 @@
+#!/usr/bin/env python3
+"""CLI tool for the watchdog client.
+
+Usage:
+  watchdog-cli register <task_id> [timeout_s] [budget_usd]
+  watchdog-cli deregister <task_id>
+  watchdog-cli check [--since ISO_TIMESTAMP]
+  watchdog-cli status <task_id>
+  watchdog-cli list
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+# Add parent dir to path so we can import the client
+sys.path.insert(0, str(Path(__file__).parent))
+from watchdog_client import WatchdogClient
+
+
+def cmd_register(args: argparse.Namespace) -> int:
+    client = WatchdogClient()
+    try:
+        path = client.register_task(
+            args.task_id,
+            timeout_s=args.timeout,
+            budget_usd=args.budget,
+        )
+        print(json.dumps({"ok": True, "path": str(path), "task_id": args.task_id}))
+        return 0
+    except FileExistsError as e:
+        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
+        return 1
+
+
+def cmd_deregister(args: argparse.Namespace) -> int:
+    client = WatchdogClient()
+    removed = client.deregister_task(args.task_id)
+    print(json.dumps({"ok": True, "removed": removed, "task_id": args.task_id}))
+    return 0
+
+
+def cmd_check(args: argparse.Namespace) -> int:
+    client = WatchdogClient()
+    since = None
+    if args.since:
+        since = datetime.fromisoformat(args.since.replace("Z", "+00:00"))
+    kills = client.check_kills(since=since)
+    output = [
+        {
+            "ts": k.ts.isoformat(),
+            "task_id": k.task_id,
+            "session_id": k.session_id,
+            "reason": k.reason,
+            "elapsed_s": k.elapsed_s,
+            "cost": k.cost,
+        }
+        for k in kills
+    ]
+    print(json.dumps({"kills": output, "count": len(output)}))
+    return 0
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    client = WatchdogClient()
+    status = client.get_worker_status(args.task_id)
+    if status is None:
+        print(json.dumps({"found": False, "task_id": args.task_id}))
+        return 0
+    print(json.dumps({
+        "found": True,
+        "task_id": args.task_id,
+        "session_id": status.session_id,
+        "agent": status.agent,
+        "model": status.model,
+        "cost": status.cost,
+        "elapsed_s": round(status.elapsed_s, 1),
+        "is_alive": status.is_alive,
+    }))
+    return 0
+
+
+def cmd_list(args: argparse.Namespace) -> int:
+    client = WatchdogClient()
+    tasks = client.get_active_tasks()
+    output = [
+        {
+            "task_id": t.task_id,
+            "timeout_s": t.timeout_s,
+            "budget_usd": t.budget_usd,
+            "created_at": t.created_at.isoformat(),
+        }
+        for t in tasks
+    ]
+    print(json.dumps({"tasks": output, "count": len(output)}))
+    return 0
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(
+        description="Watchdog client CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p_reg = sub.add_parser("register", help="Register a task with the watchdog")
+    p_reg.add_argument("task_id", help="Unique task identifier")
+    p_reg.add_argument("timeout", nargs="?", type=float, default=120, help="Timeout in seconds (default: 120)")
+    p_reg.add_argument("budget", nargs="?", type=float, default=2.0, help="Budget in USD (default: 2.0)")
+
+    p_dereg = sub.add_parser("deregister", help="Deregister a task")
+    p_dereg.add_argument("task_id", help="Unique task identifier")
+
+    p_check = sub.add_parser("check", help="Check for killed workers")
+    p_check.add_argument("--since", help="Only show kills after this ISO timestamp")
+
+    p_stat = sub.add_parser("status", help="Get worker status for a task")
+    p_stat.add_argument("task_id", help="Unique task identifier")
+
+    sub.add_parser("list", help="List all active tasks")
+
+    args = parser.parse_args()
+
+    commands = {
+        "register": cmd_register,
+        "deregister": cmd_deregister,
+        "check": cmd_check,
+        "status": cmd_status,
+        "list": cmd_list,
+    }
+
+    return commands[args.command](args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())
