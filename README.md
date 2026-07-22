@@ -4,6 +4,69 @@ Reusable AI-tool config for **Claude Code** and **OpenCode**: a documentation
 harness that keeps docs from rotting, plus (OpenCode-only) multi-model
 orchestration and migration tooling.
 
+## Install
+
+```bash
+git clone https://github.com/malemi/mrcall-ai-kit.git
+cd mrcall-ai-kit
+./install.sh
+```
+
+That's the whole install. The script detects which tools you already have, asks
+what you want, prints the exact list of files it is about to write, and writes
+nothing until you say yes. Requirements: `bash`, `git`, and `python3` (used by
+the doc-harness gate).
+
+Then:
+
+1. Restart your Claude Code / OpenCode sessions so they pick up the new
+   commands, skills and agents.
+2. Inside any repo you work on, run `/doc-create` to bootstrap its `docs/`.
+
+The install is **global** — commands land in `~/.claude/` and/or
+`~/.config/opencode/`, and `doc-check.py` in `~/.config/mrcall-ai-kit/`. Nothing
+is written inside your repos; per-repo `docs/` is created later by `/doc-create`.
+
+### Non-interactive install
+
+Every question has a flag; passing it skips that prompt. Everything at once:
+
+```bash
+./install.sh --environment both --features all \
+             --mode symlink --on-exist backup --yes
+```
+
+Just the doc-harness for Claude Code:
+
+```bash
+./install.sh --environment claude --features doc-harness \
+             --mode symlink --on-exist skip --yes
+```
+
+| Flag | Values | Meaning |
+|------|--------|---------|
+| `--environment` | `claude`, `opencode`, `both` | which tool(s) to install into |
+| `--features` | `doc-harness`, `orchestration`, `workers`, `migrate` (comma list, or `all`) | what to install |
+| `--mode` | `symlink`, `copy` | `symlink` = edit the kit = edit your config, and the clone must stay where it is; `copy` = frozen snapshot, clone disposable |
+| `--on-exist` | `skip`, `overwrite`, `backup` | what to do when a target file is already there |
+| `--yes` | — | skip the final confirmation |
+| `--dry-run` | — | print the plan, write nothing |
+
+`./install.sh --help` lists exactly which commands, skills and agents each
+feature installs. With no TTY (CI, piped input) the script exits rather than
+hang: pass the flags.
+
+## Uninstall
+
+```bash
+./uninstall.sh
+```
+
+Removes everything the installer recorded — symlinks and copied files alike —
+by reading its own install log. Nothing installed by this kit is left behind.
+
+## What's in the kit
+
 Content is routed by tool-compatibility — the installer only puts each piece
 where it works:
 
@@ -19,7 +82,7 @@ opencode/   OpenCode-only
               watchdog.py, watchdog-cli, watchdog_client.py
 ```
 
-## The doc-harness (cross-tool)
+### The doc-harness (cross-tool)
 
 A single source of truth (one thin index file, `CLAUDE.md`) + a gate that makes
 "documented" mean "true". Three commands:
@@ -41,7 +104,7 @@ Git hooks are intentionally NOT shipped — a pre-commit hook is repo-local
 plumbing you add yourself (`.githooks/pre-commit` running the gate + `git config
 core.hooksPath .githooks`). Enforcement here flows through the commands.
 
-## OpenCode-only
+### OpenCode-only
 
 - **orchestration** — `/orchestrator` + the `build`/`plan`/`reviewer` agents.
 - **worker agents** — 15 models (DeepSeek, Gemini, GLM, GPT, Kimi, Llama, MiMo,
@@ -49,42 +112,6 @@ core.hooksPath .githooks`). Enforcement here flows through the commands.
 - **watchdog** — daemon that monitors workers via SSE + SQLite, kills hung ones
   on timeout or budget excess. Automatic circuit breaker for cost control.
 - **migrate-from-cc** — `/migrate-check` + the migration skill.
-
-## Install
-
-Interactive by default; pass flags for non-interactive / CI use.
-
-```bash
-git clone https://github.com/malemi/mrcall-ai-kit.git
-cd mrcall-ai-kit
-./install.sh
-```
-
-Flags (any provided value skips its prompt):
-
-- `--environment claude|opencode|both`
-- `--features doc-harness,orchestration,workers,migrate` (or `all`)
-- `--mode symlink|copy` — symlink = edit the kit = edit your config
-- `--on-exist skip|overwrite|backup`
-- `--yes` — skip the final confirmation
-- `--dry-run` — show the plan, write nothing
-
-The installer detects which tools are present, offers only content valid for the
-chosen tool(s), shows a plan, and asks before writing. Global install only
-(commands live in `~/.claude/` and/or `~/.config/opencode/`); a repo's per-repo
-`docs/` is set up separately by `/doc-create`.
-
-After install, restart your Claude Code / OpenCode sessions, then run
-`/doc-create` inside a repo to bootstrap its docs.
-
-## Uninstall
-
-```bash
-./uninstall.sh
-```
-
-Removes everything the installer recorded — symlinks and copied files alike —
-by reading its own install log. Nothing installed by this kit is left behind.
 
 ## License
 
