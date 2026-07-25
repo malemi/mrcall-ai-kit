@@ -1,6 +1,5 @@
 ---
 description: End a work session — reconsolidate the docs to reality, verify against code, advance the baseline.
-disable-model-invocation: true
 allowed-tools: Bash(git *) Bash(python3 *) Bash(cat *)
 ---
 
