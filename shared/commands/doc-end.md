@@ -1,9 +1,19 @@
 ---
 description: End a work session — reconsolidate the docs to reality, verify against code, advance the baseline.
-allowed-tools: Bash(git *) Bash(python3 *) Bash(cat *)
+allowed-tools: Bash(git *) Bash(python3 *) Bash(cat *) Read Write Edit Glob Grep Skill(doc-critic)
 ---
 
 Consolidate session knowledge — Dream pattern: Orient → Gather → Consolidate → Prune. Ground truth is git plus the session transcript, never half-remembered context. Read `docs/.doc-profile` for mode, index file, and routing.
+
+## Harness version preflight — run before every other step
+This command implements `harness_version = 1`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
+
+- Equal to `1` ⇒ continue.
+- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 1). Run doc-create and explicitly choose the docs/ upgrade before consolidating.`
+- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 1, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
+- Missing profile ⇒ suggest `doc-create` and stop.
+
+Never edit session docs, advance the baseline, or run partial consolidation across a mismatch.
 
 ## Gate check — is consolidation needed?
 At least one must hold, else output `No consolidation needed.` and stop:
@@ -14,7 +24,7 @@ At least one must hold, else output `No consolidation needed.` and stop:
 ## Phase 1 — Orient (ground truth, pre-injected)
 !`git status --short`
 !`git log --oneline -n 15`
-1. Read `doc_baseline_commit` from `docs/active-context.md` frontmatter. The change set is everything in `git diff <doc_baseline_commit>..HEAD` — precise; do not guess a `HEAD~N` range. If absent, fall back to `git diff HEAD~5..HEAD` and note you are establishing the baseline now.
+1. Read `doc_baseline_commit` and validate that it resolves and is an ancestor of `HEAD`. The complete change set is the union of `git diff <baseline>..HEAD`, `git diff --cached`, and `git diff`. Include untracked paths from `git status --short` and read relevant new files. Never guess a `HEAD~N` range. If absent/invalid, inspect available history and working tree, state that a baseline is being established, and do not attribute uncertain work to this session.
 2. If unsure what landed this session vs. earlier, ask rather than guess.
 3. Read the docs you will edit.
 
@@ -26,17 +36,17 @@ Two kinds. The second is the one git CANNOT show you and is most often lost:
 ## Phase 3 — Consolidate (reconsolidate, don't append)
 Merge into existing content — no changelogs (git log is the changelog). Living docs are declarative and present-tense, **in English** (chat may be another language; artifacts are English).
 - Verify-before-done: record a feature as built / working ONLY if it was verified end-to-end this session the way the user runs it (CLI / API / browser / REPL) — not because code was written or unit tests passed. Coded-but-unverified ⇒ in progress / needs verification.
-- `docs/active-context.md`: overwrite to the state right now — built & verified, completed, unresolved / failing, immediate next steps. Route per the profile.
+- `docs/active-context.md`: overwrite to current reality — built & verified, unresolved/failing, and immediate next steps. It is not a changelog: remove obsolete theories, session narration, and completed detail without operational value. Keep only `State now`, `Unresolved`, and `Next` plus baseline frontmatter; target at most 120 lines and route durable knowledge elsewhere before pruning.
 - Durable docs (architecture / conventions): update ONLY on real structural change; delete descriptions of things that no longer exist.
-- Execution plans: check off completed steps, record decisions, set `status: completed` when done.
+- Execution plans: check off completed steps and record decisions. YAML frontmatter status must be one of `planned | active | blocked | completed | superseded`; set `status: completed` when done. Prose and emoji are not authoritative.
 - Quality / harness docs: update if coverage / debt / quality moved; log enforcement gaps to the backlog.
 - Maintain the **single source of truth**: if a sub-repo was added / removed / renamed or its role changed, update the index file's inventory tables — the ONLY place the inventory lives. Never re-add a repo table to `README.md` / `docs/README.md`.
 
 ## Phase 4 — Critic + gate (verify against code before advancing the baseline)
 1. **Mechanical gate** — must pass:
    !`python3 "$HOME/.config/mrcall-ai-kit/doc-check.py" --repo . 2>&1 || true`
-2. **Semantic critic** — run the `doc-critic` skill over the docs you touched this session (scoped to the diff): does any doc claim a feature / endpoint / file / flag that does not exist or is not wired? Is any described capability actually dead code? Is any artifact written in a non-English language that should be English? Flag → repair → re-check (reflexion) until the critic is clean.
-3. Only when BOTH pass, advance the baseline: set `doc_baseline_commit` to `git rev-parse HEAD` and update `doc_baseline_date` in `docs/active-context.md` frontmatter.
+2. **Semantic review** — explicitly invoke the installed `doc-critic` skill over every Markdown doc touched across committed, staged, unstaged, and untracked changes. Keep it separate from the mechanical gate. Repair STALE findings and rerun to zero STALE; preserve UNVERIFIABLE findings in output and never call them clean.
+3. Only when the mechanical gate passes and semantic review has zero STALE findings, set the baseline to current `git rev-parse HEAD` and update its date. It means "last reviewed repository commit", not "commit containing docs edits". A later commit touching only `docs/**` and configured `index_file` is ignored by `/doc-start`, so committing the consolidation creates no false drift. Never use an uncommitted or hypothetical SHA.
 
 ## Output
-`Session state consolidated. Baseline advanced to <sha>. [docs touched]. [gate: clean]. [critic: N claims verified/repaired]. [N plan steps completed. N harness gaps logged.]`
+`Session state consolidated. Baseline advanced to <sha>. [docs touched]. [mechanical gate: clean]. [semantic review: N confirmed, N repaired, N unverifiable]. [N plan steps completed. N harness gaps logged.]`

@@ -2,6 +2,11 @@
 
 Metadata for all LLMs available to the orchestrator. Used for informed task delegation.
 
+The static tables below age: model slugs get superseded and per-task best
+picks drift week to week. Two OpenRouter mechanisms (verified available in the
+OpenCode registry, 2026-07-25) let you stop hand-maintaining that — see
+[Auto-updating mechanisms](#auto-updating-mechanisms).
+
 ## Orchestrator Models (primary agents)
 
 | Model | ID | Cost (in/out per 1M) | Context | Best for |
@@ -43,6 +48,53 @@ Metadata for all LLMs available to the orchestrator. Used for informed task dele
 | worker-kimi | Kimi K2.7 Code | $0.95 / $4.00 | 256K | ~1.1T (32B) | Coding specialist, MCP tool workflows, refactoring |
 | worker-sonnet | Claude Sonnet 5 | $2.00 / $10.00 | 1M | Proprietary | Production coding, balanced intelligence + cost |
 
+## Auto-updating mechanisms
+
+Two OpenRouter features remove manual maintenance from model selection. Both
+are verified present in the OpenCode registry (`opencode models`, 2026-07-25)
+and usable as an agent's `model:` field.
+
+### 1. Elastic worker — Auto Router (which model per task)
+
+`worker-auto` (`opencode/agents/worker-auto.md`) uses
+`openrouter/openrouter/auto`. OpenRouter classifies each prompt into ~30 task
+types and routes to the model with the highest community share-of-spend over a
+trailing 7-day window, then follows the crowd as workloads migrate — no
+retraining, no manual curation. Verified end-to-end via subagent delegation
+(see `docs/briefs/test-worker-auto.md`).
+
+- **Use it when** the right worker for a task is unknown or volatile, or you
+  don't want to pin a specific model.
+- **Slug**: `openrouter/openrouter/auto` (the double prefix is OpenCode adding
+  its own `openrouter/` provider prefix to OpenRouter's `openrouter/auto` model
+  id — this is correct, not a typo). `openrouter/openrouter/auto-beta` is **not**
+  in the OpenCode registry, so `auto` is the slug to use here.
+- **Model actually used** is surfaced in the response `model` field.
+
+### 2. Tilde-latest aliases (models change weekly)
+
+Instead of pinning a versioned slug (e.g. `anthropic/claude-opus-4.8`) that
+goes stale, target a family alias that auto-resolves to the newest version.
+Available in the OpenCode registry:
+
+| Alias | Resolves to newest |
+|-------|--------------------|
+| `openrouter/~anthropic/claude-opus-latest` | Claude Opus family |
+| `openrouter/~anthropic/claude-sonnet-latest` | Claude Sonnet family |
+| `openrouter/~anthropic/claude-haiku-latest` | Claude Haiku family |
+| `openrouter/~anthropic/claude-fable-latest` | Claude Fable family |
+| `openrouter/~openai/gpt-latest` | GPT flagship family |
+| `openrouter/~openai/gpt-mini-latest` | GPT mini family |
+| `openrouter/~google/gemini-pro-latest` | Gemini Pro family |
+| `openrouter/~google/gemini-flash-latest` | Gemini Flash family |
+| `openrouter/~moonshotai/kimi-latest` | Kimi family |
+| `openrouter/~x-ai/grok-latest` | Grok family |
+
+- **Use it when** you want a specific family (its strengths, its price band) but
+  always the current version, without editing agent files on each release.
+- **Trade-off**: versionless slugs mean the underlying model can change under
+  you; pin an exact version when you need reproducibility.
+
 ## Selection Guide
 
 ### By task complexity
@@ -68,3 +120,5 @@ Metadata for all LLMs available to the orchestrator. Used for informed task dele
 | Large context (>256K) | worker-glm, worker-deepseek, worker-nemotron | 1M context |
 | Multilingual | worker-qwen | 201 languages |
 | Tool calling / MCP | worker-kimi or worker-sonnet | Best tool profiles |
+| Right model unknown / volatile | worker-auto | Auto Router picks per task — see [Auto-updating mechanisms](#auto-updating-mechanisms) |
+| Always-newest of a family | tilde-latest alias | Auto-resolves to current version — see [Auto-updating mechanisms](#auto-updating-mechanisms) |

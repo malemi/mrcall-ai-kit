@@ -4,7 +4,7 @@ set -euo pipefail
 # ──────────────────────────────────────────────────────────────────────────
 # mrcall-ai-kit installer
 #
-# Installs reusable AI-tool config into your GLOBAL Claude Code and/or OpenCode
+# Installs reusable AI-tool config into your GLOBAL Claude Code, Codex, and/or OpenCode
 # config. Interactive by default; pass flags for non-interactive / CI use.
 #
 # Content is routed by tool-compatibility:
@@ -13,7 +13,7 @@ set -euo pipefail
 #   opencode/  OpenCode-only — orchestrator, worker agents, migrate-from-cc
 #
 # Flags (any provided value skips its prompt):
-#   --environment claude|opencode|both
+#   --environment claude|codex|opencode|all|both
 #   --features    doc-harness,orchestration,workers,migrate   (or: all)
 #   --mode        symlink|copy
 #   --on-exist    skip|overwrite|backup
@@ -25,6 +25,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CC_DIR="$HOME/.claude"
 OC_DIR="$HOME/.config/opencode"
+CODEX_SKILLS_DIR="$HOME/.agents/skills"
 KIT_GLOBAL="$HOME/.config/mrcall-ai-kit"   # tool-independent home for doc-check.py
 MANIFEST="$KIT_GLOBAL/installed.tsv"       # append-only install log, read by ./uninstall.sh
 
@@ -39,10 +40,10 @@ list_entries() { # $1=dir → comma-joined basenames (strip .md), or (none)
 
 print_help() {
   cat <<'EOF'
-mrcall-ai-kit installer — global AI-tool config for Claude Code and/or OpenCode.
+mrcall-ai-kit installer — global AI-tool config for Claude Code, Codex, and/or OpenCode.
 Interactive by default; pass flags for non-interactive / CI use.
 
-Usage: ./install.sh [--environment claude|opencode|both] [--features LIST|all]
+Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features LIST|all]
                     [--mode symlink|copy] [--on-exist skip|overwrite|backup]
                     [--yes] [--dry-run] [--help]
 
@@ -53,7 +54,7 @@ Usage: ./install.sh [--environment claude|opencode|both] [--features LIST|all]
 What gets installed
 ───────────────────
 EOF
-  echo "  doc-harness    [cross-tool → Claude Code + OpenCode]"
+  echo "  doc-harness    [cross-tool → Claude Code + Codex + OpenCode]"
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
   echo "     scripts:    doc-check.py  (-> ~/.config/mrcall-ai-kit/, the gate the commands call)"
@@ -69,8 +70,9 @@ EOF
   echo "  migrate        [OpenCode only]"
   echo "     command:    migrate-check     skill: migrate-from-cc"
   echo
-  echo "Destinations: Claude Code -> ~/.claude/{commands,skills}/ ;  OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
-  echo "Global install only. A repo's own docs/ is bootstrapped separately by /doc-create."
+  echo "Destinations: Claude Code -> ~/.claude/{commands,skills}/ ; Codex -> ~/.agents/skills/ ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
+  echo "Environment alias: both = Claude Code + OpenCode; all = all three tools."
+  echo "Global install only. A repo's own docs/ is bootstrapped separately by invoking the doc-create workflow."
 }
 
 while [[ $# -gt 0 ]]; do
@@ -117,23 +119,27 @@ echo "mrcall-ai-kit installer"
 echo "  kit:         $SCRIPT_DIR"
 echo -n "  Claude Code: "; [[ -d "$CC_DIR" ]] && echo "found ($CC_DIR)" || echo "not found"
 echo -n "  OpenCode:    "; [[ -d "$OC_DIR" ]] && echo "found ($OC_DIR)" || echo "not found"
+echo -n "  Codex:       "; [[ -d "$HOME/.codex" || -d "$CODEX_SKILLS_DIR" ]] && echo "found ($CODEX_SKILLS_DIR)" || echo "not found"
 echo
 
 # ── Resolve environment(s) ─────────────────────────────────────────────────
-WANT_CC=false ; WANT_OC=false
+WANT_CC=false ; WANT_CODEX=false ; WANT_OC=false
 if [[ -n "$ENVIRONMENT" ]]; then
   case "$ENVIRONMENT" in
     claude)   WANT_CC=true ;;
+    codex)    WANT_CODEX=true ;;
     opencode) WANT_OC=true ;;
     both)     WANT_CC=true; WANT_OC=true ;;
-    *) echo "--environment must be claude|opencode|both" >&2; exit 1 ;;
+    all)      WANT_CC=true; WANT_CODEX=true; WANT_OC=true ;;
+    *) echo "--environment must be claude|codex|opencode|all|both" >&2; exit 1 ;;
   esac
 else
   need_tty_or_flag "--environment"
   ask_yn "Install for Claude Code?" "$([[ -d $CC_DIR ]] && echo y || echo n)" && WANT_CC=true
+  ask_yn "Install for Codex?"       "$([[ -d $HOME/.codex || -d $CODEX_SKILLS_DIR ]] && echo y || echo n)" && WANT_CODEX=true
   ask_yn "Install for OpenCode?"    "$([[ -d $OC_DIR ]] && echo y || echo n)" && WANT_OC=true
 fi
-$WANT_CC || $WANT_OC || { echo "Nothing selected. Exiting." >&2; exit 1; }
+$WANT_CC || $WANT_CODEX || $WANT_OC || { echo "Nothing selected. Exiting." >&2; exit 1; }
 
 # ── Resolve features (offer OC-only content only if OpenCode is selected) ───
 want_feature() { [[ ",$FEATURES," == *",$1,"* || "$FEATURES" == all ]]; }
@@ -181,6 +187,13 @@ if $DO_DOC; then
   # doc-check.py → kit-global, once (the commands call it from here)
   add_one "$SCRIPT_DIR/shared/scripts/doc-check.py" "$KIT_GLOBAL/doc-check.py"
   $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; }
+  if $WANT_CODEX; then
+    for command in doc-create doc-start doc-end; do
+      add_one "$SCRIPT_DIR/codex/skills/$command/SKILL.md" "$CODEX_SKILLS_DIR/$command/SKILL.md"
+      add_one "$SCRIPT_DIR/shared/commands/$command.md" "$CODEX_SKILLS_DIR/$command/WORKFLOW.md"
+    done
+    add_one "$SCRIPT_DIR/shared/skills/doc-critic" "$CODEX_SKILLS_DIR/doc-critic"
+  fi
   $WANT_OC && { add_dir "$SCRIPT_DIR/shared/commands" "$OC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$OC_DIR/skills"; }
 fi
 if $WANT_OC; then
@@ -251,6 +264,7 @@ echo
 echo "── Done ──"
 $DRY_RUN && echo "(dry-run — nothing was written)"
 $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills."
+$WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/.agents/skills."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
-$DO_DOC  && echo "  Next: inside a repo, run /doc-create to bootstrap its docs/."
+$DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DRY_RUN || echo "  Install log: $MANIFEST  (run ./uninstall.sh to undo exactly these)."

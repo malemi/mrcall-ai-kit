@@ -1,8 +1,8 @@
 # mrcall-ai-kit
 
-Reusable AI-tool config for **Claude Code** and **OpenCode**: a documentation
-harness that keeps docs from rotting, plus (OpenCode-only) multi-model
-orchestration and migration tooling.
+Reusable AI-tool config for **Claude Code**, **Codex**, and **OpenCode**: a
+documentation harness that keeps docs from rotting, plus (OpenCode-only)
+multi-model orchestration and migration tooling.
 
 ## Install
 
@@ -19,20 +19,24 @@ the doc-harness gate).
 
 Then:
 
-1. Restart your Claude Code / OpenCode sessions so they pick up the new
-   commands, skills and agents.
-2. Inside any repo you work on, run `/doc-create` to bootstrap its `docs/`.
+1. Restart your Claude Code / Codex / OpenCode sessions so they pick up the new
+   commands, skills, and agents.
+2. Inside any repo you work on, invoke the `doc-create` workflow to bootstrap
+   its `docs/` (a slash command where supported, a skill in Codex).
 
-The install is **global** — commands land in `~/.claude/` and/or
-`~/.config/opencode/`, and `doc-check.py` in `~/.config/mrcall-ai-kit/`. Nothing
-is written inside your repos; per-repo `docs/` is created later by `/doc-create`.
+The install is **global**. Claude Code and OpenCode receive commands in their
+native locations. Codex receives user-level skills under
+`$HOME/.agents/skills`; its legacy `~/.codex/prompts` mechanism is deprecated
+and is not the integration target. `doc-check.py` is installed once in
+`~/.config/mrcall-ai-kit/`. Nothing is written inside your repos; per-repo
+`docs/` is created later by the harness bootstrap workflow.
 
 ### Non-interactive install
 
 Every question has a flag; passing it skips that prompt. Everything at once:
 
 ```bash
-./install.sh --environment both --features all \
+./install.sh --environment all --features all \
              --mode symlink --on-exist backup --yes
 ```
 
@@ -45,7 +49,7 @@ Just the doc-harness for Claude Code:
 
 | Flag | Values | Meaning |
 |------|--------|---------|
-| `--environment` | `claude`, `opencode`, `both` | which tool(s) to install into |
+| `--environment` | `claude`, `codex`, `opencode`, `all`, `both` | which tool(s) to install into; `all` selects all three, while legacy `both` means Claude Code + OpenCode |
 | `--features` | `doc-harness`, `orchestration`, `workers`, `migrate` (comma list, or `all`) | what to install |
 | `--mode` | `symlink`, `copy` | `symlink` = edit the kit = edit your config, and the clone must stay where it is; `copy` = frozen snapshot, clone disposable |
 | `--on-exist` | `skip`, `overwrite`, `backup` | what to do when a target file is already there |
@@ -71,10 +75,12 @@ Content is routed by tool-compatibility — the installer only puts each piece
 where it works:
 
 ```
-shared/     cross-tool (Claude Code + OpenCode)
+shared/     cross-tool harness sources
   commands/   doc-create, doc-start, doc-end
   scripts/    doc-check.py       → installed once to ~/.config/mrcall-ai-kit/
   skills/     doc-critic
+codex/      Codex-native skill entry points; workflows come from shared/commands
+  skills/     doc-create, doc-start, doc-end
 opencode/   OpenCode-only
   commands/   orchestrator, migrate-check
   agents/     build, plan, reviewer, + 15 worker models
@@ -82,23 +88,44 @@ opencode/   OpenCode-only
               watchdog.py, watchdog-cli, watchdog_client.py
 ```
 
-### The doc-harness (cross-tool)
+### The doc-harness (Claude Code, Codex, and OpenCode)
 
-A single source of truth (one thin index file, `CLAUDE.md`) + a gate that makes
-"documented" mean "true". Three commands:
+A single source of truth (one thin index file, `CLAUDE.md`) plus two distinct
+verification layers. The harness has three workflows, exposed as slash commands
+where supported and as skills in Codex:
 
-- **`/doc-create`** — bootstrap a repo's `docs/` skeleton, its `.doc-profile`,
+- **`doc-create`** — bootstrap a repo's `docs/` skeleton, its `.doc-profile`,
   and a thin index. Idempotent; never fabricates knowledge.
-- **`/doc-start`** — load the smallest high-signal context and run the gate, so
+- **`doc-start`** — load the smallest high-signal context and run the gate, so
   drift is visible at the start of every session.
-- **`/doc-end`** — reconsolidate the docs to reality, then verify against code
+- **`doc-end`** — reconsolidate the docs to reality, then verify against code
   (mechanical `doc-check` + the semantic `doc-critic` skill) before advancing
   the baseline.
 
-`doc-check.py` (mechanical gate) fails on dead doc links and, in meta-repos, on
-repo-inventory drift or a duplicated repo-index. `doc-critic` is the semantic
-pass: it flags any doc that describes a feature/endpoint/file that doesn't exist
-or isn't wired (dead code documented as live).
+`doc-check.py` is the mechanical gate. It recursively checks Markdown under
+`docs/`, validates the profile and execution-plan status schema, fails on dead
+relative links, and (in meta-repos) detects repo-inventory drift or a duplicated
+repo index. It also reports baseline problems, including a baseline that is not
+an ancestor of `HEAD`.
+
+The mechanical gate proves structural consistency, not truth. `doc-critic` is
+the separate semantic pass: it checks changed documentation against the
+implementation and flags a feature, endpoint, file, or flag that does not exist
+or is not wired.
+
+Every `doc-*` workflow first compares its embedded harness protocol version
+with `harness_version` in `docs/.doc-profile`. If repo docs are older, it stops
+and offers an explicit docs migration; if repo docs are newer, it stops and
+requires upgrading/reinstalling the kit. No command silently migrates or
+downgrades documentation.
+
+Execution plans use machine-readable YAML frontmatter with one of these states:
+`planned`, `active`, `blocked`, `completed`, or `superseded`.
+`active-context.md` is a living snapshot, not a session log. The baseline
+identifies the code state reconciled by the document; the documentation edit
+that records it may be committed immediately after that commit. See
+[`docs/documentation-harness.md`](docs/documentation-harness.md) for the full
+contract.
 
 Git hooks are intentionally NOT shipped — a pre-commit hook is repo-local
 plumbing you add yourself (`.githooks/pre-commit` running the gate + `git config

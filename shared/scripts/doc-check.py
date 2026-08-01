@@ -9,8 +9,8 @@ rot cannot survive a `/doc-start`, a `/doc-end`, or (if a repo opts in) a
 pre-commit hook.
 
 Checks (which run depends on the repo's profile — see below):
-  1. DEAD LINKS   (always) — every relative markdown link in the index docs
-                  (README.md, <index_file>, docs/*.md) must resolve on disk.
+  1. DEAD LINKS   (always) — every relative markdown link in README.md,
+                  <index_file>, and docs/**/*.md must resolve on disk.
   2. INVENTORY    (meta mode only) — every independent sub-repo checked out under
                   the repo root must appear in <index_file>'s `## Services` table,
                   and every dir the table names must exist.
@@ -18,9 +18,14 @@ Checks (which run depends on the repo's profile — see below):
                   the repos in a table; the inventory lives ONLY in <index_file>.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
+    harness_version   = 1                    (must match installed harness)
+    schema_version    = 1                    (optional for legacy profiles)
     mode              = meta | leaf          (default: leaf — links only)
     index_file        = CLAUDE.md            (the single-source index)
     inventory_ignore  = dir1, dir2           (sub-repo dirs to skip in INVENTORY)
+    build             = command              (optional metadata; never executed)
+    smoke             = command              (optional metadata; never executed)
+    index_max_lines   = 200                  (0 disables the thin-index check)
 A leaf repo (no sub-repos) only needs the DEAD LINKS check, so it needs no
 profile at all. A meta-repo (one that checks out other repos) sets `mode = meta`.
 
@@ -36,6 +41,12 @@ import sys
 from pathlib import Path
 
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+HARNESS_VERSION = 1
+KNOWN_PROFILE_KEYS = {
+    "harness_version", "schema_version", "mode", "index_file", "inventory_ignore",
+    "build", "smoke", "index_max_lines",
+}
+PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
 
 
 def repo_root(explicit: str | None) -> Path:
@@ -51,22 +62,87 @@ def repo_root(explicit: str | None) -> Path:
         return Path.cwd()
 
 
-def read_profile(root: Path) -> dict[str, str]:
+def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
     prof = root / "docs" / ".doc-profile"
-    values: dict[str, str] = {"mode": "leaf", "index_file": "CLAUDE.md", "inventory_ignore": ""}
+    profile_exists = prof.exists()
+    values: dict[str, str] = {
+        "mode": "leaf", "index_file": "CLAUDE.md", "inventory_ignore": "",
+        "index_max_lines": "200",
+    }
+    errors: list[str] = []
     if prof.exists():
-        for line in prof.read_text(encoding="utf-8").splitlines():
+        seen: set[str] = set()
+        for number, line in enumerate(prof.read_text(encoding="utf-8").splitlines(), 1):
             line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
+            if not line or line.startswith("#"):
+                continue
+            if "=" not in line:
+                errors.append(f"docs/.doc-profile:{number}: expected `key = value`")
                 continue
             k, _, v = line.partition("=")
-            values[k.strip()] = v.strip()
-    return values
+            key, value = k.strip(), v.strip()
+            if key not in KNOWN_PROFILE_KEYS:
+                errors.append(f"docs/.doc-profile:{number}: unknown key `{key}`")
+            elif key in seen:
+                errors.append(f"docs/.doc-profile:{number}: duplicate key `{key}`")
+            else:
+                seen.add(key)
+                values[key] = value
+    if values["mode"].lower() not in {"leaf", "meta"}:
+        errors.append("docs/.doc-profile: `mode` must be `leaf` or `meta`")
+    if "schema_version" in values and values["schema_version"] != "1":
+        errors.append("docs/.doc-profile: `schema_version` must be `1`")
+    index = root / values["index_file"]
+    if profile_exists and (not values["index_file"] or not index.is_file()):
+        errors.append(f"docs/.doc-profile: index file `{values['index_file']}` does not exist")
+    elif profile_exists:
+        if index.suffix.lower() != ".md":
+            errors.append("docs/.doc-profile: `index_file` must be a Markdown (`.md`) file")
+        try:
+            index.resolve().relative_to(root.resolve())
+        except ValueError:
+            errors.append("docs/.doc-profile: `index_file` must stay inside the repo")
+    for key in ("build", "smoke"):
+        if key in values and not values[key]:
+            errors.append(f"docs/.doc-profile: `{key}` must not be empty when present")
+    try:
+        if int(values["index_max_lines"]) < 0:
+            raise ValueError
+    except ValueError:
+        errors.append("docs/.doc-profile: `index_max_lines` must be a non-negative integer")
+    if profile_exists:
+        raw_version = values.get("harness_version")
+        if raw_version is None:
+            errors.append(
+                "docs/.doc-profile: missing `harness_version`; repository docs use a "
+                "legacy harness — explicitly migrate docs/ with the installed doc-create workflow"
+            )
+        else:
+            try:
+                profile_version = int(raw_version)
+                if profile_version < 1:
+                    raise ValueError
+            except ValueError:
+                errors.append("docs/.doc-profile: `harness_version` must be a positive integer")
+            else:
+                if profile_version < HARNESS_VERSION:
+                    errors.append(
+                        f"docs harness version {profile_version} is older than installed version "
+                        f"{HARNESS_VERSION}; explicitly migrate docs/ with doc-create"
+                    )
+                elif profile_version > HARNESS_VERSION:
+                    errors.append(
+                        f"docs harness version {profile_version} is newer than installed version "
+                        f"{HARNESS_VERSION}; upgrade the installed mrcall-ai-kit commands"
+                    )
+    return values, errors, profile_exists
 
 
 def index_docs(root: Path, index_file: str) -> list[Path]:
     docs = [root / "README.md", root / index_file]
-    docs += sorted((root / "docs").glob("*.md"))
+    docs_dir = root / "docs"
+    if docs_dir.exists():
+        docs += sorted(docs_dir.rglob("*.md"))
     seen, out = set(), []
     for p in docs:
         if p.exists() and p not in seen:
@@ -84,7 +160,7 @@ def canonical_repo_dirs(root: Path, index_file: str) -> set[str]:
     try:
         start = next(i for i, ln in enumerate(lines) if ln.strip() == "## Services")
     except StopIteration:
-        sys.exit(f"doc-check: FATAL — meta mode but no `## Services` table in {index_file}")
+        return set()
     names: set[str] = set()
     for ln in lines[start + 1:]:
         if ln.startswith("## "):
@@ -120,9 +196,86 @@ def check_dead_links(root: Path, index_file: str) -> list[str]:
     return errors
 
 
+def check_index_thin(root: Path, index_file: str, maximum: int) -> list[str]:
+    index = root / index_file
+    if not maximum or not index.is_file():
+        return []
+    count = len(index.read_text(encoding="utf-8").splitlines())
+    if count > maximum:
+        return [
+            f"{index_file} has {count} lines (thin-index limit: {maximum}; "
+            "set `index_max_lines = 0` to disable)"
+        ]
+    return []
+
+
+def frontmatter(text: str) -> tuple[dict[str, str], set[str]] | None:
+    lines = text.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None
+    values: dict[str, str] = {}
+    duplicates: set[str] = set()
+    for line in lines[1:]:
+        if line.strip() == "---":
+            return values, duplicates
+        if ":" in line:
+            key, _, value = line.partition(":")
+            key = key.strip()
+            if key in values:
+                duplicates.add(key)
+            values[key] = value.strip().strip("\"'")
+    return None
+
+
+def check_plan_statuses(root: Path) -> list[str]:
+    plans = root / "docs" / "execution-plans"
+    if not plans.exists():
+        return []
+    errors: list[str] = []
+    for plan in sorted(plans.rglob("*.md")):
+        rel = plan.relative_to(root)
+        parsed = frontmatter(plan.read_text(encoding="utf-8"))
+        if parsed is None:
+            errors.append(f"{rel}: missing YAML frontmatter with `status`")
+            continue
+        metadata, duplicates = parsed
+        if "status" in duplicates:
+            errors.append(f"{rel}: frontmatter must contain exactly one `status`")
+        elif "status" not in metadata:
+            errors.append(f"{rel}: frontmatter is missing `status`")
+        elif metadata["status"].lower() not in PLAN_STATUSES:
+            allowed = "|".join(sorted(PLAN_STATUSES))
+            errors.append(f"{rel}: invalid status `{metadata['status']}` (expected {allowed})")
+    return errors
+
+
+def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
+
+
+def check_baseline(root: Path) -> list[str]:
+    context = root / "docs" / "active-context.md"
+    if not context.is_file():
+        return []
+    parsed = frontmatter(context.read_text(encoding="utf-8"))
+    metadata = parsed[0] if parsed else {}
+    baseline = metadata.get("doc_baseline_commit", "")
+    if not baseline:
+        return ["docs/active-context.md: missing frontmatter `doc_baseline_commit`"]
+    if run_git(root, "rev-parse", "--is-inside-work-tree").returncode:
+        return ["cannot validate doc baseline: repo is not a Git worktree"]
+    if run_git(root, "cat-file", "-e", f"{baseline}^{{commit}}").returncode:
+        return [f"docs/active-context.md: baseline commit `{baseline}` does not exist"]
+    if run_git(root, "merge-base", "--is-ancestor", baseline, "HEAD").returncode:
+        return [f"docs/active-context.md: baseline `{baseline}` is not an ancestor of HEAD"]
+    return []
+
+
 def check_inventory(root: Path, index_file: str, ignore: set[str]) -> list[str]:
     errors: list[str] = []
     canonical = canonical_repo_dirs(root, index_file)
+    if not canonical:
+        return [f"meta mode requires a non-empty `## Services` table in {index_file}"]
     on_disk = {d.name for d in root.iterdir() if is_independent_repo(d) and d.name not in ignore}
     for repo in sorted(on_disk - canonical):
         errors.append(
@@ -176,27 +329,39 @@ def main() -> int:
     args = ap.parse_args()
 
     root = repo_root(args.repo)
-    prof = read_profile(root)
+    prof, profile_errors, _ = read_profile(root)
     index_file = prof["index_file"]
     meta = prof["mode"].lower() == "meta"
     ignore = {s.strip() for s in prof["inventory_ignore"].split(",") if s.strip()}
 
-    groups = [("DEAD LINKS", check_dead_links(root, index_file))]
+    try:
+        index_max_lines = int(prof["index_max_lines"])
+    except ValueError:
+        index_max_lines = 0
+    groups = [
+        ("PROFILE", profile_errors),
+        ("DEAD LINKS", check_dead_links(root, index_file)),
+        ("THIN INDEX", check_index_thin(root, index_file, index_max_lines)),
+        ("PLAN STATUS", check_plan_statuses(root)),
+        ("BASELINE", check_baseline(root)),
+    ]
     if meta:
         groups.append(("INVENTORY DRIFT", check_inventory(root, index_file, ignore)))
         groups.append(("DUPLICATE INDEX", check_no_dup_index(root, index_file)))
 
     failed = [(name, errs) for name, errs in groups if errs]
     if not failed:
-        print(f"doc-check: OK — {root.name} docs clean ({'meta' if meta else 'leaf'} mode).")
+        print(
+            f"doc-check: MECHANICAL GATE CLEAN — {root.name} "
+            f"({'meta' if meta else 'leaf'} mode, harness v{HARNESS_VERSION})"
+        )
         return 0
-    print("doc-check: FAILED\n")
+    print("doc-check: MECHANICAL GATE FAILED")
+    print("violations:")
     for name, errs in failed:
         print(f"  [{name}]")
         for e in errs:
             print(f"    - {e}")
-        print()
-    print(f"Fix the above (single source of truth = {index_file}) or the commit/step is blocked.")
     return 1
 
 
