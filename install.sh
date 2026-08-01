@@ -189,8 +189,9 @@ if $DO_DOC; then
   $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; }
   if $WANT_CODEX; then
     for command in doc-create doc-start doc-end; do
-      add_one "$SCRIPT_DIR/codex/skills/$command/SKILL.md" "$CODEX_SKILLS_DIR/$command/SKILL.md"
-      add_one "$SCRIPT_DIR/shared/commands/$command.md" "$CODEX_SKILLS_DIR/$command/WORKFLOW.md"
+      # Codex discovers a symlinked skill directory, but not a real directory
+      # containing symlinked SKILL.md/WORKFLOW.md files. Install atomically.
+      add_one "$SCRIPT_DIR/codex/skills/$command" "$CODEX_SKILLS_DIR/$command"
     done
     add_one "$SCRIPT_DIR/shared/skills/doc-critic" "$CODEX_SKILLS_DIR/doc-critic"
   fi

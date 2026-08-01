@@ -22,7 +22,7 @@ Then:
 1. Restart your Claude Code / Codex / OpenCode sessions so they pick up the new
    commands, skills, and agents.
 2. Inside any repo you work on, invoke the `doc-create` workflow to bootstrap
-   its `docs/` (a slash command where supported, a skill in Codex).
+   its `docs/` (`/doc-create` where commands are supported; `$doc-create` in Codex).
 
 The install is **global**. Claude Code and OpenCode receive commands in their
 native locations. Codex receives user-level skills under
@@ -79,8 +79,8 @@ shared/     cross-tool harness sources
   commands/   doc-create, doc-start, doc-end
   scripts/    doc-check.py       → installed once to ~/.config/mrcall-ai-kit/
   skills/     doc-critic
-codex/      Codex-native skill entry points; workflows come from shared/commands
-  skills/     doc-create, doc-start, doc-end
+codex/      Codex-native skill packages, installed atomically as directories
+  skills/     doc-create, doc-start, doc-end (SKILL.md + WORKFLOW.md)
 opencode/   OpenCode-only
   commands/   orchestrator, migrate-check
   agents/     build, plan, reviewer, + 16 worker models
@@ -91,8 +91,8 @@ opencode/   OpenCode-only
 ### The doc-harness (Claude Code, Codex, and OpenCode)
 
 A single source of truth (one thin index file, `CLAUDE.md`) plus two distinct
-verification layers. The harness has three workflows, exposed as slash commands
-where supported and as skills in Codex:
+verification layers. The harness has three workflows, exposed as slash commands where supported
+and as `$doc-create`, `$doc-start`, and `$doc-end` skills in Codex:
 
 - **`doc-create`** — bootstrap a repo's `docs/` skeleton, its `.doc-profile`,
   and a thin index. Idempotent; never fabricates knowledge.
