@@ -2,8 +2,9 @@
 
 Thin index for AI tools. Pointers only; no prose, no duplicated inventory.
 
-Reusable AI-tool config for **Claude Code** and **OpenCode**: a documentation
-harness plus (OpenCode-only) multi-model orchestration and migration tooling.
+Reusable AI-tool config for **Claude Code**, **Codex**, and **OpenCode**: a
+documentation harness plus (OpenCode-only) multi-model orchestration and
+migration tooling.
 User-facing overview lives in [`README.md`](README.md).
 
 ## Docs
@@ -15,8 +16,8 @@ User-facing overview lives in [`README.md`](README.md).
 
 ## Layout
 
-- `shared/` — cross-tool (Claude Code + OpenCode): doc-harness commands,
-  `doc-check.py` gate, `doc-critic` skill.
+- `shared/` — source workflows, `doc-check.py` gate, and `doc-critic` skill.
+- `codex/` — Codex-native skill entry points for the shared doc workflows.
 - `opencode/` — OpenCode-only: orchestration, worker agents, watchdog,
   migration tooling.
 - `install.sh` / `uninstall.sh` — global installer / uninstaller.

@@ -2,24 +2,23 @@
 
 Recurring problems and their fixes.
 
-## OpenCode non hot-reloada agent files mid-session
+## OpenCode does not hot-reload agent files mid-session
 
-**Sintomo**: un nuovo `*.md` creato in `~/.config/opencode/agents/` (o
-copiato lì) durante una sessione attiva risulta `Unknown agent type:
-<name> is not a valid agent type` quando lo si passa come `subagent_type`
-al tool `task()`.
+**Symptom**: a new `*.md` created or copied into
+`~/.config/opencode/agents/` during an active session returns `Unknown agent
+type: <name> is not a valid agent type` when passed to `task()` as a
+`subagent_type`.
 
-**Causa root** (verificata 2026-07-25): OpenCode carica il registry agent
-a session-start e non hot-reloada. Non è un problema del model ID, del
-frontmatter YAML, dei permessi o del path — è il caricamento stesso.
+**Root cause** (verified 2026-07-25): OpenCode loads its agent registry at
+session start and does not hot-reload it. The model ID, YAML frontmatter,
+permissions, and path are not responsible.
 
-**Verifica**: creato un agent di controllo `worker-auto-test` con un model
-NOTO funzionante (`opencode/gpt-5.4-nano`, identico al `worker-gpt`
-operativo) → stesso `Unknown agent type`. Esclude ogni altra ipotesi.
+**Verification**: a control agent named `worker-auto-test` used the known-good
+`opencode/gpt-5.4-nano` model, identical to the operational `worker-gpt`, and
+returned the same error. This isolates registry loading as the cause.
 
-**Soluzione**: riavviare OpenCode per caricare il nuovo agent nel registry.
-Creare agent mid-session è inutile; pianificare l'aggiunta al prossimo
-restart.
+**Solution**: restart OpenCode so the new agent enters the registry. Creating an
+agent mid-session cannot make it available to that session.
 
-**Anti-pattern**: NON tentare workaround (ricaricare config, symlink strani,
-path alternativi) — la fix è strutturale in OpenCode, richiede restart.
+**Anti-pattern**: do not retry configuration reloads, alternate paths, or
+symlink workarounds. A restart is required.

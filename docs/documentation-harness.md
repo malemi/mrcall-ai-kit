@@ -38,8 +38,9 @@ consistent. It does **not** mean prose matches runtime behavior.
 
 The semantic critic reviews factual claims in changed documentation against
 code and wiring. It classifies unsupported claims instead of guessing and
-enforces English for repository artifacts. Session consolidation succeeds only
-after both checks are clean.
+enforces English for repository artifacts. Session consolidation requires a
+clean mechanical gate and zero stale semantic claims; unverifiable claims stay
+explicit in the result.
 
 ## Profile schema
 
@@ -111,7 +112,8 @@ code-bearing commits from docs-only commits when possible and reports
 uncommitted changes separately.
 
 The end workflow reviews committed changes since the baseline and relevant
-working-tree changes. It advances the baseline only after both gates pass.
+working-tree changes. It advances the baseline only after the mechanical gate
+passes and semantic review has zero stale claims.
 Advancing it to `HEAD` records what was reviewed; it cannot represent an
 uncommitted code change as part of that commit.
 

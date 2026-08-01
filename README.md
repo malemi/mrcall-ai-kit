@@ -83,7 +83,7 @@ codex/      Codex-native skill entry points; workflows come from shared/commands
   skills/     doc-create, doc-start, doc-end
 opencode/   OpenCode-only
   commands/   orchestrator, migrate-check
-  agents/     build, plan, reviewer, + 15 worker models
+  agents/     build, plan, reviewer, + 16 worker models
   skills/     orchestrator, migrate-from-cc
               watchdog.py, watchdog-cli, watchdog_client.py
 ```
