@@ -107,9 +107,10 @@ and as `$doc-create`, `$doc-start`, and `$doc-end` skills in Codex:
 
 `doc-check.py` is the mechanical gate. It recursively checks Markdown under
 `docs/`, validates the profile and execution-plan status schema, fails on dead
-relative links, and (in meta-repos) detects repo-inventory drift or a duplicated
-repo index. It also reports baseline problems, including a baseline that is not
-an ancestor of `HEAD`.
+relative links, rejects any section in `active-context.md` outside the
+canonical three, and (in meta-repos) detects repo-inventory drift or a
+duplicated repo index. It also reports baseline problems, including a baseline
+that is not an ancestor of `HEAD`.
 
 The mechanical gate proves structural consistency, not truth. `doc-critic` is
 the separate semantic pass: it checks changed documentation against the

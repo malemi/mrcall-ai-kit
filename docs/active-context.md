@@ -10,7 +10,7 @@ of appending session history; Git and completed briefs retain that history.
 
 ## State now
 
-Harness version 2 is implemented across Claude Code, Codex, and OpenCode.
+Harness version 3 is implemented across Claude Code, Codex, and OpenCode.
 Pruned `active-context.md` narrative now moves to `active-context-archive.md`
 (dated, newest first, verbatim, never read by `doc-start`) instead of being
 discarded: `doc-end` Phase 3 archives it proactively every session, and
@@ -21,8 +21,17 @@ that each said "consolidate"). Whether that check repairs or only reports
 follows the delegation boundary: in-session it repairs, delegated it reports a
 blocking finding, because sorting current from historical needs the transcript
 a subagent does not have. The repair was verified against a real scratch
-fixture, byte-for-byte zero information loss. The durable contract is in
-[`documentation-harness.md`](documentation-harness.md); 16 checker tests + the
+fixture, byte-for-byte zero information loss.
+
+Since v3 the heading half of that shape is **mechanical**: `doc-check.py`
+fails on any `##` section in `active-context.md` outside the canonical three
+(code fences excluded; the archive exempt). The two LLM layers above it each
+failed in practice — one repo drifted to ~1500 lines over two months of
+consolidations, then lost 1436 lines and four durable invariants to a session
+that never invoked `doc-end` at all, which no instruction to an agent can
+prevent. Replayed against that repo's real pre-trim file, the check reports 27
+violations. The durable contract is in
+[`documentation-harness.md`](documentation-harness.md); 21 checker tests + the
 Codex install layout test pass.
 
 `doc-end` delegates its delegable work to pinned-model workers where the

@@ -18,7 +18,7 @@ class DocCheckTests(unittest.TestCase):
         (self.root / "README.md").write_text("# Readme\n", encoding="utf-8")
         (self.root / "CLAUDE.md").write_text("# Index\n", encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 2\nmode = leaf\nindex_file = CLAUDE.md\ninventory_ignore =\n",
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ninventory_ignore =\n",
             encoding="utf-8",
         )
         self.git("init")
@@ -49,14 +49,14 @@ class DocCheckTests(unittest.TestCase):
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
-        self.assertIn("harness v2", result.stdout)
+        self.assertIn("harness v3", result.stdout)
 
     def test_all_commands_embed_the_checker_harness_version(self) -> None:
         checker_source = CHECKER.read_text(encoding="utf-8")
-        self.assertIn("HARNESS_VERSION = 2", checker_source)
+        self.assertIn("HARNESS_VERSION = 3", checker_source)
         for name in ("doc-create.md", "doc-start.md", "doc-end.md"):
             command = (COMMANDS / name).read_text(encoding="utf-8")
-            self.assertIn("implements `harness_version = 2`", command, name)
+            self.assertIn("implements `harness_version = 3`", command, name)
 
     def test_dead_links_are_checked_recursively(self) -> None:
         nested = self.root / "docs" / "briefs" / "nested"
@@ -69,7 +69,7 @@ class DocCheckTests(unittest.TestCase):
 
     def test_profile_schema_rejects_unknown_invalid_and_empty_values(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 2\nmode = other\nindex_file = missing.md\n"
+            "harness_version = 3\nmode = other\nindex_file = missing.md\n"
             "build =\nunknown = yes\nindex_max_lines = no\n",
             encoding="utf-8",
         )
@@ -83,7 +83,7 @@ class DocCheckTests(unittest.TestCase):
     def test_index_file_must_be_markdown(self) -> None:
         (self.root / "INDEX.txt").write_text("index\n", encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 2\nmode = leaf\nindex_file = INDEX.txt\n", encoding="utf-8"
+            "harness_version = 3\nmode = leaf\nindex_file = INDEX.txt\n", encoding="utf-8"
         )
         self.assertIn("must be a Markdown (`.md`) file", self.check().stdout)
 
@@ -91,12 +91,12 @@ class DocCheckTests(unittest.TestCase):
         profile = self.root / "docs" / ".doc-profile"
         self.assertEqual(self.check().returncode, 0)  # schema_version is independent and optional
         profile.write_text(
-            "harness_version = 2\nschema_version = 1\nmode = leaf\nindex_file = CLAUDE.md\n",
+            "harness_version = 3\nschema_version = 1\nmode = leaf\nindex_file = CLAUDE.md\n",
             encoding="utf-8",
         )
         self.assertEqual(self.check().returncode, 0)
         profile.write_text(
-            "harness_version = 2\nschema_version = 2\nmode = leaf\nindex_file = CLAUDE.md\n",
+            "harness_version = 3\nschema_version = 2\nmode = leaf\nindex_file = CLAUDE.md\n",
             encoding="utf-8",
         )
         self.assertIn("`schema_version` must be `1`", self.check().stdout)
@@ -104,9 +104,9 @@ class DocCheckTests(unittest.TestCase):
     def test_thin_index_limit_is_configurable_and_zero_disables_it(self) -> None:
         (self.root / "CLAUDE.md").write_text("one\ntwo\nthree\n", encoding="utf-8")
         profile = self.root / "docs" / ".doc-profile"
-        profile.write_text("harness_version = 2\nmode = leaf\nindex_file = CLAUDE.md\nindex_max_lines = 2\n", encoding="utf-8")
+        profile.write_text("harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\nindex_max_lines = 2\n", encoding="utf-8")
         self.assertIn("[THIN INDEX]", self.check().stdout)
-        profile.write_text("harness_version = 2\nmode = leaf\nindex_file = CLAUDE.md\nindex_max_lines = 0\n", encoding="utf-8")
+        profile.write_text("harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\nindex_max_lines = 0\n", encoding="utf-8")
         self.assertEqual(self.check().returncode, 0)
 
     def test_missing_harness_version_requires_docs_migration(self) -> None:
@@ -127,11 +127,11 @@ class DocCheckTests(unittest.TestCase):
 
     def test_newer_harness_version_requires_command_upgrade(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 4\nmode = leaf\nindex_file = CLAUDE.md\n", encoding="utf-8"
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("newer than installed version 2", result.stdout)
+        self.assertIn("newer than installed version 3", result.stdout)
         self.assertIn("upgrade the installed", result.stdout)
 
     def test_older_harness_version_requires_docs_upgrade(self) -> None:
@@ -140,7 +140,7 @@ class DocCheckTests(unittest.TestCase):
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("docs harness version 1 is older than installed version 2", result.stdout)
+        self.assertIn("docs harness version 1 is older than installed version 3", result.stdout)
         self.assertIn("migrate docs/", result.stdout)
 
     def test_execution_plan_requires_enumerated_status(self) -> None:
@@ -185,6 +185,57 @@ class DocCheckTests(unittest.TestCase):
         )
         result = self.check()
         self.assertIn("not an ancestor of HEAD", result.stdout)
+
+    def _context(self, body: str) -> None:
+        baseline = self.git("rev-parse", "HEAD").stdout.strip()
+        (self.root / "docs" / "active-context.md").write_text(
+            f"---\ndoc_baseline_commit: {baseline}\n---\n\n# Active Context\n{body}",
+            encoding="utf-8",
+        )
+
+    def test_living_context_accepts_only_the_canonical_sections(self) -> None:
+        self._context(
+            "\n## State now\nfine\n\n## Unresolved\n- none\n\n## Next\n- ship\n"
+        )
+        self.assertEqual(self.check().returncode, 0, self.check().stdout)
+        self._context(
+            "\n## State now\nfine\n\n## 2026-05-28 — what we did\nnarrative\n\n## Next\n- ship\n"
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("[LIVING CONTEXT]", result.stdout)
+        self.assertIn("2026-05-28 — what we did", result.stdout)
+        self.assertIn("active-context-archive.md", result.stdout)
+
+    def test_living_context_section_match_is_case_insensitive_and_allows_subsections(self) -> None:
+        self._context(
+            "\n## state now\nfine\n### a subsection is fine\ndetail\n\n## NEXT\n- ship\n"
+        )
+        self.assertEqual(self.check().returncode, 0, self.check().stdout)
+
+    def test_living_context_ignores_headings_inside_code_fences(self) -> None:
+        """A `## ...` line inside a fenced block is content, not a section."""
+        self._context(
+            "\n## State now\n\n```markdown\n## 2026-05-28 — this is an example, not a section\n```\n\n"
+            "~~~\n## nor is this\n~~~\n\n## Next\n- ship\n"
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+
+    def test_living_context_check_is_skipped_when_the_file_is_absent(self) -> None:
+        (self.root / "docs" / "active-context.md").unlink()
+        result = self.check()
+        self.assertNotIn("[LIVING CONTEXT]", result.stdout)
+
+    def test_living_context_does_not_police_the_archive(self) -> None:
+        """The archive is all dated sections by design; only active-context.md is shaped."""
+        self._context("\n## State now\nfine\n\n## Next\n- ship\n")
+        (self.root / "docs" / "active-context-archive.md").write_text(
+            "# Active Context Archive\n\n## 2026-05-28 — old\nnarrative\n\n## 2026-05-01 — older\nmore\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
 
     def test_archive_file_is_indexed_like_any_other_doc(self) -> None:
         """docs/active-context-archive.md gets no special treatment: it is

@@ -54,7 +54,13 @@ Markdown under `docs/`, plus the root README and configured index. It checks:
 - `.doc-profile` keys and values;
 - execution-plan status metadata;
 - the configured index and meta-repository inventory ownership;
-- baseline format and ancestry when a baseline is present.
+- baseline format and ancestry when a baseline is present;
+- the living context's section headings: `docs/active-context.md` carries only
+  `State now`, `Unresolved`, and `Next`. This is the objective half of the shape
+  contract and the only half a checker can own; narrative prose and "longer than
+  what it says warrants" need judgment and stay with the semantic critic. A `##`
+  line inside a code fence is content, not a section. `active-context-archive.md`
+  is exempt by design — dated sections are what it is for.
 
 A clean mechanical gate means the document graph and metadata are internally
 consistent. It does **not** mean prose matches runtime behavior.
@@ -178,6 +184,13 @@ months unnoticed. `doc-end` Phase 3 archives-then-trims as part of normal
 per-session reconsolidation (proactive). The `doc-critic` skill independently
 checks the file's shape — extra dated headings, narrative prose, well over the
 line target — and is the reactive safety net that catches a sloppy Phase 3.
+
+Three layers hold this rule, because two of them are LLM judgment and judgment
+is what failed: the mechanical gate rejects a non-canonical section outright,
+the end workflow treats a shape violation as a reason to consolidate, and the
+semantic critic catches the drift a heading cannot express. Only the first is
+deterministic, and only the first applies to an edit made by something that
+never ran a `doc-*` command at all.
 
 The shape is checked on every consolidation attempt, including one that
 concludes no consolidation is needed. Drift here does not follow from the

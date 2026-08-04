@@ -11,14 +11,18 @@ pre-commit hook.
 Checks (which run depends on the repo's profile — see below):
   1. DEAD LINKS   (always) — every relative markdown link in README.md,
                   <index_file>, and docs/**/*.md must resolve on disk.
-  2. INVENTORY    (meta mode only) — every independent sub-repo checked out under
+  2. LIVING CTX   (always) — docs/active-context.md carries only the canonical
+                  `## State now` / `## Unresolved` / `## Next` sections. Any other
+                  one is changelog drift; pruned narrative belongs in
+                  docs/active-context-archive.md, which is not checked.
+  3. INVENTORY    (meta mode only) — every independent sub-repo checked out under
                   the repo root must appear in <index_file>'s `## Services` table,
                   and every dir the table names must exist.
-  3. NO DUP INDEX (meta mode only) — README.md / docs/README.md must NOT re-list
+  4. NO DUP INDEX (meta mode only) — README.md / docs/README.md must NOT re-list
                   the repos in a table; the inventory lives ONLY in <index_file>.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
-    harness_version   = 2                    (must match installed harness)
+    harness_version   = 3                    (must match installed harness)
     schema_version    = 1                    (optional for legacy profiles)
     mode              = meta | leaf          (default: leaf — links only)
     index_file        = CLAUDE.md            (the single-source index)
@@ -41,12 +45,13 @@ import sys
 from pathlib import Path
 
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-HARNESS_VERSION = 2
+HARNESS_VERSION = 3
 KNOWN_PROFILE_KEYS = {
     "harness_version", "schema_version", "mode", "index_file", "inventory_ignore",
     "build", "smoke", "index_max_lines",
 }
 PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
+CONTEXT_SECTIONS = {"state now", "unresolved", "next"}
 
 
 def repo_root(explicit: str | None) -> Path:
@@ -271,6 +276,37 @@ def check_baseline(root: Path) -> list[str]:
     return []
 
 
+def check_living_context(root: Path) -> list[str]:
+    """`docs/active-context.md` is a snapshot, so its only `##` sections are the
+    canonical three. Any other one is the append-only-changelog drift the living
+    context must never accumulate; the pruned narrative belongs in
+    `docs/active-context-archive.md`, which this check deliberately ignores.
+
+    Headings are the objective half of the shape contract. Narrative prose and
+    "too long for what it says" need judgment and stay with the semantic critic.
+    """
+    context = root / "docs" / "active-context.md"
+    if not context.is_file():
+        return []
+    errors: list[str] = []
+    fenced = False
+    for number, raw in enumerate(context.read_text(encoding="utf-8").splitlines(), 1):
+        line = raw.strip()
+        if line.startswith("```") or line.startswith("~~~"):
+            fenced = not fenced          # a `## ...` inside a code fence is content, not a heading
+            continue
+        if fenced or not line.startswith("## "):
+            continue
+        title = line[3:].strip()
+        if title.lower() not in CONTEXT_SECTIONS:
+            errors.append(
+                f"docs/active-context.md:{number}: section `{title}` is not one of "
+                "`State now` / `Unresolved` / `Next` — current material belongs folded "
+                "into one of those, historical material in docs/active-context-archive.md"
+            )
+    return errors
+
+
 def check_inventory(root: Path, index_file: str, ignore: set[str]) -> list[str]:
     errors: list[str] = []
     canonical = canonical_repo_dirs(root, index_file)
@@ -344,6 +380,7 @@ def main() -> int:
         ("THIN INDEX", check_index_thin(root, index_file, index_max_lines)),
         ("PLAN STATUS", check_plan_statuses(root)),
         ("BASELINE", check_baseline(root)),
+        ("LIVING CONTEXT", check_living_context(root)),
     ]
     if meta:
         groups.append(("INVENTORY DRIFT", check_inventory(root, index_file, ignore)))

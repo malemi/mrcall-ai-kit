@@ -2,6 +2,30 @@
 
 Deferred doc-harness / orchestration improvements.
 
+## DONE — Mechanical enforcement of the living-context shape (harness v3)
+
+**Status**: DONE (2026-08-04). The shape rule had two enforcement layers and
+both were LLM judgment, so both failed in the same repo on the same day: it
+drifted to ~1500 lines across two months of sessions that each said
+"consolidate", and was then cut from 1441 lines to 76 by a session that never
+invoked `doc-end`, discarding 1436 lines with no archive and four durable
+engineering invariants with them. No instruction to an agent can prevent an
+edit made by something that does not run the command.
+
+**Outcome**: `doc-check.py` gained `check_living_context` — any `##` section in
+`docs/active-context.md` outside `State now` / `Unresolved` / `Next` fails the
+gate. Deliberately narrow: headings are the objective half of the contract, so
+prose narration and "too long for what it says" stay with the semantic critic
+where judgment belongs. A `##` inside a code fence is content, not a section
+(the real file that motivated this contains such lines). The archive is exempt
+by design. `harness_version` bumped 2→3, since this is a new requirement on
+what a repository's `docs/` must contain.
+
+**Verified**: 21 checker tests (5 new, covering canonical/non-canonical, case
+and subsections, code fences, absent file, and archive exemption); replayed
+against the real pre-trim `active-context.md` from the repo above it reports 27
+violations.
+
 ## DONE — Pinned-model workers for Claude Code, so doc-end stops burning top-tier tokens
 
 **Status**: DONE (2026-08-04). `doc-end` ran entirely on whatever model the

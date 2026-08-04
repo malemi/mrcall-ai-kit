@@ -6,20 +6,22 @@ allowed-tools: Bash(git *) Bash(ls *) Bash(mkdir *) Bash(cat *) Bash(python3 *) 
 Bootstrap this repo's documentation harness. **Idempotent** — create only what is missing; never overwrite existing content. **Never fabricate knowledge** — you create the *mechanism* (skeleton + profile + gate wiring), not invented architecture/convention prose. Everything you write is in **English**.
 
 ## Harness version preflight — run before every other step
-This command implements `harness_version = 2`. If `docs/.doc-profile` exists, read its `harness_version` before inspecting or changing anything else.
+This command implements `harness_version = 3`. If `docs/.doc-profile` exists, read its `harness_version` before inspecting or changing anything else.
 
-- Equal to `2` ⇒ continue normally.
-- Missing or lower than `2` ⇒ stop and report: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 2). Upgrade docs/ explicitly with doc-create, or cancel and leave the repo unchanged.` Do not migrate until the user explicitly chooses the docs upgrade.
-- Greater than `2` ⇒ stop and report: `Harness version mismatch: installed commands are older than the repo docs (commands: 2, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; docs/ must not be downgraded.`
+- Equal to `3` ⇒ continue normally.
+- Missing or lower than `3` ⇒ stop and report: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 3). Upgrade docs/ explicitly with doc-create, or cancel and leave the repo unchanged.` Do not migrate until the user explicitly chooses the docs upgrade.
+- Greater than `3` ⇒ stop and report: `Harness version mismatch: installed commands are older than the repo docs (commands: 3, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; docs/ must not be downgraded.`
 
-When the user explicitly authorizes a docs upgrade, migrate only harness-owned structure and metadata, preserve all repository knowledge, add/update `harness_version = 2` last, run the mechanical gate, and report every changed file. Never perform a downgrade. A missing profile means this is a fresh bootstrap, not a mismatch.
+When the user explicitly authorizes a docs upgrade, migrate only harness-owned structure and metadata, preserve all repository knowledge, add/update `harness_version = 3` last, run the mechanical gate, and report every changed file. Never perform a downgrade. A missing profile means this is a fresh bootstrap, not a mismatch.
 
-**Migrating to `harness_version = 2`** — from `1`, or from a legacy profile predating the key entirely:
+**Migrating to `harness_version = 3`** — from `1` or `2`, or from a legacy profile predating the key entirely:
 
-- *From `1`*: no profile keys change.
+- *From `1` or `2`*: no profile keys change.
 - *From legacy* (no `harness_version` at all): add only the required keys the profile lacks — `harness_version`, `schema_version`, `index_max_lines` — leaving every existing key, comment, and deliberate omission as it stands. Expect a legacy repo to fail gate checks it was never held to: plan `status` fields carrying prose instead of one enumerated value, an index over the thin limit, dead links older than the profile. Report every one. Repair what is harness-owned metadata (a `status` value; a missing profile key). Do NOT invent a file to satisfy a dead link or rewrite prose you were not asked to touch — surface those and let the user decide.
 
-In both cases the behavioral migration is `docs/active-context.md`: if it violates the living-context shape (any `##` section beyond `State now` / `Unresolved` / `Next`, chronological/dated narrative, or well over the ~120-line target — the append-only-changelog failure mode v1 did not guard against), perform the same repair described in `doc-end.md` Phase 3 and, in full, in the `doc-critic` skill. You are running in-session here, not as a delegate, so that skill's repair branch is yours to perform. Follow its rule about sorting by meaning rather than by heading: current material under a non-canonical heading is folded into the section it belongs to, and only genuinely historical material moves to `docs/active-context-archive.md` (created if absent; dated sections, newest first, verbatim — nothing discarded, only relocated). Report the line-count before/after and the archive's size. A repo already compliant has nothing to migrate here.
+In every case the behavioral migration is `docs/active-context.md`: if it violates the living-context shape (any `##` section beyond `State now` / `Unresolved` / `Next`, chronological/dated narrative, or well over the ~120-line target — the append-only-changelog failure mode v1 did not guard against), perform the same repair described in `doc-end.md` Phase 3 and, in full, in the `doc-critic` skill. You are running in-session here, not as a delegate, so that skill's repair branch is yours to perform. Follow its rule about sorting by meaning rather than by heading: current material under a non-canonical heading is folded into the section it belongs to, and only genuinely historical material moves to `docs/active-context-archive.md` (created if absent; dated sections, newest first, verbatim — nothing discarded, only relocated). Report the line-count before/after and the archive's size. A repo already compliant has nothing to migrate here.
+
+From `3` onward the heading half of that shape is enforced mechanically — `doc-check.py` fails on any `##` section in `docs/active-context.md` outside the canonical three — so a repo that skips this migration step will not pass its own gate. That is the point: the earlier versions asked an LLM to notice drift and it went unnoticed for two months in a real repo.
 
 ## Step 1 — Detect current state
 - Is there a `docs/` dir? a `docs/.doc-profile`? an index file (`CLAUDE.md`)?
@@ -28,7 +30,7 @@ In both cases the behavioral migration is `docs/active-context.md`: if it violat
 ## Step 2 — Write the profile (ask only what you cannot detect)
 Create `docs/.doc-profile` (skip if it exists — show it instead):
 ```
-harness_version = 2
+harness_version = 3
 schema_version = 1
 mode = meta | leaf            # choose exactly one; meta only for independent sub-repos
 index_file = CLAUDE.md
