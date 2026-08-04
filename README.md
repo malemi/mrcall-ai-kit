@@ -121,11 +121,14 @@ downgrades documentation.
 
 Execution plans use machine-readable YAML frontmatter with one of these states:
 `planned`, `active`, `blocked`, `completed`, or `superseded`.
-`active-context.md` is a living snapshot, not a session log. The baseline
-identifies the code state reconciled by the document; the documentation edit
-that records it may be committed immediately after that commit. See
-[`docs/documentation-harness.md`](docs/documentation-harness.md) for the full
-contract.
+`active-context.md` is a living snapshot, not a session log — pruned session
+narrative moves to `active-context-archive.md` (dated, newest first, never
+read at session start, queried on demand) instead of being deleted; `doc-end`
+archives it proactively each session and `doc-critic` repairs it if that drifts.
+The baseline identifies the code state reconciled by the document; the
+documentation edit that records it may be committed immediately after that
+commit. See [`docs/documentation-harness.md`](docs/documentation-harness.md)
+for the full contract.
 
 Git hooks are intentionally NOT shipped — a pre-commit hook is repo-local
 plumbing you add yourself (`.githooks/pre-commit` running the gate + `git config

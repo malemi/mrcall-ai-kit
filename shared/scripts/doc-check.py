@@ -18,7 +18,7 @@ Checks (which run depends on the repo's profile — see below):
                   the repos in a table; the inventory lives ONLY in <index_file>.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
-    harness_version   = 1                    (must match installed harness)
+    harness_version   = 2                    (must match installed harness)
     schema_version    = 1                    (optional for legacy profiles)
     mode              = meta | leaf          (default: leaf — links only)
     index_file        = CLAUDE.md            (the single-source index)
@@ -41,7 +41,7 @@ import sys
 from pathlib import Path
 
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
-HARNESS_VERSION = 1
+HARNESS_VERSION = 2
 KNOWN_PROFILE_KEYS = {
     "harness_version", "schema_version", "mode", "index_file", "inventory_ignore",
     "build", "smoke", "index_max_lines",

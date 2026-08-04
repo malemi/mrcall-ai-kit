@@ -127,6 +127,28 @@ uncommitted code change as part of that commit.
 - immediate next actions.
 
 It does not retain per-session done lists, corrected theories, or chronological
-notes. Those belong in Git history, a durable known-issues document, or a
-completed brief or plan. Contradictory current and historical claims are a
+notes. A durable architectural fact belongs in a durable doc; a decision fully
+captured by a completed plan or brief needs no duplicate here. Session
+narrative that is neither of those — the detailed "what we tried, what broke,
+what we verified" record of a session — moves to `docs/active-context-archive.md`
+instead of being deleted outright: dated sections, newest first, preserved
+verbatim. Nothing that was ever true is lost, it is just no longer on the path
+every session pays to read. Contradictory current and historical claims are a
 semantic failure even when the mechanical gate is clean.
+
+The archive is deliberately outside `doc-start`'s Phase 2 (volatile-layer) read
+set — it exists to answer "when did we do X", read on demand, not to be loaded
+every session start. It is still an ordinary file under `docs/`: the mechanical
+gate indexes it like any other Markdown file (dead links inside it are still
+checked; nothing in `doc-check.py` treats it specially or exempts it from
+`index_docs()`), and it is discoverable through a routing line in
+`docs/README.md`, the same as every other durable doc.
+
+Two independent points enforce this, so a lazy "consolidate" (prepend today's
+notes, touch nothing else) cannot silently drift the file into a changelog for
+months unnoticed: `doc-end` Phase 3 archives-then-trims as part of normal
+per-session reconsolidation (proactive), and the `doc-critic` skill
+independently checks the file's shape — extra dated headings, narrative
+prose, well over the line target — and repairs it directly, archive and
+rewrite, whenever it finds a violation (reactive safety net, catches it even
+when Phase 3 was done sloppily).
