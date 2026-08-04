@@ -30,7 +30,8 @@ Never edit session docs, advance the baseline, or run partial consolidation acro
 At least one must hold, else output `No consolidation needed.` and stop:
 - Change gate: `git status` / `git diff` shows uncommitted or recently committed work.
 - Context gate: `docs/active-context.md` no longer matches reality.
-- Plan gate: an execution plan has completed-but-unchecked steps.
+- **Shape gate**: `docs/active-context.md` violates the living-context shape — a `##` section beyond `State now` / `Unresolved` / `Next`, chronological narrative, or well over the ~120-line target. Read the file and check this every time, even when the other gates are plainly shut and nothing was committed. Drift here is not a consequence of this session's work and will not show up in `git status`: a file can be mis-shaped for months, or have been rewritten by something that never ran this command at all, and every run that only asks "was there new work?" answers `No consolidation needed` and leaves it. If this gate is the only one that fires, the work is the archive-and-trim of Phase 3 and nothing else — do that, then stop.
+- Plan gate: work completed **in this session** has left an execution plan's steps unchecked or its `status` stale. A plan that was already `completed` with unticked boxes before this session is not this gate: `status` is the lifecycle, checkboxes are a reading aid, and their disagreement is untidiness rather than a defect. Do not investigate or "fix" it here — a checkbox says nothing authoritative, and deciding whether a May step really ran needs May's transcript. Mention it once in the output if you like; never block on it.
 
 ## Phase 1 — Orient (ground truth, pre-injected)
 !`git status --short`
@@ -63,3 +64,5 @@ Merge into existing content — no changelogs (git log is the changelog). Living
 `Session state consolidated. Baseline advanced to <sha>. [docs touched]. [mechanical gate: clean]. [semantic review: N confirmed, N repaired, N unverifiable]. [N plan steps completed. N harness gaps logged.]`
 
 When a blocking condition survives the run, say so instead — never emit the advanced-baseline line for a baseline you did not advance: `Session state consolidated, BASELINE NOT ADVANCED — <blocking condition>. [docs touched]. [what remains to be done].`
+
+When no gate fires, the whole output is the line `No consolidation needed.`, optionally followed by one short sentence naming the single fact that decided it. Do not narrate the gate-by-gate evaluation: this is the cheapest path through the command and it should read that way. You still had to open `docs/active-context.md` for the shape gate, so say `shape OK` — a silent no-op is indistinguishable from a check that was skipped.

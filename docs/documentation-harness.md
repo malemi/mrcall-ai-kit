@@ -122,6 +122,9 @@ frontmatter with one `status` value:
 
 Commands derive plan state from metadata, never from prose. Only `completed`
 plans are finished; the other states remain visible with their labels.
+Checkboxes inside a plan are a reading aid, not lifecycle state: unticked boxes
+under `status: completed` are untidiness, not a contradiction, and no command
+treats them as work to investigate or as a reason to withhold consolidation.
 
 ## Baseline semantics
 
@@ -176,7 +179,15 @@ per-session reconsolidation (proactive). The `doc-critic` skill independently
 checks the file's shape — extra dated headings, narrative prose, well over the
 line target — and is the reactive safety net that catches a sloppy Phase 3.
 
-What that safety net then does depends on who is running it, and follows from
+The shape is checked on every consolidation attempt, including one that
+concludes no consolidation is needed. Drift here does not follow from the
+current session's work and is invisible to `git status`: the file may have been
+mis-shaped for months, or rewritten by something that never invoked the end
+workflow. A run that only asks whether new work exists would report nothing to
+do and leave the violation standing indefinitely, so a mis-shaped file is
+itself a reason to consolidate.
+
+What the safety net then does depends on who is running it, and follows from
 the delegation boundary above. Running in-session, it repairs the file:
 archive and rewrite. Running as a delegate, it reports the violation and does
 not repair, because sorting current from historical is the Phase-3 decision
