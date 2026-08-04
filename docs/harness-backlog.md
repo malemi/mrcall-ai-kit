@@ -41,8 +41,10 @@ months of sessions that each said "consolidate" in their own commit message.
 **Outcome**: pruned session narrative now moves to
 `docs/active-context-archive.md` (dated, newest first, verbatim) instead of
 being deleted. `doc-end` archives it proactively every session; `doc-critic`
-gained an independent living-context shape check that repairs the file
-directly (not just flags it) when it drifts. `harness_version` bumped 1→2
+gained an independent living-context shape check which, as shipped in that
+commit, repaired the file directly rather than only flagging it — split the
+same day into report-when-delegated / repair-in-session, per the entry above,
+so this clause records `838eb78` and not current behavior. `harness_version` bumped 1→2
 (protocol change, per this repo's own compatibility-handshake design);
 `doc-create` gained an explicit v1→v2 migration note. Verified: 16 doc-check
 tests + the Codex install layout test pass, and the shape-repair behavior was

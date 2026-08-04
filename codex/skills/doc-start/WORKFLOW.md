@@ -1,6 +1,6 @@
 ---
 description: Start a work session — load the smallest high-signal context and surface doc drift.
-allowed-tools: Bash(git *) Bash(ls *) Bash(python3 *) Bash(cat *) Bash(make *) Bash(npm *) Bash(sbt *) Bash(pytest *)
+allowed-tools: Bash(git *) Bash(ls *) Bash(python3 *) Bash(cat *) Bash(make *) Bash(npm *) Bash(sbt *) Bash(pytest *) Agent
 ---
 
 Load project knowledge: durable layer on demand, volatile state up front. Pull the smallest high-signal set into context — not everything.
@@ -14,6 +14,16 @@ This command implements `harness_version = 2`. Read `docs/.doc-profile` and comp
 - Missing profile ⇒ this repo is not bootstrapped; suggest `doc-create` and stop.
 
 Never repair or bypass a mismatch inside `doc-start`.
+
+## Delegation — trim the plumbing, never the payload
+
+Where the environment provides a pinned-model worker (Claude Code: `Agent` with `subagent_type: "worker-sonnet"`; OpenCode: `task` with the same name), delegate the mechanical checks of Phase 2 — validating the baseline and counting content-drift commits, and scanning plan frontmatter — and take back only their results. Both are git and file plumbing whose answer is a few lines; neither needs to pass through this session's context on the way, and the frontmatter scan grows with the number of plans.
+
+Never delegate reading the index, `docs/README.md`, or `docs/active-context.md`. Loading those into *this* session is the whole purpose of the command, and a worker's summary of them defeats it.
+
+Be honest about the gain: this trims the plumbing, not the payload. A `doc-start` that costs a lot of context is telling you `active-context.md` has drifted into a changelog and needs consolidating — the worker is not the fix for that.
+
+Without a worker, run the checks inline. Never skip one because you could not delegate it.
 
 ## Profile
 After the version preflight succeeds, read the remaining profile keys: schema version, mode, index file, optional build/smoke command, and routing. It is machine-readable `key = value` data; comments never carry values. Mode is exactly `meta` or `leaf`; `build`/`smoke`, when present, must be non-empty. If invalid, report the violation and stop.

@@ -13,8 +13,8 @@ cross-tool contract.
 
 ## Delegation boundary
 
-Consolidation may delegate to pinned-model workers where the environment
-provides them — `worker-sonnet` for mechanical execution, `worker-opus` for
+Both session start and consolidation may delegate to pinned-model workers where
+the environment provides them — `worker-sonnet` for mechanical execution, `worker-opus` for
 independent verification — through whatever subagent primitive the tool
 exposes (`Agent` in Claude Code, `task` in OpenCode). Workers declare their own
 model, so the tier follows the task rather than the delegating session; a
@@ -25,9 +25,14 @@ Two parts of consolidation are never delegable, in any environment: gathering
 the session signal, and deciding which knowledge is current. Both depend on the
 session transcript — decisions taken, approaches rejected, corrections
 received — which no subagent can observe and none may reconstruct by
-inference. Where no worker exists, the delegable work is done inline; a step is
-never skipped for want of a worker. A worker's report is evidence only when it
-quotes the command output it claims to have produced.
+inference. At session start the same line falls elsewhere: the mechanical
+checks are delegable, but reading the index, the docs index, and the volatile
+snapshot is not, because loading those into the session is the purpose of the
+command and a worker's summary of them defeats it.
+
+Where no worker exists, the delegable work is done inline; a step is never
+skipped for want of a worker. A worker's report is evidence only when it quotes
+the command output it claims to have produced.
 
 ## Layers and ownership
 
@@ -57,8 +62,9 @@ consistent. It does **not** mean prose matches runtime behavior.
 The semantic critic reviews factual claims in changed documentation against
 code and wiring. It classifies unsupported claims instead of guessing and
 enforces English for repository artifacts. Session consolidation requires a
-clean mechanical gate and zero stale semantic claims; unverifiable claims stay
-explicit in the result.
+clean mechanical gate, zero stale semantic claims, and no unresolved
+living-context shape violation; unverifiable claims stay explicit in the
+result.
 
 ## Profile schema
 
@@ -131,7 +137,8 @@ uncommitted changes separately.
 
 The end workflow reviews committed changes since the baseline and relevant
 working-tree changes. It advances the baseline only after the mechanical gate
-passes and semantic review has zero stale claims.
+passes, semantic review has zero stale claims, and no unresolved
+living-context shape violation remains.
 Advancing it to `HEAD` records what was reviewed; it cannot represent an
 uncommitted code change as part of that commit.
 
@@ -164,9 +171,16 @@ checked; nothing in `doc-check.py` treats it specially or exempts it from
 
 Two independent points enforce this, so a lazy "consolidate" (prepend today's
 notes, touch nothing else) cannot silently drift the file into a changelog for
-months unnoticed: `doc-end` Phase 3 archives-then-trims as part of normal
-per-session reconsolidation (proactive), and the `doc-critic` skill
-independently checks the file's shape — extra dated headings, narrative
-prose, well over the line target — and repairs it directly, archive and
-rewrite, whenever it finds a violation (reactive safety net, catches it even
-when Phase 3 was done sloppily).
+months unnoticed. `doc-end` Phase 3 archives-then-trims as part of normal
+per-session reconsolidation (proactive). The `doc-critic` skill independently
+checks the file's shape — extra dated headings, narrative prose, well over the
+line target — and is the reactive safety net that catches a sloppy Phase 3.
+
+What that safety net then does depends on who is running it, and follows from
+the delegation boundary above. Running in-session, it repairs the file:
+archive and rewrite. Running as a delegate, it reports the violation and does
+not repair, because sorting current from historical is the Phase-3 decision
+that needs the transcript it does not have. Such a report is blocking: the
+baseline may not advance over a mis-shaped `active-context.md`, so the session
+returns to Phase 3 and redoes it. Both paths refuse to let the violation
+through; only one of them is entitled to fix it.

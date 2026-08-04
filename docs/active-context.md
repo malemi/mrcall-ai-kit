@@ -14,12 +14,14 @@ Harness version 2 is implemented across Claude Code, Codex, and OpenCode.
 Pruned `active-context.md` narrative now moves to `active-context-archive.md`
 (dated, newest first, verbatim, never read by `doc-start`) instead of being
 discarded: `doc-end` Phase 3 archives it proactively every session, and
-`doc-critic` independently checks the file's shape and repairs it directly
-whenever it drifts — the backstop for the exact failure the plain instruction
-alone did not prevent (a real downstream repo's `active-context.md` grew from
-~120 to ~1500 lines over two months of sessions that each said "consolidate").
-The repair was verified against a real scratch fixture, byte-for-byte zero
-information loss. The durable contract is in
+`doc-critic` independently checks the file's shape — the backstop for the exact
+failure the plain instruction alone did not prevent (a real downstream repo's
+`active-context.md` grew from ~120 to ~1500 lines over two months of sessions
+that each said "consolidate"). Whether that check repairs or only reports
+follows the delegation boundary: in-session it repairs, delegated it reports a
+blocking finding, because sorting current from historical needs the transcript
+a subagent does not have. The repair was verified against a real scratch
+fixture, byte-for-byte zero information loss. The durable contract is in
 [`documentation-harness.md`](documentation-harness.md); 16 checker tests + the
 Codex install layout test pass.
 
