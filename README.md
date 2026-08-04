@@ -79,6 +79,9 @@ shared/     cross-tool harness sources
   commands/   doc-create, doc-start, doc-end
   scripts/    doc-check.py       → installed once to ~/.config/mrcall-ai-kit/
   skills/     doc-critic
+claude/     Claude Code-only
+  agents/     worker-sonnet, worker-opus (pinned-model delegation targets;
+              installed as part of doc-harness, not an opt-out)
 codex/      Codex-native skill packages, installed atomically as directories
   skills/     doc-create, doc-start, doc-end (SKILL.md + WORKFLOW.md)
 opencode/   OpenCode-only
@@ -113,6 +116,16 @@ the separate semantic pass: it checks changed documentation against the
 implementation and flags a feature, endpoint, file, or flag that does not exist
 or is not wired.
 
+`doc-end` delegates its delegable work to pinned-model workers where the
+environment has them — `worker-sonnet` for mechanical execution, `worker-opus`
+for independent verification (a fresh context has not been persuaded by the
+reasoning that produced the docs). Two phases are never delegated: gathering
+the session signal and deciding what is current, because only the session
+holding the transcript can do either. A subagent that declares no model
+inherits the parent's, saving context but nothing else — these workers pin
+theirs, so the tier follows the task rather than whatever the session happens
+to be running.
+
 Every `doc-*` workflow first compares its embedded harness protocol version
 with `harness_version` in `docs/.doc-profile`. If repo docs are older, it stops
 and offers an explicit docs migration; if repo docs are newer, it stops and
@@ -137,8 +150,8 @@ core.hooksPath .githooks`). Enforcement here flows through the commands.
 ### OpenCode-only
 
 - **orchestration** — `/orchestrator` + the `build`/`plan`/`reviewer` agents.
-- **worker agents** — 15 models (DeepSeek, Gemini, GLM, GPT, Kimi, Llama, MiMo,
-  Mistral, Nemotron, Qwen, Sonnet) for multi-model delegation.
+- **worker agents** — 16 models (DeepSeek, Gemini, GLM, GPT, Kimi, Llama, MiMo,
+  Mistral, Nemotron, Qwen, Sonnet, Auto) for multi-model delegation.
 - **watchdog** — daemon that monitors workers via SSE + SQLite, kills hung ones
   on timeout or budget excess. Automatic circuit breaker for cost control.
 - **migrate-from-cc** — `/migrate-check` + the migration skill.

@@ -2,6 +2,28 @@
 
 Recurring problems and their fixes.
 
+## Claude Code does not hot-reload agent files mid-session
+
+**Symptom**: an agent definition newly installed into `~/.claude/agents/`
+returns `Agent type '<name>' not found. Available agents: ...` when passed to
+the `Agent` tool as `subagent_type`, and the listed agents are exactly those
+that existed when the session started.
+
+**Root cause** (verified 2026-08-04, Claude Code 2.1.220): the agent registry
+is built at session start and is not re-read when files appear later. The
+definition file itself is not at fault.
+
+**Verification**: installing `worker-sonnet` / `worker-opus` mid-session made
+them unreachable in that session, while a fresh headless session started
+immediately afterwards (`claude -p "list subagent types"`) listed both. Same
+files, same paths, different session.
+
+**Solution**: restart the Claude Code session. This is the same behavior
+OpenCode has, below.
+
+**Note**: the installer already prints "restart sessions to pick up new
+commands/skills/agents" for this reason.
+
 ## OpenCode does not hot-reload agent files mid-session
 
 **Symptom**: a new `*.md` created or copied into

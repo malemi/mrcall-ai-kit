@@ -10,6 +10,8 @@ set -euo pipefail
 # Content is routed by tool-compatibility:
 #   shared/    cross-tool  — the doc-harness (doc-* commands, doc-critic skill)
 #              + doc-check.py (installed once to ~/.config/mrcall-ai-kit/)
+#   claude/    Claude Code-only — worker agents with pinned models, which the
+#              doc-* commands delegate to (part of doc-harness, not optional)
 #   opencode/  OpenCode-only — orchestrator, worker agents, migrate-from-cc
 #
 # Flags (any provided value skips its prompt):
@@ -58,6 +60,8 @@ EOF
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
   echo "     scripts:    doc-check.py  (-> ~/.config/mrcall-ai-kit/, the gate the commands call)"
+  echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents")  [Claude Code only — pinned-model"
+  echo "                 workers the doc-* commands delegate to; installed with doc-harness]"
   echo
   echo "  orchestration  [OpenCode only]"
   echo "     command:    orchestrator     agents: build, plan, reviewer, orchestrator     skill: orchestrator"
@@ -70,7 +74,7 @@ EOF
   echo "  migrate        [OpenCode only]"
   echo "     command:    migrate-check     skill: migrate-from-cc"
   echo
-  echo "Destinations: Claude Code -> ~/.claude/{commands,skills}/ ; Codex -> ~/.agents/skills/ ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
+  echo "Destinations: Claude Code -> ~/.claude/{commands,skills,agents}/ ; Codex -> ~/.agents/skills/ ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
   echo "Environment alias: both = Claude Code + OpenCode; all = all three tools."
   echo "Global install only. A repo's own docs/ is bootstrapped separately by invoking the doc-create workflow."
 }
@@ -186,7 +190,9 @@ add_one() { PLAN_SRC+=("$1"); PLAN_DST+=("$2"); }
 if $DO_DOC; then
   # doc-check.py → kit-global, once (the commands call it from here)
   add_one "$SCRIPT_DIR/shared/scripts/doc-check.py" "$KIT_GLOBAL/doc-check.py"
-  $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; }
+  # The doc-* commands delegate to the pinned-model workers, so those agents are
+  # part of doc-harness rather than an opt-out: without them the delegation dies.
+  $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; add_dir "$SCRIPT_DIR/claude/agents" "$CC_DIR/agents"; }
   if $WANT_CODEX; then
     for command in doc-create doc-start doc-end; do
       # Codex discovers a symlinked skill directory, but not a real directory
@@ -264,7 +270,7 @@ done
 echo
 echo "── Done ──"
 $DRY_RUN && echo "(dry-run — nothing was written)"
-$WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills."
+$WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills/agents."
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/.agents/skills."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."

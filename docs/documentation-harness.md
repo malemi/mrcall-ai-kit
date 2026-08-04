@@ -11,6 +11,24 @@ integration may differ: Codex discovers user-level skills under
 are not part of the design. OpenCode-only orchestration remains outside this
 cross-tool contract.
 
+## Delegation boundary
+
+Consolidation may delegate to pinned-model workers where the environment
+provides them — `worker-sonnet` for mechanical execution, `worker-opus` for
+independent verification — through whatever subagent primitive the tool
+exposes (`Agent` in Claude Code, `task` in OpenCode). Workers declare their own
+model, so the tier follows the task rather than the delegating session; a
+subagent that declares none inherits the parent's and therefore saves context
+only.
+
+Two parts of consolidation are never delegable, in any environment: gathering
+the session signal, and deciding which knowledge is current. Both depend on the
+session transcript — decisions taken, approaches rejected, corrections
+received — which no subagent can observe and none may reconstruct by
+inference. Where no worker exists, the delegable work is done inline; a step is
+never skipped for want of a worker. A worker's report is evidence only when it
+quotes the command output it claims to have produced.
+
 ## Layers and ownership
 
 - The configured index file is thin and owns repository inventory, roles, and

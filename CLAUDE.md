@@ -17,6 +17,8 @@ User-facing overview lives in [`README.md`](README.md).
 ## Layout
 
 - `shared/` — source workflows, `doc-check.py` gate, and `doc-critic` skill.
+- `claude/` — Claude Code-only: pinned-model worker agents the doc workflows
+  delegate to.
 - `codex/` — Codex-native skill entry points for the shared doc workflows.
 - `opencode/` — OpenCode-only: orchestration, worker agents, watchdog,
   migration tooling.

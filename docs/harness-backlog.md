@@ -2,6 +2,35 @@
 
 Deferred doc-harness / orchestration improvements.
 
+## DONE — Pinned-model workers for Claude Code, so doc-end stops burning top-tier tokens
+
+**Status**: DONE (2026-08-04). `doc-end` ran entirely on whatever model the
+session used, which on a top-tier model is expensive for work that is partly
+mechanical. Delegating with no declared model does not help: a subagent
+inherits the parent's model, saving context but not cost.
+
+**Outcome**: `claude/agents/worker-sonnet.md` (mechanical execution) and
+`claude/agents/worker-opus.md` (independent verification) declare their own
+`model:`, installed to `~/.claude/agents/` as part of `doc-harness` — not an
+opt-out, since `doc-end` depends on them. `doc-end` gained `Agent` in
+`allowed-tools` plus a delegation section written tool-agnostically, so the
+Codex and OpenCode mirrors stay byte-identical and degrade to inline work
+where no worker exists. Phases 2 and 3 (session signal; deciding what is
+current) are declared non-delegable — only the session holds the transcript.
+
+**Verified live, both directions**: a Sonnet parent delegating to `worker-opus`
+got `claude-opus-5[1m]`; an Opus parent delegating to `worker-sonnet` got
+`claude-sonnet-5`, and that worker confirmed it has no `Agent` tool (no
+recursive delegation, mirroring OpenCode's `task: deny`). Installer verified in
+a disposable HOME. No `harness_version` bump: delegation changes how the
+command executes, not what a repository's `docs/` must contain.
+
+**Not ported from OpenCode** (deliberate): the watchdog daemon, which enforces
+timeout/budget through OpenCode's own session-abort API and has no Claude Code
+equivalent; and the multi-provider worker roster, since `model:` selects among
+models the session can already reach and provider routing is process-level,
+leaving Sonnet as the one useful cheaper tier.
+
 ## DONE — Archive pruned active-context.md content instead of discarding it (harness v2)
 
 **Status**: DONE (2026-08-04, commit `838eb78`). `doc-end` Phase 3 already said
@@ -15,11 +44,13 @@ being deleted. `doc-end` archives it proactively every session; `doc-critic`
 gained an independent living-context shape check that repairs the file
 directly (not just flags it) when it drifts. `harness_version` bumped 1→2
 (protocol change, per this repo's own compatibility-handshake design);
-`doc-create` gained an explicit v1→v2 migration note. Verified: 18 doc-check
+`doc-create` gained an explicit v1→v2 migration note. Verified: 16 doc-check
 tests + the Codex install layout test pass, and the shape-repair behavior was
 exercised for real against a scratch fixture — confirmed byte-for-byte zero
 information loss versus the pre-repair git blob, correct STALE detection on
-the post-repair remainder.
+the post-repair remainder. (Commit `838eb78`'s message says "18 doc-check
+tests"; the real count is 16 — 14 pre-existing plus 2 added. The commit
+message cannot be corrected, this line is the correction.)
 
 **Follow-up (open, see `docs/active-context.md` Next)**: the v1→v2 migration
 note in `doc-create.md` has not itself been exercised against a real v1 repo

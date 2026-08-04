@@ -20,8 +20,17 @@ alone did not prevent (a real downstream repo's `active-context.md` grew from
 ~120 to ~1500 lines over two months of sessions that each said "consolidate").
 The repair was verified against a real scratch fixture, byte-for-byte zero
 information loss. The durable contract is in
-[`documentation-harness.md`](documentation-harness.md); 18 checker tests + the
+[`documentation-harness.md`](documentation-harness.md); 16 checker tests + the
 Codex install layout test pass.
+
+`doc-end` delegates its delegable work to pinned-model workers where the
+environment has them: `worker-sonnet` for mechanical execution, `worker-opus`
+for independent verification. Claude Code gets them from `claude/agents/`,
+installed to `~/.claude/agents/` with `doc-harness`; OpenCode already had
+`worker-sonnet` in its own roster. Because each worker declares `model:`, the
+tier follows the task rather than the session — verified live in both
+directions. Gathering the session signal and deciding what is current are
+declared non-delegable: only the session holding the transcript can do either.
 
 All `doc-*` workflows now require an exact `harness_version` match before doing
 work. Directional failures distinguish a stale installed kit from repository

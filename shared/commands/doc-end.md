@@ -1,9 +1,20 @@
 ---
 description: End a work session — reconsolidate the docs to reality, verify against code, advance the baseline.
-allowed-tools: Bash(git *) Bash(python3 *) Bash(cat *) Read Write Edit Glob Grep Skill(doc-critic)
+allowed-tools: Bash(git *) Bash(python3 *) Bash(cat *) Read Write Edit Glob Grep Skill(doc-critic) Agent
 ---
 
 Consolidate session knowledge — Dream pattern: Orient → Gather → Consolidate → Prune. Ground truth is git plus the session transcript, never half-remembered context. Read `docs/.doc-profile` for mode, index file, and routing.
+
+## Delegation — what this session must do itself, and what it must not
+
+Two phases below are **yours alone and can never be delegated**: gathering the session signal (Phase 2) and deciding what is current versus historical (Phase 3). Only this session holds the transcript — the decisions, rejected approaches, and user corrections that git cannot show — and no subagent can reconstruct it. A worker that "summarizes the session" is inventing.
+
+Everything else is delegable when your environment provides a pinned-model worker, and should be: it is cheaper, and it keeps this session's context free for the judgment that actually needs it. Claude Code exposes workers through the `Agent` tool (`subagent_type: "worker-sonnet"` / `"worker-opus"`); OpenCode through `task` with the same names. If no such worker exists in your environment, do the work inline — never skip a step because you could not delegate it.
+
+- **`worker-sonnet` — mechanical execution.** Summarizing the code diff between the baseline and `HEAD` (Phase 1); applying an archive-and-trim once *you* have decided what is current (Phase 3); running the gate and reporting its output (Phase 4.1). Give it exact instructions; it must not decide what should change.
+- **`worker-opus` — independent verification.** The semantic review (Phase 4.2). Delegating this is not only about cost: a fresh context has not been persuaded by the reasoning that produced the docs, so it reads the claim and the code rather than the story behind them. Pass it the list of changed docs and have it invoke the `doc-critic` skill; require UNVERIFIABLE over a guessed confirmation.
+
+A worker returns `## Done` or `## Blocked`. Anything else, or a `## Done` whose "Verified" line quotes no real command output, is a failure: re-delegate with a corrected prompt or do it yourself. Never report a worker's claim as a verified fact without its evidence.
 
 ## Harness version preflight — run before every other step
 This command implements `harness_version = 2`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
