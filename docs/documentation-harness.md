@@ -88,7 +88,13 @@ result.
   when no command is known;
 - `smoke`: optional smoke command when it is distinct from `build`;
 - `index_max_lines`: optional non-negative thin-index limit; `0` disables
-  that size check.
+  that size check;
+- `doc_max_lines`: optional non-negative advisory size limit applied to every
+  indexed doc, default `400`; `0` disables the report. Purely informational —
+  the gate names each doc past the limit by path and line count, and the exit
+  code is unaffected. Because a profile travels in git while the checker is
+  installed per machine, write this key only when the repo wants a value other
+  than the default: an older checker rejects it as an unknown key and fails.
 
 Unknown keys and invalid enum values are errors. Comments are explanatory only;
 a commented `build` example is not a configured build command. Defaults keep
@@ -174,8 +180,9 @@ The archive is deliberately outside `doc-start`'s Phase 2 (volatile-layer) read
 set — it exists to answer "when did we do X", read on demand, not to be loaded
 every session start. It is still an ordinary file under `docs/`: the mechanical
 gate indexes it like any other Markdown file (dead links inside it are still
-checked; nothing in `doc-check.py` treats it specially or exempts it from
-`index_docs()`), and it is discoverable through a routing line in
+checked, and it is never exempt from `index_docs()`; the single exception is the
+advisory `doc_max_lines` report, which skips it precisely because cold storage
+is meant to grow), and it is discoverable through a routing line in
 `docs/README.md`, the same as every other durable doc.
 
 Two independent points enforce this, so a lazy "consolidate" (prepend today's

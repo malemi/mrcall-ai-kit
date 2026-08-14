@@ -20,6 +20,11 @@ Checks (which run depends on the repo's profile — see below):
                   and every dir the table names must exist.
   4. NO DUP INDEX (meta mode only) — README.md / docs/README.md must NOT re-list
                   the repos in a table; the inventory lives ONLY in <index_file>.
+  5. DOC SIZE     (always, ADVISORY) — names every doc past `doc_max_lines`.
+                  Reported, never enforced: it never contributes to the exit code
+                  (which still reflects checks 1-4 alone). Only a path and a line
+                  count cross, so a session learns a doc has exploded without
+                  opening it.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
     harness_version   = 3                    (must match installed harness)
@@ -30,6 +35,7 @@ Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
     build             = command              (optional metadata; never executed)
     smoke             = command              (optional metadata; never executed)
     index_max_lines   = 200                  (0 disables the thin-index check)
+    doc_max_lines     = 400                  (0 disables the advisory size report)
 A leaf repo (no sub-repos) only needs the DEAD LINKS check, so it needs no
 profile at all. A meta-repo (one that checks out other repos) sets `mode = meta`.
 
@@ -48,10 +54,12 @@ MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 HARNESS_VERSION = 3
 KNOWN_PROFILE_KEYS = {
     "harness_version", "schema_version", "mode", "index_file", "inventory_ignore",
-    "build", "smoke", "index_max_lines",
+    "build", "smoke", "index_max_lines", "doc_max_lines",
 }
 PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
 CONTEXT_SECTIONS = {"state now", "unresolved", "next"}
+# Cold storage that grows by design — exempt from the advisory size report.
+SIZE_EXEMPT = {"docs/active-context-archive.md"}
 
 
 def repo_root(explicit: str | None) -> Path:
@@ -72,7 +80,7 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
     profile_exists = prof.exists()
     values: dict[str, str] = {
         "mode": "leaf", "index_file": "CLAUDE.md", "inventory_ignore": "",
-        "index_max_lines": "200",
+        "index_max_lines": "200", "doc_max_lines": "400",
     }
     errors: list[str] = []
     if prof.exists():
@@ -110,11 +118,12 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
     for key in ("build", "smoke"):
         if key in values and not values[key]:
             errors.append(f"docs/.doc-profile: `{key}` must not be empty when present")
-    try:
-        if int(values["index_max_lines"]) < 0:
-            raise ValueError
-    except ValueError:
-        errors.append("docs/.doc-profile: `index_max_lines` must be a non-negative integer")
+    for key in ("index_max_lines", "doc_max_lines"):
+        try:
+            if int(values[key]) < 0:
+                raise ValueError
+        except ValueError:
+            errors.append(f"docs/.doc-profile: `{key}` must be a non-negative integer")
     if profile_exists:
         raw_version = values.get("harness_version")
         if raw_version is None:
@@ -212,6 +221,52 @@ def check_index_thin(root: Path, index_file: str, maximum: int) -> list[str]:
             "set `index_max_lines = 0` to disable)"
         ]
     return []
+
+
+def check_doc_sizes(root: Path, index_file: str, maximum: int) -> list[str]:
+    """ADVISORY — name every doc that has grown past `doc_max_lines`.
+
+    Never a gate failure. Whether a long document should be split, trimmed, or
+    left alone is a judgement the operator makes with knowledge the harness does
+    not have; the only thing worth automating is that nobody has to notice the
+    growth by accident. So this reports and stops there.
+
+    It deliberately reports the path and the line count and NOTHING else. That is
+    what lets it cover `docs/projects/**`, which a session must never open at
+    start-up: knowing `<project>/status.md` is 900 lines costs a dozen tokens,
+    while reading it to find out costs thousands.
+
+    `docs/active-context-archive.md` is exempt — it is cold storage that grows
+    forever by design, so flagging it every run would be noise, not signal.
+
+    Defensive throughout: an advisory that raises would take the whole gate down
+    with it, turning "your doc is long" into a blocked commit and a `/doc-end`
+    that cannot advance its baseline. Anything it cannot measure, it skips —
+    a doc that is genuinely unreadable is already the other checks' business.
+    """
+    if maximum <= 0:                      # 0 disables it; a negative value is invalid
+        return []                         # and separately reported by read_profile
+    oversized: list[tuple[int, str]] = []
+    for doc in index_docs(root, index_file):
+        try:
+            rel = doc.relative_to(root).as_posix()
+        except ValueError:                # an index_file reached from outside the root
+            rel = doc.as_posix()
+        if rel in SIZE_EXEMPT:
+            continue
+        try:
+            # `count("\n")` and not `splitlines()`: the latter also breaks on form
+            # feeds and unicode separators, so it can report more lines than `wc -l`.
+            # The number has to be one the operator can reproduce without opening it.
+            count = doc.read_text(encoding="utf-8").count("\n")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if count > maximum:
+            oversized.append((count, rel))
+    return [
+        f"{rel}: {count} line{'' if count == 1 else 's'} (advisory limit: {maximum})"
+        for count, rel in sorted(oversized, key=lambda item: (-item[0], item[1]))
+    ]
 
 
 def frontmatter(text: str) -> tuple[dict[str, str], set[str]] | None:
@@ -374,6 +429,10 @@ def main() -> int:
         index_max_lines = int(prof["index_max_lines"])
     except ValueError:
         index_max_lines = 0
+    try:
+        doc_max_lines = int(prof["doc_max_lines"])
+    except ValueError:
+        doc_max_lines = 0
     groups = [
         ("PROFILE", profile_errors),
         ("DEAD LINKS", check_dead_links(root, index_file)),
@@ -386,20 +445,27 @@ def main() -> int:
         groups.append(("INVENTORY DRIFT", check_inventory(root, index_file, ignore)))
         groups.append(("DUPLICATE INDEX", check_no_dup_index(root, index_file)))
 
+    # Advisory, deliberately outside `groups`: it must never change the exit code.
+    oversized = check_doc_sizes(root, index_file, doc_max_lines)
+
     failed = [(name, errs) for name, errs in groups if errs]
     if not failed:
         print(
             f"doc-check: MECHANICAL GATE CLEAN — {root.name} "
             f"({'meta' if meta else 'leaf'} mode, harness v{HARNESS_VERSION})"
         )
-        return 0
-    print("doc-check: MECHANICAL GATE FAILED")
-    print("violations:")
-    for name, errs in failed:
-        print(f"  [{name}]")
-        for e in errs:
-            print(f"    - {e}")
-    return 1
+    else:
+        print("doc-check: MECHANICAL GATE FAILED")
+        print("violations:")
+        for name, errs in failed:
+            print(f"  [{name}]")
+            for e in errs:
+                print(f"    - {e}")
+    if oversized:
+        print(f"advisory — {len(oversized)} oversized doc(s), NOT a gate failure:")
+        for warning in oversized:
+            print(f"    - {warning}")
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

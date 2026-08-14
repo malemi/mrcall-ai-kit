@@ -36,9 +36,12 @@ mode = meta | leaf            # choose exactly one; meta only for independent su
 index_file = CLAUDE.md
 inventory_ignore =            # (meta only) sub-repo dirs to skip, comma-separated
 index_max_lines = 200
+# doc_max_lines = 400         # optional; defaults to 400. Advisory only — names docs
+                              # past this, never fails the gate. Write it only to change
+                              # the default or to disable the report with 0.
 # build = <executable smoke command>  # omit this key when unknown
 ```
-The profile is machine-readable: one `key = value` per line; comments never carry values. `harness_version` is the compatibility handshake and is required. `schema_version` describes the profile syntax. Required keys for new profiles are `harness_version`, `schema_version`, `mode`, `index_file`, `inventory_ignore`, and `index_max_lines`. `build` or `smoke` is optional, but if present its value must be a non-empty executable command. Ask for it only if it cannot be detected; omit the key when unknown and do not invent one.
+The profile is machine-readable: one `key = value` per line; comments never carry values. `harness_version` is the compatibility handshake and is required. `schema_version` describes the profile syntax. Required keys for new profiles are `harness_version`, `schema_version`, `mode`, `index_file`, `inventory_ignore`, and `index_max_lines`. `build`, `smoke`, and `doc_max_lines` are optional. A `build`/`smoke` value must be a non-empty executable command; ask for it only if it cannot be detected, omit the key when unknown, and do not invent one. Leave `doc_max_lines` out unless the repo wants a different limit: profiles travel in git while the checker is installed per machine, so writing an optional key that only newer checkers know turns every older machine's gate into a hard failure on an unknown key.
 
 ## Step 3 — Create the docs/ skeleton (only the missing pieces)
 - `docs/active-context.md` — with frontmatter `doc_baseline_commit: <git rev-parse HEAD>` and `doc_baseline_date: <today>`, and only `State now`, `Unresolved`, and `Next` sections. It is current state, not a changelog; target at most 120 lines and route durable knowledge elsewhere before pruning history.

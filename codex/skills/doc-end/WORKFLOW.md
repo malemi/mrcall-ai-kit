@@ -57,11 +57,14 @@ Merge into existing content — no changelogs (git log is the changelog). Living
 ## Phase 4 — Critic + gate (verify against code before advancing the baseline)
 1. **Mechanical gate** — must pass:
    !`python3 "$HOME/.config/mrcall-ai-kit/doc-check.py" --repo . 2>&1 || true`
+   The gate may also print an `advisory` block naming docs past `doc_max_lines`. It is **not** part of "must pass" and never blocks the baseline. Report those lines and stop there: a long document is the operator's call, and this command's licence to edit docs covers what *this session* changed, not a file that merely happens to be big. In particular, never let an advisory pull `docs/projects/**` into a trim — those folders are outside every automatic pass. The one case where it is already in scope: if the oversized file is `docs/active-context.md` itself, that is the Phase 3 shape gate firing, and Phase 3 owns it.
 2. **Semantic review** — explicitly invoke the installed `doc-critic` skill over every Markdown doc touched across committed, staged, unstaged, and untracked changes. Keep it separate from the mechanical gate. Repair STALE findings and rerun to zero STALE; preserve UNVERIFIABLE findings in output and never call them clean.
 3. Only when the mechanical gate passes, semantic review has zero STALE findings, and no unresolved living-context shape violation remains, set the baseline to current `git rev-parse HEAD` and update its date. A delegated critic reports a shape violation instead of repairing it (it lacks the transcript); that report is blocking, not advisory — it means Phase 3 was skipped or botched, so return to Phase 3, redo it yourself, and re-run the review. Never advance the baseline over a mis-shaped `active-context.md`. It means "last reviewed repository commit", not "commit containing docs edits". A later commit touching only `docs/**` and configured `index_file` is ignored by `/doc-start`, so committing the consolidation creates no false drift. Never use an uncommitted or hypothetical SHA.
 
 ## Output
-`Session state consolidated. Baseline advanced to <sha>. [docs touched]. [mechanical gate: clean]. [semantic review: N confirmed, N repaired, N unverifiable]. [N plan steps completed. N harness gaps logged.]`
+`Session state consolidated. Baseline advanced to <sha>. [docs touched]. [mechanical gate: clean]. [oversized docs: N]. [semantic review: N confirmed, N repaired, N unverifiable]. [N plan steps completed. N harness gaps logged.]`
+
+The *oversized docs* slot carries the count only, and is omitted entirely when the gate reported none; reproduce the gate's advisory lines verbatim beneath the summary, adding nothing of your own. It never affects whether the baseline advances.
 
 When a blocking condition survives the run, say so instead — never emit the advanced-baseline line for a baseline you did not advance: `Session state consolidated, BASELINE NOT ADVANCED — <blocking condition>. [docs touched]. [what remains to be done].`
 

@@ -1,6 +1,7 @@
 """End-to-end stdlib tests for doc-check.py."""
 from __future__ import annotations
 
+import importlib.util
 import subprocess
 import tempfile
 import unittest
@@ -8,6 +9,18 @@ from pathlib import Path
 
 CHECKER = Path(__file__).parents[1] / "doc-check.py"
 COMMANDS = Path(__file__).parents[2] / "commands"
+
+
+def load_checker():
+    """Import doc-check.py as a module (its hyphen keeps it off the import path).
+
+    Only for assertions about a single function in isolation; everything else
+    goes through the CLI, which is how the harness actually invokes it.
+    """
+    spec = importlib.util.spec_from_file_location("doc_check", CHECKER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 class DocCheckTests(unittest.TestCase):
@@ -252,6 +265,182 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("docs/active-context-archive.md", result.stdout)
         self.assertIn("[DEAD LINKS]", result.stdout)
         self.assertNotIn("[THIN INDEX]", result.stdout)
+    def test_oversized_docs_are_reported_without_failing_the_gate(self) -> None:
+        """Advisory by construction: it names the file and changes nothing else.
+
+        A doc under docs/projects/** is the case that matters — a session must
+        never open those, so a path and a line count is the only way it can learn
+        one has exploded.
+        """
+        project = self.root / "docs" / "projects" / "acme"
+        project.mkdir(parents=True)
+        (project / "status.md").write_text("filler\n" * 500, encoding="utf-8")
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
+        self.assertIn("docs/projects/acme/status.md: 500 lines", result.stdout)
+        self.assertIn("NOT a gate failure", result.stdout)
+
+    def test_doc_size_limit_is_configurable_and_zero_disables_it(self) -> None:
+        project = self.root / "docs" / "projects" / "acme"
+        project.mkdir(parents=True)
+        (project / "status.md").write_text("filler\n" * 150, encoding="utf-8")
+        (project / "small.md").write_text("filler\n" * 50, encoding="utf-8")
+        profile = self.root / "docs" / ".doc-profile"
+        profile.write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertIn("status.md: 150 lines (advisory limit: 100)", result.stdout)
+        self.assertNotIn("small.md", result.stdout)
+        profile.write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 0\n",
+            encoding="utf-8",
+        )
+        self.assertNotIn("advisory", self.check().stdout)
+
+    def test_oversized_archive_is_exempt_from_the_size_report(self) -> None:
+        """Cold storage grows forever by design; flagging it every run is noise."""
+        (self.root / "docs" / "active-context-archive.md").write_text(
+            "filler\n" * 5000, encoding="utf-8"
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("advisory", result.stdout)
+
+    def test_size_advisory_accompanies_a_failing_gate_without_masking_it(self) -> None:
+        project = self.root / "docs" / "projects" / "acme"
+        project.mkdir(parents=True)
+        (project / "status.md").write_text("filler\n" * 500, encoding="utf-8")
+        (self.root / "docs" / "README.md").write_text("[missing](nope.md)\n", encoding="utf-8")
+        result = self.check()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("MECHANICAL GATE FAILED", result.stdout)
+        self.assertIn("[DEAD LINKS]", result.stdout)
+        self.assertIn("docs/projects/acme/status.md: 500 lines", result.stdout)
+
+    def test_invalid_doc_max_lines_is_a_profile_error(self) -> None:
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = abc\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("`doc_max_lines` must be a non-negative integer", result.stdout)
+
+    def test_size_report_boundary_is_strictly_greater_than_the_limit(self) -> None:
+        """Exactly at the limit is fine; one line over is not.
+
+        Without this the `>` could silently become `>=` and every fixture built
+        on 500-vs-400 would still pass while the whole repo gained a warning.
+        """
+        doc = self.root / "docs" / "edge.md"
+        profile = self.root / "docs" / ".doc-profile"
+        profile.write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            encoding="utf-8",
+        )
+        doc.write_text("filler\n" * 100, encoding="utf-8")
+        self.assertNotIn("edge.md", self.check().stdout)
+        doc.write_text("filler\n" * 101, encoding="utf-8")
+        self.assertIn("edge.md: 101 lines", self.check().stdout)
+
+    def test_size_report_counts_lines_the_way_wc_does(self) -> None:
+        """The number must be reproducible without opening the file.
+
+        `splitlines()` also breaks on form feeds and unicode separators, so it
+        would report more lines than `wc -l` for a doc containing them.
+        """
+        (self.root / "docs" / "feed.md").write_text(
+            "filler\n" * 101 + "a\x0cb\x0cc d\n", encoding="utf-8"
+        )
+        profile = self.root / "docs" / ".doc-profile"
+        profile.write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            encoding="utf-8",
+        )
+        self.assertIn("feed.md: 102 lines", self.check().stdout)
+
+    def test_size_report_orders_largest_first_then_alphabetically(self) -> None:
+        docs = self.root / "docs"
+        (docs / "big.md").write_text("filler\n" * 300, encoding="utf-8")
+        (docs / "beta.md").write_text("filler\n" * 200, encoding="utf-8")
+        (docs / "alpha.md").write_text("filler\n" * 200, encoding="utf-8")
+        profile = self.root / "docs" / ".doc-profile"
+        profile.write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            encoding="utf-8",
+        )
+        listed = [
+            line.split(":")[0].strip().removeprefix("- ")
+            for line in self.check().stdout.splitlines()
+            if line.strip().startswith("- docs/")
+        ]
+        self.assertEqual(
+            listed, ["docs/big.md", "docs/alpha.md", "docs/beta.md"]
+        )
+
+    def test_negative_doc_max_lines_reports_nothing_beyond_the_profile_error(self) -> None:
+        """A negative limit must not make `count > maximum` true for every doc.
+
+        The profile error is the real answer; dumping the whole repo underneath
+        it would flood exactly the context this report exists to protect.
+        """
+        (self.root / "docs" / "any.md").write_text("filler\n" * 5, encoding="utf-8")
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = -1\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("`doc_max_lines` must be a non-negative integer", result.stdout)
+        self.assertNotIn("advisory", result.stdout)
+
+    def test_size_report_degrades_instead_of_raising(self) -> None:
+        """The advisory must never raise: it reports on a run whose exit code is
+        otherwise already decided, so an exception there would turn "this doc is
+        long" into a blocked commit and a `/doc-end` that cannot advance.
+
+        Driven directly rather than through the CLI on purpose. An undecodable
+        `.md` already crashes `check_dead_links`, which runs first — a
+        pre-existing defect this check neither causes nor is allowed to hide.
+        """
+        checker = load_checker()
+        (self.root / "docs" / "binary.md").write_bytes(b"\xff\xfe\x00bad\n" * 500)
+        (self.root / "docs" / "fine.md").write_text("filler\n" * 50, encoding="utf-8")
+        warnings = checker.check_doc_sizes(self.root, "CLAUDE.md", 10)
+        # the unreadable doc is skipped, and the scan carries on past it
+        self.assertEqual(warnings, ["docs/fine.md: 50 lines (advisory limit: 10)"])
+
+    def test_size_report_survives_a_doc_outside_the_repo_root(self) -> None:
+        """`index_file` can resolve inside the repo while not being lexically under
+        it — an absolute path reaching the root through a symlink alias. Profile
+        validation accepts that (it compares resolved paths), so `relative_to`
+        would raise here and take the whole gate down over a long document.
+
+        Pinned because the guard is invisible: nothing in normal use reaches it,
+        so a refactor can delete it and every other test still passes.
+        """
+        checker = load_checker()
+        alias = Path(self.temp.name).parent / f"alias-{Path(self.temp.name).name}"
+        alias.symlink_to(self.root, target_is_directory=True)
+        self.addCleanup(alias.unlink)
+        (self.root / "long.md").write_text("filler\n" * 50, encoding="utf-8")
+        warnings = checker.check_doc_sizes(self.root, str(alias / "long.md"), 10)
+        self.assertEqual(len(warnings), 1, warnings)
+        self.assertIn("long.md: 50 lines", warnings[0])
+
+    def test_doc_start_never_opens_project_folders(self) -> None:
+        """The read-scope rule is load-bearing, so a future edit must not drop it.
+
+        `docs/projects/**` is per-customer working material: opening it at session
+        start makes start-up cost scale with the number of customers, which is the
+        one thing doc-start must never do.
+        """
+        command = (COMMANDS / "doc-start.md").read_text(encoding="utf-8")
+        self.assertIn("## Read scope — `docs/projects/**` is never opened here", command)
+        self.assertIn("`docs/execution-plans/**/*.md` and nothing else", command)
 
 
 if __name__ == "__main__":
