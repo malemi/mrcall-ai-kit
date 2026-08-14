@@ -44,6 +44,9 @@ the command output it claims to have produced.
   work, and immediate next steps. It is reconsolidated, not appended to.
 - Execution plans describe bounded multi-step work and expose state in YAML
   frontmatter.
+- Briefs (`docs/briefs/`) record a workstream's what and why — the analysis,
+  the decision, the approach — one dated file each. They carry no lifecycle
+  metadata; state lives only in the paired execution plan.
 
 ## Mechanical and semantic guarantees
 
@@ -61,6 +64,10 @@ Markdown under `docs/`, plus the root README and configured index. It checks:
   what it says warrants" need judgment and stay with the semantic critic. A `##`
   line inside a code fence is content, not a section. `active-context-archive.md`
   is exempt by design — dated sections are what it is for.
+
+The gate also emits advisories — docs past `doc_max_lines`, and work-trace
+files (briefs, execution plans) named without the `YYYYMMDD-` date prefix.
+Advisories name paths and never affect the exit code.
 
 A clean mechanical gate means the document graph and metadata are internally
 consistent. It does **not** mean prose matches runtime behavior.
@@ -120,6 +127,36 @@ preserves repository knowledge, writes the new version last, and must finish
 with a clean mechanical gate. Codex entry-point skills inherit the version from
 their installed shared `WORKFLOW.md`, so all three environments use the same
 handshake.
+
+## Work traces
+
+Substantial work always leaves a trace, so "what are we doing, is it finished,
+in progress, or only conceived" is never a matter of memory. The trace is a
+pair of dated files sharing one slug:
+
+- `docs/briefs/YYYYMMDD-<slug>.md` — the what and why: problem, decision,
+  approach, rejected alternatives. Written once, updated only if the
+  understanding changes. No status frontmatter.
+- `docs/execution-plans/YYYYMMDD-<slug>.md` — the lifecycle: YAML frontmatter
+  `status` (schema below) plus the step list. Work that is only conceived is
+  `planned`; work that never gets a go becomes `superseded`, not deleted.
+
+The pair is created **before execution starts** whenever work is orchestrated —
+delegated to multiple agents or workers, in any environment — and whenever a
+workstream is expected to span sessions or is too large for the living context
+alone. A quick single-session fix needs no pair; the living context and git
+already record it.
+
+Because no `doc-*` command is running at the moment such work begins, the rule
+itself must already be in context: the configured index file carries a one-line
+pointer stating it (`doc-create` writes that line), which is what makes the
+rule fire exactly in repositories that use this harness and nowhere else.
+
+Enforcement is layered like the living-context shape: `doc-end` creates a
+missing pair retroactively in-session (it holds the transcript that says what
+the work was and why); a delegated critic reports the absence instead of
+inventing content; the mechanical gate reports undated trace filenames as an
+advisory, never a failure.
 
 ## Execution-plan schema
 

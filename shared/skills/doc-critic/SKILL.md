@@ -1,6 +1,6 @@
 ---
 name: doc-critic
-description: Verify documentation against code reality, and check whether docs/active-context.md has drifted into a changelog. Given the docs changed this session, flag any claim that describes a feature/endpoint/file/flag that does not exist or is not wired (dead code documented as live), plus non-English artifacts. Also independently checks that active-context.md still matches the living-snapshot contract, reporting the violation when delegated and repairing it when run in-session. Used by /doc-end before advancing the baseline.
+description: Verify documentation against code reality, and check whether docs/active-context.md has drifted into a changelog. Given the docs changed this session, flag any claim that describes a feature/endpoint/file/flag that does not exist or is not wired (dead code documented as live), plus non-English artifacts. Also independently checks that active-context.md still matches the living-snapshot contract (reporting the violation when delegated, repairing it when run in-session) and that substantial work since the baseline left its brief+plan work trace. Used by /doc-end before advancing the baseline.
 ---
 
 # doc-critic — does the documentation match the code, and is active-context.md still a snapshot?
@@ -34,6 +34,22 @@ If you cannot tell which situation you are in, you are a delegate: report, do no
 3. Rewrite `docs/active-context.md` to contain only its frontmatter (leave `doc_baseline_commit` / `doc_baseline_date` exactly as they were — this repair is orthogonal to baseline advancement, which stays `/doc-end` Phase 4's job), the `# Active Context` title, and `## State now` / `## Unresolved` / `## Next` built from the CURRENT material only, declarative and present-tense.
 4. Report what you did: lines before → after in `active-context.md`, and the archive's new line count.
 
+## Work-trace presence — report; the trace decision is the session's
+
+The contract pairs substantial work with `docs/briefs/YYYYMMDD-<slug>.md` +
+`docs/execution-plans/YYYYMMDD-<slug>.md`. From the diff alone you can see one
+signal: a change set since the baseline that is clearly multi-step — many
+non-doc files, new modules, the fingerprints of an orchestrated fan-out — with
+no brief and no plan created or updated alongside it. Report that as
+`TRACE: substantial change set with no brief/plan touched — Phase 3 must decide`.
+Never create the pair yourself when delegated: what the work was, why it was
+done, and whether it is below the trace threshold is transcript knowledge you
+do not have. Running in-session (a full-repo audit, a migration, a worker-less
+`doc-end`) you hold that knowledge — create or update the pair as `doc-end`
+Phase 3 prescribes. This finding sends the decision back; it does not force a
+pair into existence: the session may resolve it by stating, in its output's
+*work trace* slot, that the work was a small fix needing no trace.
+
 ## What to verify — for each factual claim in the changed docs
 Extract the concrete, checkable claims (not prose/opinion) and verify each against the actual code:
 
@@ -50,4 +66,4 @@ Extract the concrete, checkable claims (not prose/opinion) and verify each again
 - Prefer reading the real source over trusting a prior doc; the code wins over the doc every time.
 
 ## Output
-Lead with the shape check, always — one of `active-context.md: shape OK`, `active-context.md: archived — N → M lines (archive: +K lines)` (repaired in-session), or `active-context.md: shape violation — NOT repaired here, Phase 3 must redo it` plus the list of what is mis-shaped (delegated). The third form is a blocking finding, not an observation: whoever called you must not advance the baseline until it is resolved. Then the claim list: `STALE: <claim> — code says <file:line: reality>` / `UNVERIFIABLE: <claim> — <why>`. If everything checks out: `Critic clean — N claims verified.`
+Lead with the shape check, always — one of `active-context.md: shape OK`, `active-context.md: archived — N → M lines (archive: +K lines)` (repaired in-session), or `active-context.md: shape violation — NOT repaired here, Phase 3 must redo it` plus the list of what is mis-shaped (delegated). The third form is a blocking finding, not an observation: whoever called you must not advance the baseline until it is resolved. If the diff shows substantial work with no trace pair touched, add the `TRACE:` line next — resolved by the session's explicit decision, never by inventing files. Then the claim list: `STALE: <claim> — code says <file:line: reality>` / `UNVERIFIABLE: <claim> — <why>`. If everything checks out: `Critic clean — N claims verified.`

@@ -47,12 +47,15 @@ The profile is machine-readable: one `key = value` per line; comments never carr
 - `docs/active-context.md` — with frontmatter `doc_baseline_commit: <git rev-parse HEAD>` and `doc_baseline_date: <today>`, and only `State now`, `Unresolved`, and `Next` sections. It is current state, not a changelog; target at most 120 lines and route durable knowledge elsewhere before pruning history.
 - `docs/README.md` — a THIN pointer: "index of transversal docs; the repo inventory / roles / ownership live only in the index file." No repo table.
 - `docs/execution-plans/` — dir with a `.gitkeep`.
+- `docs/briefs/` — dir with a `.gitkeep`.
 - Every plan begins with YAML frontmatter containing exactly one lifecycle value: `status: planned | active | blocked | completed | superseded`. Never encode authoritative status in headings, emoji, prose, or checkboxes.
+- Briefs and plans are the repo's **work traces**, each named `YYYYMMDD-<slug>.md` with one shared slug per workstream: the brief holds the what/why (no status frontmatter), the plan holds the lifecycle. Orchestrated or multi-session work creates both before execution starts; the index carries this rule as a one-line pointer (Step 4). The gate reports undated trace filenames as an advisory.
 - Stubs (empty-but-titled), only if the repo will use them: `docs/known-issues-and-solutions.md`, `docs/quality-grades.md`, `docs/harness-backlog.md`. Do NOT stub `ARCHITECTURE.md` / `CONVENTIONS.md` / `system-rules.md` — a fabricated architecture doc is worse than none; write those when the knowledge exists.
 
 ## Step 4 — Ensure the index is thin and single-source
 - If `CLAUDE.md` is missing, create a thin one: a short intro + pointers to `docs/`. For a **meta** repo, add a `## Services` table (one row per sub-repo you actually detected — name, path, stack, role; do not invent repos). For a **leaf** repo, no Services table is needed.
 - If `CLAUDE.md` already exists but has grown into prose, FLAG it (don't silently rewrite) — the harness wants a thin index.
+- Whether the index is created or found, ensure it carries the one-line work-trace rule; add it if missing (this is harness-owned structure, not prose): `Work traces: orchestrated or multi-session work starts by creating docs/briefs/YYYYMMDD-<slug>.md (what/why) + docs/execution-plans/YYYYMMDD-<slug>.md (status frontmatter) before execution.` The index is the only file guaranteed to be in context at the moment such work begins — no `doc-*` command runs then — so this line is what makes the rule fire in harness repos and nowhere else.
 
 ## Step 5 — Verify the gate, then hand off
 - Run the gate against this repo:

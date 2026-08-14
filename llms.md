@@ -61,7 +61,7 @@ and usable as an agent's `model:` field.
 types and routes to the model with the highest community share-of-spend over a
 trailing 7-day window, then follows the crowd as workloads migrate — no
 retraining, no manual curation. Verified end-to-end via subagent delegation
-(see `docs/briefs/test-worker-auto.md`).
+(see `docs/briefs/20260801-test-worker-auto.md`).
 
 - **Use it when** the right worker for a task is unknown or volatile, or you
   don't want to pin a specific model.

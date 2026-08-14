@@ -54,7 +54,7 @@ symlink modes.
 The OpenRouter Auto Router experiment is complete. The working OpenCode agent
 model ID is `openrouter/openrouter/auto`, and delegation was verified
 end-to-end. Retained evidence and superseded hypotheses live in
-[`briefs/test-worker-auto.md`](briefs/test-worker-auto.md), not in this volatile
+[`briefs/20260801-test-worker-auto.md`](briefs/20260801-test-worker-auto.md), not in this volatile
 snapshot.
 
 ## Unresolved

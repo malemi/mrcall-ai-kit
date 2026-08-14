@@ -431,6 +431,48 @@ class DocCheckTests(unittest.TestCase):
         self.assertEqual(len(warnings), 1, warnings)
         self.assertIn("long.md: 50 lines", warnings[0])
 
+    def test_undated_trace_files_are_reported_without_failing_the_gate(self) -> None:
+        """Work traces are dated by convention; the gate reports, never enforces.
+
+        Blocking on a filename would break every repo predating the convention
+        and require a harness version bump — advisory is the deliberate choice.
+        """
+        briefs = self.root / "docs" / "briefs"
+        briefs.mkdir(parents=True)
+        (briefs / "notes.md").write_text("# Notes\n", encoding="utf-8")
+        plans = self.root / "docs" / "execution-plans"
+        (plans / "work.md").write_text("---\nstatus: active\n---\n# W\n", encoding="utf-8")
+        (plans / "20260814-ok.md").write_text("---\nstatus: active\n---\n# OK\n", encoding="utf-8")
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
+        self.assertIn("2 undated work-trace file(s), NOT a gate failure", result.stdout)
+        self.assertIn("docs/briefs/notes.md", result.stdout)
+        self.assertIn("docs/execution-plans/work.md", result.stdout)
+        self.assertNotIn("20260814-ok.md", result.stdout)
+
+    def test_trace_naming_exempts_readme(self) -> None:
+        """A README inside a trace directory is routing, not a trace."""
+        briefs = self.root / "docs" / "briefs"
+        briefs.mkdir(parents=True)
+        (briefs / "README.md").write_text("# Briefs\n", encoding="utf-8")
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertNotIn("advisory", result.stdout)
+
+    def test_commands_carry_the_work_trace_rule(self) -> None:
+        """The creation rule is prose, so a future edit must not drop it.
+
+        The gap this closes was exactly "the artifacts are defined but nothing
+        says when to create them": doc-create must ship the briefs directory and
+        the naming convention, and doc-end must own the retroactive creation.
+        """
+        create = (COMMANDS / "doc-create.md").read_text(encoding="utf-8")
+        self.assertIn("`docs/briefs/`", create)
+        self.assertIn("YYYYMMDD-<slug>.md", create)
+        end = (COMMANDS / "doc-end.md").read_text(encoding="utf-8")
+        self.assertIn("Work traces", end)
+
     def test_doc_start_never_opens_project_folders(self) -> None:
         """The read-scope rule is load-bearing, so a future edit must not drop it.
 

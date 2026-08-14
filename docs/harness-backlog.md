@@ -2,6 +2,17 @@
 
 Deferred doc-harness / orchestration improvements.
 
+## OPEN — orchestrator REVIEW.md is an Italian artifact
+
+**Logged**: 2026-08-14. `opencode/skills/orchestrator/REVIEW.md` is a ~300-line
+review document written in Italian. The work-trace pass of 2026-08-14 rewrote
+the orchestrator's *live* protocol files into English (SKILL.md question
+templates, `agents/orchestrator.md`) but deliberately left REVIEW.md: it is a
+historical analysis whose findings partly shaped the current protocol, and a
+wholesale rewrite is a dedicated job, not a side edit. On the next pass that
+touches the orchestrator, rewrite it in English — or decide it is superseded
+and archive it.
+
 ## DONE — Mechanical enforcement of the living-context shape (harness v3)
 
 **Status**: DONE (2026-08-04). The shape rule had two enforcement layers and
@@ -90,7 +101,7 @@ declaration in `opencode.json` was required; the key in `auth.json` was enough.
 
 **Outcome**: the working OpenCode slug is `openrouter/openrouter/auto`, not
 `auto-beta`, which is absent from the registry. Full detail is in
-`docs/briefs/test-worker-auto.md` and `docs/active-context.md`.
+`docs/briefs/20260801-test-worker-auto.md` and `docs/active-context.md`.
 
 **Sources** (verified 2026-07-25 on docs.openrouter.ai):
 - Auto Router: `https://openrouter.ai/docs/guides/routing/routers/auto-router.md`

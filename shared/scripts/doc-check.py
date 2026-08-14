@@ -25,6 +25,10 @@ Checks (which run depends on the repo's profile — see below):
                   (which still reflects checks 1-4 alone). Only a path and a line
                   count cross, so a session learns a doc has exploded without
                   opening it.
+  6. TRACE NAMES  (always, ADVISORY) — names every work-trace file (a Markdown
+                  file under docs/briefs/ or docs/execution-plans/) whose
+                  filename lacks the `YYYYMMDD-` date prefix. Reported, never
+                  enforced, for the same reason as check 5.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
     harness_version   = 3                    (must match installed harness)
@@ -60,6 +64,9 @@ PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
 CONTEXT_SECTIONS = {"state now", "unresolved", "next"}
 # Cold storage that grows by design — exempt from the advisory size report.
 SIZE_EXEMPT = {"docs/active-context-archive.md"}
+# Work traces (briefs and execution plans) are dated so they sort by workstream.
+TRACE_DIRS = ("docs/briefs", "docs/execution-plans")
+TRACE_NAME = re.compile(r"^\d{8}-.+\.md$")
 
 
 def repo_root(explicit: str | None) -> Path:
@@ -269,6 +276,33 @@ def check_doc_sizes(root: Path, index_file: str, maximum: int) -> list[str]:
     ]
 
 
+def check_trace_naming(root: Path) -> list[str]:
+    """ADVISORY — name every work-trace file whose filename lacks a date prefix.
+
+    Briefs and execution plans are the durable trace of a workstream; the
+    `YYYYMMDD-` prefix is what lets them sort chronologically and answer "when
+    was this decided" without git archaeology. Advisory, not a failure:
+    repositories predating the convention hold undated files whose renaming is
+    the operator's call, and making the filename a gate failure would require a
+    `harness_version` bump plus an explicit migration. A `README.md` inside
+    either directory is routing, not a trace, and is exempt.
+    """
+    warnings: list[str] = []
+    for rel_dir in TRACE_DIRS:
+        base = root / rel_dir
+        if not base.exists():
+            continue
+        for doc in sorted(base.rglob("*.md")):
+            if doc.name.lower() == "readme.md":
+                continue
+            if not TRACE_NAME.match(doc.name):
+                warnings.append(
+                    f"{doc.relative_to(root).as_posix()}: work-trace file without "
+                    "a `YYYYMMDD-` date prefix"
+                )
+    return warnings
+
+
 def frontmatter(text: str) -> tuple[dict[str, str], set[str]] | None:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
@@ -445,8 +479,9 @@ def main() -> int:
         groups.append(("INVENTORY DRIFT", check_inventory(root, index_file, ignore)))
         groups.append(("DUPLICATE INDEX", check_no_dup_index(root, index_file)))
 
-    # Advisory, deliberately outside `groups`: it must never change the exit code.
+    # Advisories, deliberately outside `groups`: they must never change the exit code.
     oversized = check_doc_sizes(root, index_file, doc_max_lines)
+    undated = check_trace_naming(root)
 
     failed = [(name, errs) for name, errs in groups if errs]
     if not failed:
@@ -464,6 +499,10 @@ def main() -> int:
     if oversized:
         print(f"advisory — {len(oversized)} oversized doc(s), NOT a gate failure:")
         for warning in oversized:
+            print(f"    - {warning}")
+    if undated:
+        print(f"advisory — {len(undated)} undated work-trace file(s), NOT a gate failure:")
+        for warning in undated:
             print(f"    - {warning}")
     return 1 if failed else 0
 

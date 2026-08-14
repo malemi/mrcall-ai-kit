@@ -28,3 +28,7 @@ User-facing overview lives in [`README.md`](README.md).
 
 - All docs in English.
 - Single source of truth = this index; other docs point here.
+- Work traces: orchestrated or multi-session work starts by creating
+  `docs/briefs/YYYYMMDD-<slug>.md` (what/why) +
+  `docs/execution-plans/YYYYMMDD-<slug>.md` (status frontmatter) before
+  execution.
