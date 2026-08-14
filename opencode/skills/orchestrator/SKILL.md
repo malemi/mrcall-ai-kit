@@ -26,7 +26,7 @@ AGENTS.md still wins on: root-cause fixes, real-env tests, no commit without ask
 When activated, **STOP and execute this sequence BEFORE doing anything else**:
 
 1. Read `~/.config/opencode/skills/orchestrator/memory.md`
-2. Read `<project>/docs/plans/execution.md` (skip if doesn't exist)
+2. List `<project>/docs/execution-plans/*.md` and read the files whose YAML frontmatter `status` is `planned`, `active`, or `blocked` (skip if the directory doesn't exist). These are the open work traces: resuming one of them means updating its existing brief+plan pair, never creating a duplicate.
 3. Read `~/.config/opencode/llms.md`
 4. **Start watchdog daemon** (if not already running):
    ```bash
@@ -47,7 +47,7 @@ Read `~/.config/opencode/llms.md` → "Orchestrator Models" table. Generate opti
 
 ```
 question: [{
-  question: "Quale modello usiamo come orchestratore?\n\nModello corrente: <current>\n\nSeleziona il modello per questa sessione:",
+  question: "Which model should orchestrate this session?\n\nCurrent model: <current>\n\nSelect the model for this session:",
   header: "Model Selection",
   options: [
     {label: "<Model from table>", description: "<Cost + Best for>"},
@@ -79,17 +79,19 @@ Present a clear strategy via `question`:
 
 ```
 question: [{
-  question: "Ecco la strategia che propongo:\n\n## Obiettivo\n<what>\n\n## Approccio\n<high-level>\n\n## File coinvolti\n<list>\n\n## Rischi\n<issues>\n\n## Risultato atteso\n<outcome>",
+  question: "Here is the strategy I propose:\n\n## Goal\n<what>\n\n## Approach\n<high-level>\n\n## Files involved\n<list>\n\n## Risks\n<issues>\n\n## Expected outcome\n<outcome>",
   header: "Strategy",
   options: [
-    {label: "Approvo", description: "Procedi con i sotto-task"},
-    {label: "Modifiche", description: "Voglio modificare qualcosa"},
-    {label: "Riproponi", description: "Non sono convinto, riproponi"}
+    {label: "Approve", description: "Proceed to task breakdown"},
+    {label: "Changes", description: "I want to change something"},
+    {label: "Re-propose", description: "Not convinced, propose again"}
   ]
 }]
 ```
 
 **DO NOT PROCEED WITHOUT USER APPROVAL.**
+
+**On approval, write the work trace** (skip for read-only tasks): derive `<slug>` from the goal and the date from `date +%Y%m%d`, then write `docs/briefs/YYYYMMDD-<slug>.md` — the approved strategy verbatim: goal, approach, risks, expected outcome — and `docs/execution-plans/YYYYMMDD-<slug>.md` with YAML frontmatter `status: planned` (schema in Plan Persistence below). If the startup scan found an open plan for this same workstream, update that pair instead of creating a new one.
 
 ## Phase 4: Task Decomposition — YOU MUST ASK
 
@@ -97,23 +99,23 @@ Break work into discrete subtasks. Present via `question`:
 
 ```
 question: [{
-  question: "Ecco i sotto-task:\n\n## Task 1: <name>\n- **Descrizione**: <what>\n- **Worker**: <LLM>\n- **File**: <files>\n- **Owns**: <paths>\n- **Test**: <verification>\n\n## Task 2: ...\n\n## ORDINE DI ESECUZIONE\n<parallel/sequential>\n\n## COSTO STIMATO\n<$/$$>",
+  question: "Here are the subtasks:\n\n## Task 1: <name>\n- **Description**: <what>\n- **Worker**: <LLM>\n- **Files**: <files>\n- **Owns**: <paths>\n- **Test**: <verification>\n\n## Task 2: ...\n\n## EXECUTION ORDER\n<parallel/sequential>\n\n## ESTIMATED COST\n<$/$$>",
   header: "Tasks",
   options: [
-    {label: "Approvo tutto", description: "Esegui"},
-    {label: "Modifica", description: "Cambia qualcosa"},
-    {label: "Aggiungi/rimuovi task", description: "Cambia il piano"}
+    {label: "Approve all", description: "Execute"},
+    {label: "Modify", description: "Change something"},
+    {label: "Add/remove tasks", description: "Change the plan"}
   ]
 }]
 ```
 
 Use `~/.config/opencode/llms.md` Selection Guide to pick the right LLM per task.
 
-**DO NOT EXECUTE WITHOUT USER APPROVAL.**
+**DO NOT EXECUTE WITHOUT USER APPROVAL.** On approval, record the approved task table in the plan file.
 
 ## Phase 5: Execution
 
-Only after Phase 4 approval, delegate to workers.
+Only after Phase 4 approval. Set the plan's frontmatter to `status: active`, then delegate to workers.
 
   ### Worker Prompt Template
 
@@ -242,24 +244,31 @@ task({
 **YOU MUST report results to user via `question`:**
 ```
 question: [{
-  question: "Verifica completata:\n\n## Completati\n<done>\n\n## Con problemi\n<issues>\n\n## Falliti\n<failed>",
+  question: "Verification complete:\n\n## Completed\n<done>\n\n## With issues\n<issues>\n\n## Failed\n<failed>",
   header: "Results",
   options: [
-    {label: "Tutto OK", description: "Chiudi il piano"},
-    {label: "Correggi", description: "Fix i problemi"},
-    {label: "Review completa", description: "Voglio vedere la review di Task N"}
+    {label: "All good", description: "Close the plan"},
+    {label: "Fix", description: "Fix the issues"},
+    {label: "Full review", description: "Show me the full review of Task N"}
   ]
 }]
 ```
 
+Closing the plan means setting its frontmatter to `status: completed` (all tasks done and verified) or `status: blocked` with the reason recorded in the body (stopping on failures). A plan abandoned or replaced by a different approach becomes `status: superseded`, never deleted.
+
 ## Plan Persistence
 
-### Schema for `execution.md`
+The plan file is the doc-harness work trace: `docs/execution-plans/YYYYMMDD-<slug>.md`, paired with `docs/briefs/YYYYMMDD-<slug>.md` written at Phase 3 approval. Lifecycle lives ONLY in the YAML frontmatter `status` — one of `planned | active | blocked | completed | superseded` — never in a heading, emoji, or prose.
+
+### Plan file schema
 
 ```markdown
-# Execution Plan
-## Status: <in_progress | completed | failed>
-## Updated: <timestamp>
+---
+status: planned
+---
+# <Workstream title>
+
+Brief: [../briefs/YYYYMMDD-<slug>.md](../briefs/YYYYMMDD-<slug>.md)
 
 ### Tasks
 | # | Name | Worker | Status | Files | Verified |
@@ -268,8 +277,11 @@ question: [{
 | 2 | ... | worker-y | blocked | path | ❌ reason |
 ```
 
+The task table is a reading aid; the frontmatter is the authority.
+
 ### Persistence rules
-- Write after each phase transition
+- `status: planned` at Phase 3 approval → `active` when Phase 5 starts → `completed` / `blocked` / `superseded` at close (Phase 6)
+- Update the task table after **every** task completion, not only at phase transitions
 - Shutdown = final flush + update memory.md
 - **Read-only tasks**: skip all writes
 

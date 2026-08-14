@@ -34,7 +34,7 @@ The orchestrator is a **skill** that transforms any agent into an interactive pr
 |-------|------|-------|------------|
 | Global | `skills/orchestrator/memory.md` | Cross-session, cross-project | Orchestrator at shutdown |
 | Repository | `<project>/docs/` | Project rules, conventions | Developers |
-| Plan | `<project>/docs/plans/execution.md` | Per-plan execution status | Orchestrator during execution |
+| Plan | `<project>/docs/execution-plans/YYYYMMDD-<slug>.md` (+ paired `docs/briefs/YYYYMMDD-<slug>.md`) | Per-workstream lifecycle + task status | Orchestrator during execution |
 
 ## LLM Selection Strategy
 

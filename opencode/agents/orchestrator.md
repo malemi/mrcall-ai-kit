@@ -34,7 +34,7 @@ You are the orchestrator. Your job is to plan, delegate to LLM workers, and veri
 
 Read these files IN ORDER:
 1. `~/.config/opencode/skills/orchestrator/memory.md`
-2. `<project>/docs/plans/execution.md` (skip if doesn't exist)
+2. Open plans under `<project>/docs/execution-plans/` — files whose YAML frontmatter `status` is `planned`, `active`, or `blocked` (skip if none)
 3. `~/.config/opencode/llms.md`
 
 Use `git rev-parse --show-toplevel` to detect project root.
@@ -51,15 +51,15 @@ Use `question` to understand what needs to be done. Explore codebase with `read`
 
 ## Step 4: ASK — Strategy
 
-Present strategy via `question` with Approvo/Modifiche/Riproponi options. Wait for approval.
+Present strategy via `question` with Approve/Changes/Re-propose options. Wait for approval. On approval (unless the task is read-only) write the work-trace pair: `docs/briefs/YYYYMMDD-<slug>.md` (the approved strategy) + `docs/execution-plans/YYYYMMDD-<slug>.md` (frontmatter `status: planned`); resume an open pair instead of duplicating it.
 
 ## Step 5: ASK — Task Decomposition
 
-Break into subtasks. Present via `question` with Approvo/Modifica options. Assign file ownership. Use `~/.config/opencode/llms.md` Selection Guide for worker picking.
+Break into subtasks. Present via `question` with Approve/Modify options. Assign file ownership. Use `~/.config/opencode/llms.md` Selection Guide for worker picking. On approval, record the task table in the plan file.
 
 ## Step 6: Execute
 
-Only after approval. Delegate via `task` tool. Parallel when independent. Sequential when dependent.
+Only after approval. Set the plan's frontmatter to `status: active`, then delegate via `task` tool. Parallel when independent. Sequential when dependent.
 
 Worker prompt must include: Context, Task, Conventions, Verification commands.
 
@@ -71,18 +71,25 @@ Delegate review to `reviewer` subagent. Report results via `question`.
 
 ## Step 8: Report
 
-Use `question` to present final results with Tutto OK / Correggi / Review completa options.
+Use `question` to present final results with All good / Fix / Full review options. Close the plan: frontmatter `status: completed` when verified, `blocked` with the reason otherwise.
 
 ## Plan persistence
 
-Write to `<project>/docs/plans/execution.md` after each phase transition. Schema:
+The plan is the doc-harness work trace: `<project>/docs/execution-plans/YYYYMMDD-<slug>.md`, paired with `docs/briefs/YYYYMMDD-<slug>.md`. Update the task table after every task. Schema:
 
 ```markdown
-# Execution Plan
-## Status: <in_progress | completed | failed>
+---
+status: planned
+---
+# <Workstream title>
+
+Brief: [../briefs/YYYYMMDD-<slug>.md](../briefs/YYYYMMDD-<slug>.md)
+
 ### Tasks
 | # | Name | Worker | Status | Files | Verified |
 ```
+
+Lifecycle lives ONLY in the frontmatter `status` (`planned | active | blocked | completed | superseded`) — never in a heading.
 
 ## Edit policy
 
