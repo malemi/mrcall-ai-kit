@@ -30,8 +30,8 @@ cd mrcall-ai-kit
 That's the whole install. The script detects which tools you already have,
 asks what you want, prints the exact list of files it is about to write, and
 writes nothing until you say yes. It installs **globally** (your `~/.claude`,
-`~/.agents`, `~/.config/opencode`) — never inside your repos. Requirements:
-`bash`, `git`, `python3`.
+`~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
+your repos. Requirements: `bash`, `git`, `python3`.
 
 Then:
 
@@ -45,8 +45,8 @@ From there the routine is two commands: `doc-start` when you sit down,
 
 ### Non-interactive / CI
 
-Every prompt has a flag, `--dry-run` prints the plan without writing, and with
-no TTY the script exits instead of hanging. Everything at once:
+Every prompt has a flag, `--dry-run` prints the plan and installs nothing, and
+with no TTY the script exits instead of hanging. Everything at once:
 
 ```bash
 ./install.sh --environment all --features all \
@@ -61,8 +61,8 @@ no TTY the script exits instead of hanging. Everything at once:
 ./uninstall.sh
 ```
 
-Reads the installer's own log and removes everything it put there — symlinks
-and copies alike. Nothing is left behind.
+Reads the installer's own log and removes every file it put there — symlinks
+and copies alike.
 
 ## What's inside
 
