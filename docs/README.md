@@ -8,9 +8,11 @@ Do not duplicate that inventory here.
 
 - [`active-context.md`](active-context.md) — last done / in progress / next
   as a current snapshot, never a session log.
+- [`active-context-archive.md`](active-context-archive.md) — pruned session
+  narrative, dated, newest first; cold storage, never read at session start.
 - [`execution-plans/`](execution-plans/) — machine-readable multi-step plans.
 - [`briefs/`](briefs/) — dated what/why records of workstreams, each paired
-  with an execution plan (`YYYYMMDD-<slug>.md`).
+  with an execution plan (`YYYY-MM-DD-<slug>.md`).
 
 ## Durable
 
