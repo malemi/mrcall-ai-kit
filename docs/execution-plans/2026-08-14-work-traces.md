@@ -3,7 +3,7 @@ status: completed
 ---
 # Work-trace rule across the harness
 
-Brief: [../briefs/20260814-work-traces.md](../briefs/20260814-work-traces.md)
+Brief: [../briefs/2026-08-14-work-traces.md](../briefs/2026-08-14-work-traces.md)
 
 ## Steps
 

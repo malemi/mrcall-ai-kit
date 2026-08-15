@@ -442,14 +442,14 @@ class DocCheckTests(unittest.TestCase):
         (briefs / "notes.md").write_text("# Notes\n", encoding="utf-8")
         plans = self.root / "docs" / "execution-plans"
         (plans / "work.md").write_text("---\nstatus: active\n---\n# W\n", encoding="utf-8")
-        (plans / "20260814-ok.md").write_text("---\nstatus: active\n---\n# OK\n", encoding="utf-8")
+        (plans / "2026-08-14-ok.md").write_text("---\nstatus: active\n---\n# OK\n", encoding="utf-8")
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
         self.assertIn("2 undated work-trace file(s), NOT a gate failure", result.stdout)
         self.assertIn("docs/briefs/notes.md", result.stdout)
         self.assertIn("docs/execution-plans/work.md", result.stdout)
-        self.assertNotIn("20260814-ok.md", result.stdout)
+        self.assertNotIn("2026-08-14-ok.md", result.stdout)
 
     def test_trace_naming_exempts_readme(self) -> None:
         """A README inside a trace directory is routing, not a trace."""
@@ -469,7 +469,7 @@ class DocCheckTests(unittest.TestCase):
         """
         create = (COMMANDS / "doc-create.md").read_text(encoding="utf-8")
         self.assertIn("`docs/briefs/`", create)
-        self.assertIn("YYYYMMDD-<slug>.md", create)
+        self.assertIn("YYYY-MM-DD-<slug>.md", create)
         end = (COMMANDS / "doc-end.md").read_text(encoding="utf-8")
         self.assertIn("Work traces", end)
 

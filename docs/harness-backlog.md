@@ -101,7 +101,7 @@ declaration in `opencode.json` was required; the key in `auth.json` was enough.
 
 **Outcome**: the working OpenCode slug is `openrouter/openrouter/auto`, not
 `auto-beta`, which is absent from the registry. Full detail is in
-`docs/briefs/20260801-test-worker-auto.md` and `docs/active-context.md`.
+`docs/briefs/2026-08-01-test-worker-auto.md` and `docs/active-context.md`.
 
 **Sources** (verified 2026-07-25 on docs.openrouter.ai):
 - Auto Router: `https://openrouter.ai/docs/guides/routing/routers/auto-router.md`

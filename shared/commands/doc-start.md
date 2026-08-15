@@ -41,7 +41,7 @@ Resolve `index_file` from the profile. Do not assume a configured index was auto
 ## Index integrity (run first)
 The gate below fails on dead doc links and, in meta mode, on repo-inventory drift or a duplicated repo-index. Surface any failure in the output line's *violations* slot and fix it before other work.
 
-The gate also prints `advisory` blocks — docs past `doc_max_lines`, and work-trace files (briefs, execution plans) named without their `YYYYMMDD-` date prefix. They are not failures and never block: carry those lines through to the output unchanged (the Output section says where they go) and leave them alone. Do not open a named file to assess it, do not trim or rename it, do not propose a restructuring unasked — reporting is the whole job, and the operator decides what to do about it.
+The gate also prints `advisory` blocks — docs past `doc_max_lines`, and work-trace files (briefs, execution plans) named without their `YYYY-MM-DD-` date prefix. They are not failures and never block: carry those lines through to the output unchanged (the Output section says where they go) and leave them alone. Do not open a named file to assess it, do not trim or rename it, do not propose a restructuring unasked — reporting is the whole job, and the operator decides what to do about it.
 !`python3 "$HOME/.config/mrcall-ai-kit/doc-check.py" --repo . 2>&1 || true`
 
 ## Phase 1 — Durable layer (read on demand)

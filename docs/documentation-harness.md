@@ -66,7 +66,7 @@ Markdown under `docs/`, plus the root README and configured index. It checks:
   is exempt by design — dated sections are what it is for.
 
 The gate also emits advisories — docs past `doc_max_lines`, and work-trace
-files (briefs, execution plans) named without the `YYYYMMDD-` date prefix.
+files (briefs, execution plans) named without the `YYYY-MM-DD-` date prefix.
 Advisories name paths and never affect the exit code.
 
 A clean mechanical gate means the document graph and metadata are internally
@@ -134,10 +134,10 @@ Substantial work always leaves a trace, so "what are we doing, is it finished,
 in progress, or only conceived" is never a matter of memory. The trace is a
 pair of dated files sharing one slug:
 
-- `docs/briefs/YYYYMMDD-<slug>.md` — the what and why: problem, decision,
+- `docs/briefs/YYYY-MM-DD-<slug>.md` — the what and why: problem, decision,
   approach, rejected alternatives. Written once, updated only if the
   understanding changes. No status frontmatter.
-- `docs/execution-plans/YYYYMMDD-<slug>.md` — the lifecycle: YAML frontmatter
+- `docs/execution-plans/YYYY-MM-DD-<slug>.md` — the lifecycle: YAML frontmatter
   `status` (schema below) plus the step list. Work that is only conceived is
   `planned`; work that never gets a go becomes `superseded`, not deleted.
 

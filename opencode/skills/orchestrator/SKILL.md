@@ -91,7 +91,7 @@ question: [{
 
 **DO NOT PROCEED WITHOUT USER APPROVAL.**
 
-**On approval, write the work trace** (skip for read-only tasks): derive `<slug>` from the goal and the date from `date +%Y%m%d`, then write `docs/briefs/YYYYMMDD-<slug>.md` — the approved strategy verbatim: goal, approach, risks, expected outcome — and `docs/execution-plans/YYYYMMDD-<slug>.md` with YAML frontmatter `status: planned` (schema in Plan Persistence below). If the startup scan found an open plan for this same workstream, update that pair instead of creating a new one.
+**On approval, write the work trace** (skip for read-only tasks): derive `<slug>` from the goal and the date from `date +%F`, then write `docs/briefs/YYYY-MM-DD-<slug>.md` — the approved strategy verbatim: goal, approach, risks, expected outcome — and `docs/execution-plans/YYYY-MM-DD-<slug>.md` with YAML frontmatter `status: planned` (schema in Plan Persistence below). If the startup scan found an open plan for this same workstream, update that pair instead of creating a new one.
 
 ## Phase 4: Task Decomposition — YOU MUST ASK
 
@@ -258,7 +258,7 @@ Closing the plan means setting its frontmatter to `status: completed` (all tasks
 
 ## Plan Persistence
 
-The plan file is the doc-harness work trace: `docs/execution-plans/YYYYMMDD-<slug>.md`, paired with `docs/briefs/YYYYMMDD-<slug>.md` written at Phase 3 approval. Lifecycle lives ONLY in the YAML frontmatter `status` — one of `planned | active | blocked | completed | superseded` — never in a heading, emoji, or prose.
+The plan file is the doc-harness work trace: `docs/execution-plans/YYYY-MM-DD-<slug>.md`, paired with `docs/briefs/YYYY-MM-DD-<slug>.md` written at Phase 3 approval. Lifecycle lives ONLY in the YAML frontmatter `status` — one of `planned | active | blocked | completed | superseded` — never in a heading, emoji, or prose.
 
 ### Plan file schema
 
@@ -268,7 +268,7 @@ status: planned
 ---
 # <Workstream title>
 
-Brief: [../briefs/YYYYMMDD-<slug>.md](../briefs/YYYYMMDD-<slug>.md)
+Brief: [../briefs/YYYY-MM-DD-<slug>.md](../briefs/YYYY-MM-DD-<slug>.md)
 
 ### Tasks
 | # | Name | Worker | Status | Files | Verified |

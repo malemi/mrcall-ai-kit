@@ -51,7 +51,7 @@ Use `question` to understand what needs to be done. Explore codebase with `read`
 
 ## Step 4: ASK — Strategy
 
-Present strategy via `question` with Approve/Changes/Re-propose options. Wait for approval. On approval (unless the task is read-only) write the work-trace pair: `docs/briefs/YYYYMMDD-<slug>.md` (the approved strategy) + `docs/execution-plans/YYYYMMDD-<slug>.md` (frontmatter `status: planned`); resume an open pair instead of duplicating it.
+Present strategy via `question` with Approve/Changes/Re-propose options. Wait for approval. On approval (unless the task is read-only) write the work-trace pair: `docs/briefs/YYYY-MM-DD-<slug>.md` (the approved strategy) + `docs/execution-plans/YYYY-MM-DD-<slug>.md` (frontmatter `status: planned`); resume an open pair instead of duplicating it.
 
 ## Step 5: ASK — Task Decomposition
 
@@ -75,7 +75,7 @@ Use `question` to present final results with All good / Fix / Full review option
 
 ## Plan persistence
 
-The plan is the doc-harness work trace: `<project>/docs/execution-plans/YYYYMMDD-<slug>.md`, paired with `docs/briefs/YYYYMMDD-<slug>.md`. Update the task table after every task. Schema:
+The plan is the doc-harness work trace: `<project>/docs/execution-plans/YYYY-MM-DD-<slug>.md`, paired with `docs/briefs/YYYY-MM-DD-<slug>.md`. Update the task table after every task. Schema:
 
 ```markdown
 ---
@@ -83,7 +83,7 @@ status: planned
 ---
 # <Workstream title>
 
-Brief: [../briefs/YYYYMMDD-<slug>.md](../briefs/YYYYMMDD-<slug>.md)
+Brief: [../briefs/YYYY-MM-DD-<slug>.md](../briefs/YYYY-MM-DD-<slug>.md)
 
 ### Tasks
 | # | Name | Worker | Status | Files | Verified |

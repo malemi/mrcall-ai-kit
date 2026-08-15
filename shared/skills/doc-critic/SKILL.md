@@ -36,8 +36,8 @@ If you cannot tell which situation you are in, you are a delegate: report, do no
 
 ## Work-trace presence — report; the trace decision is the session's
 
-The contract pairs substantial work with `docs/briefs/YYYYMMDD-<slug>.md` +
-`docs/execution-plans/YYYYMMDD-<slug>.md`. From the diff alone you can see one
+The contract pairs substantial work with `docs/briefs/YYYY-MM-DD-<slug>.md` +
+`docs/execution-plans/YYYY-MM-DD-<slug>.md`. From the diff alone you can see one
 signal: a change set since the baseline that is clearly multi-step — many
 non-doc files, new modules, the fingerprints of an orchestrated fan-out — with
 no brief and no plan created or updated alongside it. Report that as

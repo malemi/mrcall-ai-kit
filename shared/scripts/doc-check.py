@@ -27,7 +27,7 @@ Checks (which run depends on the repo's profile — see below):
                   opening it.
   6. TRACE NAMES  (always, ADVISORY) — names every work-trace file (a Markdown
                   file under docs/briefs/ or docs/execution-plans/) whose
-                  filename lacks the `YYYYMMDD-` date prefix. Reported, never
+                  filename lacks the `YYYY-MM-DD-` date prefix. Reported, never
                   enforced, for the same reason as check 5.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
@@ -66,7 +66,9 @@ CONTEXT_SECTIONS = {"state now", "unresolved", "next"}
 SIZE_EXEMPT = {"docs/active-context-archive.md"}
 # Work traces (briefs and execution plans) are dated so they sort by workstream.
 TRACE_DIRS = ("docs/briefs", "docs/execution-plans")
-TRACE_NAME = re.compile(r"^\d{8}-.+\.md$")
+# Repo convention is the hyphenated ISO date (`2026-08-14-slug.md`); the old
+# `^\d{8}` form never matched it and flagged every dated trace as undated.
+TRACE_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-.+\.md$")
 
 
 def repo_root(explicit: str | None) -> Path:
@@ -280,7 +282,7 @@ def check_trace_naming(root: Path) -> list[str]:
     """ADVISORY — name every work-trace file whose filename lacks a date prefix.
 
     Briefs and execution plans are the durable trace of a workstream; the
-    `YYYYMMDD-` prefix is what lets them sort chronologically and answer "when
+    `YYYY-MM-DD-` prefix is what lets them sort chronologically and answer "when
     was this decided" without git archaeology. Advisory, not a failure:
     repositories predating the convention hold undated files whose renaming is
     the operator's call, and making the filename a gate failure would require a
@@ -298,7 +300,7 @@ def check_trace_naming(root: Path) -> list[str]:
             if not TRACE_NAME.match(doc.name):
                 warnings.append(
                     f"{doc.relative_to(root).as_posix()}: work-trace file without "
-                    "a `YYYYMMDD-` date prefix"
+                    "a `YYYY-MM-DD-` date prefix"
                 )
     return warnings
 

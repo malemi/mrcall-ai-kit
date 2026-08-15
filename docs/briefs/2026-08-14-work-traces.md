@@ -1,6 +1,6 @@
 # Work traces: every substantial workstream leaves a brief and a plan
 
-**Date**: 2026-08-14 · **Plan**: [../execution-plans/20260814-work-traces.md](../execution-plans/20260814-work-traces.md)
+**Date**: 2026-08-14 · **Plan**: [../execution-plans/2026-08-14-work-traces.md](../execution-plans/2026-08-14-work-traces.md)
 
 ## Problem
 
@@ -19,8 +19,8 @@ contract forbids — in a directory the harness does not index.
 Substantial work — orchestrated fan-outs, or workstreams expected to span
 sessions — always creates a dated pair before execution:
 
-- `docs/briefs/YYYYMMDD-<slug>.md` — what and why (no status frontmatter);
-- `docs/execution-plans/YYYYMMDD-<slug>.md` — lifecycle in `status`
+- `docs/briefs/YYYY-MM-DD-<slug>.md` — what and why (no status frontmatter);
+- `docs/execution-plans/YYYY-MM-DD-<slug>.md` — lifecycle in `status`
   frontmatter (`planned` = only conceived, `active`, `blocked`, `completed`,
   `superseded`).
 
