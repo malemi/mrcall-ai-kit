@@ -26,3 +26,8 @@ Brief: [../briefs/2026-08-21-cc-model-router.md](../briefs/2026-08-21-cc-model-r
 ## Remaining
 
 - [ ] Live smoke test in a real session: `./install.sh --features router`, `/router on`, restart, `/model haiku`, verify trivial-vs-delegated routing and the session-memory write/read/promote cycle end to end. Needs a real session restart and model switch — not something this build turn can execute itself.
+  - Partially attempted 2026-08-21: `/router on` and `/model haiku` were both
+    run in a live session. Still open — see `docs/active-context.md`
+    Unresolved/Next: the model switch could not be confirmed, and routing
+    itself was never exercised because every turn had a more specific
+    override in play.

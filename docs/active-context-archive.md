@@ -5,6 +5,17 @@ newest first, preserved verbatim. Cold storage: never read by `/doc-start`,
 queried on demand to answer "when did we do X" without reconstructing it from
 `git log -p`.
 
+## 2026-08-21 — Router feature confirmed committed; status-output UX fix
+
+Earlier `active-context.md` stated the router feature (hook, `/router`
+command, session-memory contract, `/ai-help`) was "currently uncommitted in
+the working tree," pending a live smoke test before committing. That
+sentence became stale: the feature was committed (`19cfc61`) before this
+correction was made, without the smoke test having passed — a deliberate
+call left open by the prior wording ("or sooner, if the router feature is
+committed unverified — that's a call for whoever runs the smoke test to
+make explicitly, not a default").
+
 ## 2026-08-15 — Harness v3 in force; work-trace rule with four enforcement points (as recorded)
 
 Harness v3 is implemented and committed across Claude Code, Codex, and
