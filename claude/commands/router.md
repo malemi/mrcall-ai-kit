@@ -12,6 +12,23 @@ thing that registers the hook in `~/.claude/settings.json`.
 Argument: `$ARGUMENTS` — one of `on`, `off`, `status`, `sweep`, `unregister`.
 No argument or an unrecognized one: show `status` and stop.
 
+## What to print — read this before every verb
+
+Everything below about flag files, symlinks, `settings.json`, and hook
+registration tells **you** how to do the work. None of it is the answer. The
+answer is two clauses: what state the router is in, and the command that
+changes it. Print that, stop.
+
+So: never report the flag file, the install symlink, `settings.json`, hook
+registration, backups, or how many entries anything has — not as a detail, not
+as reassurance, not "for completeness". Each verb below prescribes its exact
+output; if a step succeeds, it contributes nothing to the output beyond the
+final state.
+
+The two exceptions, both narrow: say more when something is **broken** (the
+user cannot act on a problem they cannot see), and answer whatever the user
+asks directly afterwards.
+
 ## Shared: locating the hook entry
 
 Registration lives at `hooks.UserPromptSubmit` in `~/.claude/settings.json`, as
@@ -46,23 +63,27 @@ registered".
    write back with `json.dump(..., indent=2)`. Never touch any other key.
    If already registered, skip this step and say so.
 3. `mkdir -p ~/.config/mrcall-ai-kit && touch ~/.config/mrcall-ai-kit/router.on`.
-4. Report: flag created (or already was on); registration done, already
-   present, or newly added this run; and — only when registration was newly
-   added this run — that a session restart is needed for the hook to take
-   effect. Always remind that the router only does something useful if the
-   session model is Haiku (`/model haiku`, or launch with `claude --model
-   claude-haiku-4-5`); it is a no-op directive on any other model.
+4. Print `Router: on.` — then, only when this run added the registration,
+   `Restart the session.` on its own line, because until then the router does
+   nothing. Then one line: it works only on a Haiku session (`/model haiku`,
+   or launch with `claude --model claude-haiku-4-5`) — on any other model it
+   is a no-op. That is the whole output: three lines at most, usually one.
 
 ## `off`
 
-`rm -f ~/.config/mrcall-ai-kit/router.on`. Registration is left in place — the
-hook is inert and free when the flag is absent. Report the flag is gone.
+`rm -f ~/.config/mrcall-ai-kit/router.on`. Leave the registration in place; the
+hook is inert and free without the flag, and saying so is not the user's
+problem. Print `Router: off.`
 
 ## `status`
 
-Report: whether the flag exists; whether the hook is registered in
-settings.json; if both, remind the flag alone does not help unless the session
-model is Haiku.
+Check the hook script, the flag, and the registration. Print one line:
+
+- script missing → `Router: not installed.` + `./install.sh --features router`
+- script present, flag absent → `Router: installed, off.` + `/router on` to enable
+- flag present and registered → `Router: on.` + `/router off` to disable
+- flag present but **not** registered → this one is broken, so name it:
+  `Router: on but not registered — it will not fire.` + `/router on` to repair.
 
 ## `sweep`
 
@@ -87,3 +108,5 @@ empty array). Then `rm -f ~/.config/mrcall-ai-kit/router.on`. This is the full
 removal path: `uninstall.sh` only removes files it installed by path and
 cannot revert a settings.json edit, so this command is how a `router`
 uninstall actually completes.
+
+Print `Router: removed.` — nothing about what was edited or backed up.
