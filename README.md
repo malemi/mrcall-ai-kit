@@ -1,28 +1,22 @@
-# mrcall-ai-kit
+# MrCall AI-Kit
 
-Docs that keep up with AI-speed coding.
+Keep up with AI-speed coding.
 
-**Claude Code**, **Codex**, and **OpenCode** are AI assistants that write and
-edit code for you from a terminal. This kit keeps each project's notes —
-what the code does, what's being worked on, what's still open — accurate
-automatically, instead of rotting the way documentation always does the
-moment nobody is explicitly paid to maintain it.
+Use **Claude Code**, **Codex**, and **OpenCode**, collaborate with other
+developers: AI-Kit memorizes intra and inter-sessions, allows you to setup
+orchestrators, and it comes with specialized agents.
 
-## Why you'd want it
+Powerful. Easy to install, easier to use.
 
-- **You never start from stale notes.** Whatever the project's
-  documentation says, it's guaranteed to still be true — or you're told
-  immediately that it isn't.
-- **You never end a session with the notes half-updated.** They always
-  match what actually happened. Nobody has to remember to go fix them.
-- **Nothing rots silently.** A dead link, a plan nobody finished, a feature
-  that got deleted but is still described somewhere — all of it gets caught
-  and fixed, instead of sitting there for months.
-- **You can always tell what's going on.** Any real piece of work stays
-  traceable — finished, in progress, or abandoned — never a mystery six
-  months later.
+## Why you should use it
 
-## Install (2 minutes)
+- Claude wants to go on credits? Shift to OpenCode or Codex
+- Setup a simple LLM router which decides which model should be used for each query
+- Different agents can work together on a shared memory
+- You never start from stale documentation
+- You never end a session with documentation half-updated
+
+## Install
 
 ```bash
 git clone https://github.com/malemi/mrcall-ai-kit.git
@@ -31,10 +25,9 @@ cd mrcall-ai-kit
 ```
 
 That's the whole install. The script detects which tools you already have,
-asks what you want, prints the exact list of files it is about to write, and
-writes nothing until you say yes. It installs **globally** (your `~/.claude`,
+asks what you want. It installs **globally** (your `~/.claude`,
 `~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
-your repos. Requirements: `bash`, `git`, `python3`.
+your repos.
 
 Then:
 
