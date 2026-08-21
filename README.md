@@ -1,23 +1,26 @@
 # mrcall-ai-kit
 
-Docs that keep up with AI-speed coding. A small harness for **Claude Code**,
-**Codex**, and **OpenCode** that brackets every work session with three
-commands, so each of your repos keeps a set of docs that stays small, current,
-and verified against the code — instead of rotting into a changelog nobody
-trusts. Plus, for OpenCode only, multi-model orchestration tooling.
+Docs that keep up with AI-speed coding.
+
+**Claude Code**, **Codex**, and **OpenCode** are AI assistants that write and
+edit code for you from a terminal. This kit keeps each project's notes —
+what the code does, what's being worked on, what's still open — accurate
+automatically, instead of rotting the way documentation always does the
+moment nobody is explicitly paid to maintain it.
 
 ## Why you'd want it
 
-- **Sessions start oriented.** `doc-start` loads the smallest useful context
-  and tells you immediately whether the docs have drifted from the code.
-- **Sessions end consolidated.** `doc-end` writes back what actually happened,
-  then a deterministic checker and an independent critic verify the docs
-  against the code before anything gets to call itself done.
-- **Nothing rots silently.** Dead links, stale plans, a doc describing a
-  feature that no longer exists — caught by a gate, not by hope.
-- **You always know where work stands.** Anything substantial leaves a dated
-  trace, so "is this finished, in progress, or just an idea?" still has an
-  answer months later.
+- **You never start from stale notes.** Whatever the project's
+  documentation says, it's guaranteed to still be true — or you're told
+  immediately that it isn't.
+- **You never end a session with the notes half-updated.** They always
+  match what actually happened. Nobody has to remember to go fix them.
+- **Nothing rots silently.** A dead link, a plan nobody finished, a feature
+  that got deleted but is still described somewhere — all of it gets caught
+  and fixed, instead of sitting there for months.
+- **You can always tell what's going on.** Any real piece of work stays
+  traceable — finished, in progress, or abandoned — never a mystery six
+  months later.
 
 ## Install (2 minutes)
 
@@ -43,18 +46,6 @@ Then:
 From there the routine is two commands: `doc-start` when you sit down,
 `doc-end` when you stop.
 
-### Non-interactive / CI
-
-Every prompt has a flag, `--dry-run` prints the plan and installs nothing, and
-with no TTY the script exits instead of hanging. Everything at once:
-
-```bash
-./install.sh --environment all --features all \
-             --mode symlink --on-exist backup --yes
-```
-
-`./install.sh --help` lists every flag and exactly what each feature installs.
-
 ## Uninstall
 
 ```bash
@@ -64,27 +55,25 @@ with no TTY the script exits instead of hanging. Everything at once:
 Reads the installer's own log and removes every file it put there — symlinks
 and copies alike.
 
-## What's inside
+## Commands
 
-- **The doc-harness** (Claude Code + Codex + OpenCode): the `doc-create` /
-  `doc-start` / `doc-end` workflows, a mechanical gate (`doc-check.py`), and a
-  semantic critic that checks changed docs against the implementation.
-- **OpenCode extras**: an interactive `/orchestrator` that plans with you,
-  delegates to a roster of 16 worker models, and verifies results — with a
-  watchdog that kills hung or over-budget workers — plus `/migrate-check` for
-  moving your setup over from Claude Code.
-- **Claude Code opt-in model router** (`--features router`): run the session
-  on a cheap model that answers trivial prompts itself and delegates
-  everything else to pinned-model workers (`worker-sonnet` / `worker-opus` /
-  `worker-fable`). Off by default — a `UserPromptSubmit` hook stays dormant
-  until `/router on` flips a flag file; `/router off` undoes it. Delegated
-  workers share continuity across turns via a per-session memory file that
-  `/doc-end` folds into `active-context.md` when the session wraps up.
-- **`/ai-help`**: lists everything actually installed — commands, skills,
-  agents, with their descriptions — by reading the filesystem, not a written
-  list that goes stale.
+- **`doc-create`** — set up a project's notes, once.
+- **`doc-start`** — run this to begin a work session.
+- **`doc-end`** — run this to close one; the notes get corrected to match
+  reality.
+- **`/router`** (Claude Code) — on/off switch for quick, cheap answers to
+  easy questions.
+- **`/ai-help`** (Claude Code) — the current, accurate list of everything
+  installed.
+- **`/orchestrator`** (OpenCode) — hands a big task to several AI models at
+  once.
+- **`/migrate-check`** (OpenCode) — checks a move over from Claude Code.
 
-Want the full rules the harness enforces? They live in
+There's also a **memory** — a short, current account of a project, and of
+each session, that keeps itself up to date — and **agents**: AI helpers
+pinned to specific models, brought in automatically for particular jobs.
+
+Want the full detail? See
 [`docs/documentation-harness.md`](docs/documentation-harness.md).
 
 ## License
