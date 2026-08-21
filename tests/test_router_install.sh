@@ -67,7 +67,9 @@ test ! -e "$test_home/.claude/agents/worker-fable.md"
 echo "router uninstall: PASS"
 
 # ── the hook itself: dormant without the flag, injects with it ─────────────
-out="$(printf '{}' | python3 "$KIT_DIR/claude/scripts/router-hook.py")"
+dormant_home="$TEST_ROOT/dormant-home"
+mkdir -p "$dormant_home"
+out="$(HOME="$dormant_home" printf '{}' | HOME="$dormant_home" python3 "$KIT_DIR/claude/scripts/router-hook.py")"
 [[ -z "$out" ]] || { echo "expected no output without the flag, got: $out" >&2; exit 1; }
 
 flag_home="$TEST_ROOT/flag-home"
