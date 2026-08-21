@@ -48,6 +48,14 @@ The profile is machine-readable: one `key = value` per line; comments never carr
 - `docs/README.md` — a THIN pointer: "index of transversal docs; the repo inventory / roles / ownership live only in the index file." No repo table.
 - `docs/execution-plans/` — dir with a `.gitkeep`.
 - `docs/briefs/` — dir with a `.gitkeep`.
+- `docs/sessions/` — add a `docs/sessions/` line to `.gitignore` (create the
+  file if it does not exist; append the line if it does and does not already
+  have it). Do not create the directory or a placeholder file in it — this is
+  the opt-in model router's per-session shared memory, one `<session-id>.md`
+  file per routed session, and the directory comes into existence only when
+  the router's hook or a delegated worker first writes to it. `/doc-end`
+  promotes what matters into `active-context.md`; the file itself stays
+  behind.
 - Every plan begins with YAML frontmatter containing exactly one lifecycle value: `status: planned | active | blocked | completed | superseded`. Never encode authoritative status in headings, emoji, prose, or checkboxes.
 - Briefs and plans are the repo's **work traces**, each named `YYYY-MM-DD-<slug>.md` with one shared slug per workstream: the brief holds the what/why (no status frontmatter), the plan holds the lifecycle. Orchestrated or multi-session work creates both before execution starts; the index carries this rule as a one-line pointer (Step 4). The gate reports undated trace filenames as an advisory.
 - Stubs (empty-but-titled), only if the repo will use them: `docs/known-issues-and-solutions.md`, `docs/quality-grades.md`, `docs/harness-backlog.md`. Do NOT stub `ARCHITECTURE.md` / `CONVENTIONS.md` / `system-rules.md` — a fabricated architecture doc is worse than none; write those when the knowledge exists.

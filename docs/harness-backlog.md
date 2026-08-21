@@ -2,6 +2,19 @@
 
 Deferred doc-harness / orchestration improvements.
 
+## OPEN — `AGENTS.md` is in Italian and links to a file that doesn't exist
+
+**Logged**: 2026-08-21, found incidentally by a `/doc-end` semantic review
+scoped to unrelated changes. `AGENTS.md` (OpenCode's global instructions file)
+is written entirely in Italian, violating the "everything we ship is in
+English" rule, and links to `./HACKS.md`, which does not exist in the repo.
+Neither defect is visible to the mechanical gate: `AGENTS.md` is outside
+`index_docs()`'s coverage (not `README.md`, not the configured `index_file`,
+not under `docs/`), so dead-link checking never reaches it and no session
+that doesn't directly touch the file will ever be told. Needs a dedicated
+pass: translate to English, and either create `HACKS.md` or fix/remove the
+link.
+
 ## OPEN — orchestrator REVIEW.md is an Italian artifact
 
 **Logged**: 2026-08-14. `opencode/skills/orchestrator/REVIEW.md` is a ~300-line

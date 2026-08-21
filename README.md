@@ -73,6 +73,16 @@ and copies alike.
   delegates to a roster of 16 worker models, and verifies results — with a
   watchdog that kills hung or over-budget workers — plus `/migrate-check` for
   moving your setup over from Claude Code.
+- **Claude Code opt-in model router** (`--features router`): run the session
+  on a cheap model that answers trivial prompts itself and delegates
+  everything else to pinned-model workers (`worker-sonnet` / `worker-opus` /
+  `worker-fable`). Off by default — a `UserPromptSubmit` hook stays dormant
+  until `/router on` flips a flag file; `/router off` undoes it. Delegated
+  workers share continuity across turns via a per-session memory file that
+  `/doc-end` folds into `active-context.md` when the session wraps up.
+- **`/ai-help`**: lists everything actually installed — commands, skills,
+  agents, with their descriptions — by reading the filesystem, not a written
+  list that goes stale.
 
 Want the full rules the harness enforces? They live in
 [`docs/documentation-harness.md`](docs/documentation-harness.md).

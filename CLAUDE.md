@@ -4,7 +4,7 @@ Thin index for AI tools. Pointers only; no prose, no duplicated inventory.
 
 Reusable AI-tool config for **Claude Code**, **Codex**, and **OpenCode**: a
 documentation harness plus (OpenCode-only) multi-model orchestration and
-migration tooling.
+migration tooling, and (Claude Code-only) an opt-in model router.
 User-facing overview lives in [`README.md`](README.md).
 
 ## Docs
@@ -18,7 +18,8 @@ User-facing overview lives in [`README.md`](README.md).
 
 - `shared/` — source workflows, `doc-check.py` gate, and `doc-critic` skill.
 - `claude/` — Claude Code-only: pinned-model worker agents the doc workflows
-  delegate to.
+  delegate to, plus the opt-in model router (`commands/router.md`,
+  `scripts/router-hook.py`).
 - `codex/` — Codex-native skill entry points for the shared doc workflows.
 - `opencode/` — OpenCode-only: orchestration, worker agents, watchdog,
   migration tooling.

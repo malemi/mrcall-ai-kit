@@ -29,6 +29,17 @@ Checks (which run depends on the repo's profile — see below):
                   file under docs/briefs/ or docs/execution-plans/) whose
                   filename lacks the `YYYY-MM-DD-` date prefix. Reported, never
                   enforced, for the same reason as check 5.
+  7. SESSION STATUS (always) — every docs/sessions/*.md must carry a
+                  frontmatter `status` of exactly `open` or `closed`; missing
+                  or invalid is a gate failure. docs/sessions/ is the
+                  short-lived, per-session sibling of active-context.md (the
+                  opt-in model router's shared memory) — never read by
+                  doc-start, the same way docs/projects/** is not.
+  8. OPEN SESSIONS (always, ADVISORY) — counts docs/sessions/*.md still
+                  `status: open`. Reported, never enforced: an open file is
+                  normal mid-session and only becomes stale once its owning
+                  session is long gone, which this check cannot determine —
+                  see the `/router sweep` command for that judgment call.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
     harness_version   = 3                    (must match installed harness)
@@ -61,6 +72,7 @@ KNOWN_PROFILE_KEYS = {
     "build", "smoke", "index_max_lines", "doc_max_lines",
 }
 PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
+SESSION_STATUSES = {"open", "closed"}
 CONTEXT_SECTIONS = {"state now", "unresolved", "next"}
 # Cold storage that grows by design — exempt from the advisory size report.
 SIZE_EXEMPT = {"docs/active-context-archive.md"}
@@ -345,6 +357,57 @@ def check_plan_statuses(root: Path) -> list[str]:
     return errors
 
 
+def check_session_statuses(root: Path) -> list[str]:
+    """docs/sessions/*.md is the router's shared-memory blackboard: one file
+    per Claude Code session, `status: open` until `/doc-end` promotes it into
+    active-context.md and flips it to `closed`. Same enforcement shape as
+    execution-plan status — a gate failure, not an advisory, because an
+    invalid value here is a typo in a file the harness itself writes, not a
+    judgment call.
+    """
+    sessions = root / "docs" / "sessions"
+    if not sessions.exists():
+        return []
+    errors: list[str] = []
+    for session in sorted(sessions.glob("*.md")):
+        rel = session.relative_to(root)
+        parsed = frontmatter(session.read_text(encoding="utf-8"))
+        if parsed is None:
+            errors.append(f"{rel}: missing YAML frontmatter with `status`")
+            continue
+        metadata, duplicates = parsed
+        if "status" in duplicates:
+            errors.append(f"{rel}: frontmatter must contain exactly one `status`")
+        elif "status" not in metadata:
+            errors.append(f"{rel}: frontmatter is missing `status`")
+        elif metadata["status"].lower() not in SESSION_STATUSES:
+            allowed = "|".join(sorted(SESSION_STATUSES))
+            errors.append(f"{rel}: invalid status `{metadata['status']}` (expected {allowed})")
+    return errors
+
+
+def check_open_sessions(root: Path) -> list[str]:
+    """ADVISORY — count docs/sessions/*.md still `status: open`.
+
+    An open file mid-session is normal, not drift; only a stale one — its
+    owning session long dead — is worth attention, and this check has no way
+    to tell the two apart (no PID, no lock, just a transcript mtime that means
+    nothing for a session left idle rather than closed). So it counts and
+    stops: judging which open files are actually stale is `/router sweep`'s
+    job, with the transcript timestamps this check does not have.
+    """
+    sessions = root / "docs" / "sessions"
+    if not sessions.exists():
+        return []
+    open_files: list[str] = []
+    for session in sorted(sessions.glob("*.md")):
+        parsed = frontmatter(session.read_text(encoding="utf-8"))
+        metadata = parsed[0] if parsed else {}
+        if metadata.get("status", "").lower() == "open":
+            open_files.append(session.relative_to(root).as_posix())
+    return [f"{rel}: session still open" for rel in open_files]
+
+
 def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
 
@@ -474,6 +537,7 @@ def main() -> int:
         ("DEAD LINKS", check_dead_links(root, index_file)),
         ("THIN INDEX", check_index_thin(root, index_file, index_max_lines)),
         ("PLAN STATUS", check_plan_statuses(root)),
+        ("SESSION STATUS", check_session_statuses(root)),
         ("BASELINE", check_baseline(root)),
         ("LIVING CONTEXT", check_living_context(root)),
     ]
@@ -484,6 +548,7 @@ def main() -> int:
     # Advisories, deliberately outside `groups`: they must never change the exit code.
     oversized = check_doc_sizes(root, index_file, doc_max_lines)
     undated = check_trace_naming(root)
+    open_sessions = check_open_sessions(root)
 
     failed = [(name, errs) for name, errs in groups if errs]
     if not failed:
@@ -505,6 +570,10 @@ def main() -> int:
     if undated:
         print(f"advisory — {len(undated)} undated work-trace file(s), NOT a gate failure:")
         for warning in undated:
+            print(f"    - {warning}")
+    if open_sessions:
+        print(f"advisory — {len(open_sessions)} open session file(s), NOT a gate failure:")
+        for warning in open_sessions:
             print(f"    - {warning}")
     return 1 if failed else 0
 

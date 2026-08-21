@@ -473,6 +473,54 @@ class DocCheckTests(unittest.TestCase):
         end = (COMMANDS / "doc-end.md").read_text(encoding="utf-8")
         self.assertIn("Work traces", end)
 
+    def test_session_status_requires_open_or_closed(self) -> None:
+        sessions = self.root / "docs" / "sessions"
+        sessions.mkdir()
+        session = sessions / "abc123.md"
+        session.write_text("---\nstatus: doing\n---\n# Session\n", encoding="utf-8")
+        result = self.check()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("[SESSION STATUS]", result.stdout)
+        self.assertIn("invalid status `doing`", result.stdout)
+        session.write_text("---\nstatus: open\n---\n# Session\n", encoding="utf-8")
+        self.assertEqual(self.check().returncode, 0)
+        session.write_text("---\nstatus: closed\n---\n# Session\n", encoding="utf-8")
+        self.assertEqual(self.check().returncode, 0)
+
+    def test_session_status_rejects_duplicate_and_missing_status(self) -> None:
+        sessions = self.root / "docs" / "sessions"
+        sessions.mkdir()
+        session = sessions / "abc123.md"
+        session.write_text(
+            "---\nstatus: open\nstatus: closed\n---\n# Session\n", encoding="utf-8"
+        )
+        self.assertIn("exactly one `status`", self.check().stdout)
+        session.write_text("---\nsession_id: abc123\n---\n# Session\n", encoding="utf-8")
+        self.assertIn("frontmatter is missing `status`", self.check().stdout)
+        session.write_text("no frontmatter here\n", encoding="utf-8")
+        self.assertIn("missing YAML frontmatter with `status`", self.check().stdout)
+
+    def test_open_sessions_are_reported_without_failing_the_gate(self) -> None:
+        """Advisory by construction: open mid-session is normal, not drift.
+
+        Whether an open file is stale is a judgment this check has no way to
+        make (no PID, no lock) — it only counts, `/router sweep` decides.
+        """
+        sessions = self.root / "docs" / "sessions"
+        sessions.mkdir()
+        (sessions / "abc123.md").write_text(
+            "---\nstatus: open\nsession_id: abc123\n---\n# Session\n", encoding="utf-8"
+        )
+        (sessions / "def456.md").write_text(
+            "---\nstatus: closed\nsession_id: def456\n---\n# Session\n", encoding="utf-8"
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
+        self.assertIn("1 open session file(s)", result.stdout)
+        self.assertIn("docs/sessions/abc123.md: session still open", result.stdout)
+        self.assertNotIn("def456", result.stdout)
+
     def test_doc_start_never_opens_project_folders(self) -> None:
         """The read-scope rule is load-bearing, so a future edit must not drop it.
 
@@ -483,6 +531,7 @@ class DocCheckTests(unittest.TestCase):
         command = (COMMANDS / "doc-start.md").read_text(encoding="utf-8")
         self.assertIn("## Read scope — `docs/projects/**` is never opened here", command)
         self.assertIn("`docs/execution-plans/**/*.md` and nothing else", command)
+        self.assertIn("`docs/sessions/**`", command)
 
 
 if __name__ == "__main__":

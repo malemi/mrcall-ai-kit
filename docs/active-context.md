@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 5de5a54d781f9b4d23821b393abd04ff3976b8f1
-doc_baseline_date: 2026-08-15
+doc_baseline_commit: c30a36e1af2511cdca8d344223e0fc9a1688116c
+doc_baseline_date: 2026-08-21
 ---
 
 # Active Context
@@ -10,35 +10,38 @@ of appending session history; Git and completed briefs retain that history.
 
 ## State now
 
-Harness v3 is implemented and committed across Claude Code, Codex, and
-OpenCode. The full contract lives in
-[`documentation-harness.md`](documentation-harness.md); enforcement of the
-living-context shape is three-layered, with the heading half mechanical in
-`doc-check.py`. `doc-end` delegates to pinned-model workers (`worker-sonnet`
-mechanical, `worker-opus` verification) where the environment provides them;
-gathering the session signal and deciding what is current stay non-delegable.
-All `doc-*` workflows require an exact `harness_version` match before doing
-work.
+Harness v3 is in force across Claude Code, Codex, and OpenCode; the full
+contract is [`documentation-harness.md`](documentation-harness.md).
 
-The work-trace rule is in force (2026-08-14): orchestrated or multi-session
-work creates `docs/briefs/YYYY-MM-DD-<slug>.md` +
-`docs/execution-plans/YYYY-MM-DD-<slug>.md` before execution, with lifecycle
-only in the plan's `status` frontmatter. Four enforcement points: `doc-create`
-ships the briefs directory and writes the one-line pointer into the configured
-index (the trigger binding — it fires exactly in harness repos); `doc-end`
-Phase 3 creates a missing pair in-session and must fill a mandatory *work
-trace* output slot; a delegated `doc-critic` reports a `TRACE:` finding
-instead of inventing content; `doc-check.py` reports undated trace filenames
-as an advisory. The OpenCode orchestrator persists this pair natively (its
-private `docs/plans/execution.md` schema is gone) and its question templates
-are in English.
+An opt-in Claude Code model router has been added (work trace:
+[`docs/briefs/2026-08-21-cc-model-router.md`](briefs/2026-08-21-cc-model-router.md) /
+[`docs/execution-plans/2026-08-21-cc-model-router.md`](execution-plans/2026-08-21-cc-model-router.md)):
+a dormant `UserPromptSubmit` hook (`claude/scripts/router-hook.py`) that, once
+`/router on` creates a flag file, turns the session model into a classifier —
+answer trivial prompts directly, delegate the rest to a pinned-model worker
+(`worker-sonnet` / `worker-opus` / the new `worker-fable`). Delegated workers
+share continuity via a per-session memory file, `docs/sessions/<id>.md` — the
+short-lived sibling of `active-context.md`, same living-snapshot discipline,
+written by whoever answers a turn, promoted into `active-context.md` and
+closed by `/doc-end`. The full contract (shape, write protocol, promotion,
+`/router sweep`'s liveness heuristic) is in `documentation-harness.md` §
+Session memory. `doc-check.py` validates `docs/sessions/*.md` status
+(open/closed) and reports an advisory count of open files; `doc-start` never
+reads that directory, the same rule as `docs/projects/**`. `/ai-help` was
+added alongside it: introspects whatever commands/skills/agents are actually
+installed (frontmatter descriptions), rather than a written list that goes
+stale.
 
-The gate emits two advisory families, never affecting the exit code:
-`doc_max_lines` (default 400, archive exempt) and undated work-trace
-filenames. 36 checker tests pass. The root `README.md` is human-facing (82
-lines: value proposition plus two-minute install; protocol internals live
-only in the contract). This machine installs the kit in symlink mode, so the
-installed commands and checker track the working tree with no reinstall.
+Mechanically verified: 39 `doc-check.py` pytest cases (up from 36) and a new
+`tests/test_router_install.sh` (5 assertions — sandbox install alone, dropped
+without Claude Code selected, no duplicate `worker-fable` manifest entry when
+combined with doc-harness, uninstall removes exactly the router artifacts,
+hook dormancy/injection) all pass; the mechanical gate is clean on this repo.
+**Not yet verified live** — no real session has run `/router on`, restarted,
+switched to Haiku, and exercised actual trivial-vs-delegated routing or the
+session-memory write/read/promote cycle end to end.
+
+All of the above is currently uncommitted in the working tree.
 
 ## Unresolved
 
@@ -46,6 +49,13 @@ installed commands and checker track the working tree with no reinstall.
 
 ## Next
 
+- Run the router's live smoke test: `/router on`, restart the session,
+  `/model haiku`, then confirm trivial prompts are answered directly and hard
+  ones are delegated, and that a delegated worker's session-memory write is
+  read back and promoted correctly by `/doc-end`.
+- Commit this session's changes once the live smoke test above passes (or
+  sooner, if the router feature is committed unverified — that's a call for
+  whoever runs the smoke test to make explicitly, not a default).
 - Exercise `doc-create`'s v1→v2 migration path against a real v1 repository
   (not just `doc-critic`'s repair in isolation, which is already verified) to
   confirm the migration note produces the same archive-and-trim result when
@@ -53,4 +63,4 @@ installed commands and checker track the working tree with no reinstall.
 - On the next protocol change, bump the embedded command/checker version and
   add its explicit repository migration before releasing it.
 - Rewrite `opencode/skills/orchestrator/REVIEW.md` in English, or supersede
-  and archive it (logged in [`harness-backlog.md`](harness-backlog.md)).
+  and archive it (logged in `harness-backlog.md`).

@@ -10,13 +10,17 @@ set -euo pipefail
 # Content is routed by tool-compatibility:
 #   shared/    cross-tool  — the doc-harness (doc-* commands, doc-critic skill)
 #              + doc-check.py (installed once to ~/.config/mrcall-ai-kit/)
+#              + ai-help (installed with doc-harness; introspects whatever is
+#                actually installed rather than a list that goes stale)
 #   claude/    Claude Code-only — worker agents with pinned models, which the
-#              doc-* commands delegate to (part of doc-harness, not optional)
+#              doc-* commands delegate to (part of doc-harness, not optional);
+#              plus the opt-in model router (feature: router — hook script,
+#              /router command, worker-fable)
 #   opencode/  OpenCode-only — orchestrator, worker agents, migrate-from-cc
 #
 # Flags (any provided value skips its prompt):
 #   --environment claude|codex|opencode|all|both
-#   --features    doc-harness,orchestration,workers,migrate   (or: all)
+#   --features    doc-harness,orchestration,workers,migrate,router   (or: all)
 #   --mode        symlink|copy
 #   --on-exist    skip|overwrite|backup
 #   --yes         skip the final confirmation
@@ -49,7 +53,7 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
                     [--mode symlink|copy] [--on-exist skip|overwrite|backup]
                     [--yes] [--dry-run] [--help]
 
-  --features: doc-harness, orchestration, workers, migrate   (comma list, or: all)
+  --features: doc-harness, orchestration, workers, migrate, router   (comma list, or: all)
   --mode:     symlink = edit the kit = edit your config; copy = frozen snapshot.
   --on-exist: what to do when a target file already exists.
 
@@ -73,6 +77,11 @@ EOF
   echo
   echo "  migrate        [OpenCode only]"
   echo "     command:    migrate-check     skill: migrate-from-cc"
+  echo
+  echo "  router         [Claude Code only]"
+  echo "     command:    router  (on/off/status/sweep/unregister — opt-in, dormant until /router on)"
+  echo "     agent:      worker-fable  (installed with doc-harness too, if selected)"
+  echo "     script:     router-hook.py  (-> ~/.config/mrcall-ai-kit/, a dormant UserPromptSubmit hook)"
   echo
   echo "Destinations: Claude Code -> ~/.claude/{commands,skills,agents}/ ; Codex -> ~/.agents/skills/ ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
   echo "Environment alias: both = Claude Code + OpenCode; all = all three tools."
@@ -147,25 +156,34 @@ $WANT_CC || $WANT_CODEX || $WANT_OC || { echo "Nothing selected. Exiting." >&2; 
 
 # ── Resolve features (offer OC-only content only if OpenCode is selected) ───
 want_feature() { [[ ",$FEATURES," == *",$1,"* || "$FEATURES" == all ]]; }
-DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false
+DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false
 if [[ -n "$FEATURES" ]]; then
   want_feature doc-harness  && DO_DOC=true
   want_feature orchestration && DO_ORCH=true
   want_feature workers       && DO_WORKERS=true
   want_feature migrate       && DO_MIGRATE=true
+  want_feature router       && DO_ROUTER=true
 else
   need_tty_or_flag "--features"
   ask_yn "Install doc-harness (doc-create/start/end + doc-check + doc-critic)? [GLOBAL, cross-tool]" y && DO_DOC=true
   if $WANT_OC; then
     ask_yn "Install orchestration (orchestrator + build/plan/reviewer)? [OpenCode only]" n && DO_ORCH=true
-    ask_yn "Install worker agents (15 models)? [OpenCode only]" n && DO_WORKERS=true
+    ask_yn "Install worker agents (16 models)? [OpenCode only]" n && DO_WORKERS=true
     ask_yn "Install migrate-from-cc (skill + /migrate-check)? [OpenCode only]" n && DO_MIGRATE=true
+  fi
+  if $WANT_CC; then
+    ask_yn "Install the opt-in model router (Haiku session as classifier + pinned workers)? [Claude Code only, dormant until /router on]" n && DO_ROUTER=true
   fi
 fi
 # OC-only features are meaningless without OpenCode selected.
 if ! $WANT_OC && { $DO_ORCH || $DO_WORKERS || $DO_MIGRATE; }; then
   echo "orchestration/workers/migrate are OpenCode-only; ignoring them (OpenCode not selected)." >&2
   DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false
+fi
+# router is Claude Code-only.
+if ! $WANT_CC && $DO_ROUTER; then
+  echo "router is Claude Code-only; ignoring it (Claude Code not selected)." >&2
+  DO_ROUTER=false
 fi
 
 # ── Mode + existing-file policy ────────────────────────────────────────────
@@ -202,6 +220,14 @@ if $DO_DOC; then
     add_one "$SCRIPT_DIR/shared/skills/doc-critic" "$CODEX_SKILLS_DIR/doc-critic"
   fi
   $WANT_OC && { add_dir "$SCRIPT_DIR/shared/commands" "$OC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$OC_DIR/skills"; }
+fi
+if $DO_ROUTER; then
+  # Claude Code-only (gated above); dormant until `/router on` creates the flag.
+  add_one "$SCRIPT_DIR/claude/scripts/router-hook.py" "$KIT_GLOBAL/router-hook.py"
+  add_dir "$SCRIPT_DIR/claude/commands" "$CC_DIR/commands"
+  # worker-fable rides with doc-harness's claude/agents sweep when both are
+  # selected; add it alone only when doc-harness was skipped.
+  $DO_DOC || add_one "$SCRIPT_DIR/claude/agents/worker-fable.md" "$CC_DIR/agents/worker-fable.md"
 fi
 if $WANT_OC; then
   if $DO_ORCH; then
@@ -274,4 +300,5 @@ $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/.agents/skills."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
+$DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."
 $DRY_RUN || echo "  Install log: $MANIFEST  (run ./uninstall.sh to undo exactly these)."

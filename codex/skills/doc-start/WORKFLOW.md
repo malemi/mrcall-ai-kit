@@ -31,6 +31,8 @@ Do not read, `grep`, or frontmatter-scan anything under `docs/projects/**` — t
 
 Counting them is fine; reading them is not. They belong to the gate's index set, so they are included in "N docs indexed" and the gate may name an oversized one by path and line count. A path and a number are the entire budget this command may spend on a project folder — that is what keeps start-up cost flat as project folders accumulate, whether there are two of them or twenty. When work later turns to a specific project, open that folder then, on purpose.
 
+`docs/sessions/**` — the opt-in model router's per-session shared memory, when that feature is installed — follows the identical rule and for the identical reason: it is loaded by a running session that needs it, never as ambient start-up context. The gate counts and advises on it (an `open session file(s)` line, same shape as the other advisories); this command never opens one.
+
 ## Profile
 After the version preflight succeeds, read the remaining profile keys: schema version, mode, index file, optional build/smoke command, and routing. It is machine-readable `key = value` data; comments never carry values. Mode is exactly `meta` or `leaf`; `build`/`smoke`, when present, must be non-empty. If invalid, report the violation and stop.
 !`cat docs/.doc-profile 2>/dev/null || echo "NO PROFILE — run /doc-create to bootstrap this repo's docs/."`
@@ -61,6 +63,6 @@ The build/smoke command (see profile) guards code work — it is NOT a session-s
 
 ## Output
 No summaries or greetings. Keep mechanical integrity distinct from semantic confidence; no semantic critic runs here. One line:
-`Context loaded. [N] docs indexed. Baseline <sha> (<N> content commits behind HEAD; working tree clean|dirty). [mechanical gate: clean | violations]. [oversized docs: N]. [undated traces: N]. [semantic review: not run]. [open plans]. Ready to work.`
+`Context loaded. [N] docs indexed. Baseline <sha> (<N> content commits behind HEAD; working tree clean|dirty). [mechanical gate: clean | violations]. [oversized docs: N]. [undated traces: N]. [open sessions: N]. [semantic review: not run]. [open plans]. Ready to work.`
 
-The *oversized docs* and *undated traces* slots carry counts only; omit each slot entirely when the gate reported none of its kind. When one is non-zero, reproduce the gate's advisory lines verbatim underneath the summary, one per line — a repo can have ten of them and they do not belong inside a one-line summary. Add no commentary of your own to them.
+The *oversized docs*, *undated traces*, and *open sessions* slots carry counts only; omit each slot entirely when the gate reported none of its kind. When one is non-zero, reproduce the gate's advisory lines verbatim underneath the summary, one per line — a repo can have ten of them and they do not belong inside a one-line summary. Add no commentary of your own to them.

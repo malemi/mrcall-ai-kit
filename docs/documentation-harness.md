@@ -56,6 +56,7 @@ Markdown under `docs/`, plus the root README and configured index. It checks:
 - relative Markdown links;
 - `.doc-profile` keys and values;
 - execution-plan status metadata;
+- session-memory status metadata (`docs/sessions/*.md`);
 - the configured index and meta-repository inventory ownership;
 - baseline format and ancestry when a baseline is present;
 - the living context's section headings: `docs/active-context.md` carries only
@@ -65,9 +66,10 @@ Markdown under `docs/`, plus the root README and configured index. It checks:
   line inside a code fence is content, not a section. `active-context-archive.md`
   is exempt by design — dated sections are what it is for.
 
-The gate also emits advisories — docs past `doc_max_lines`, and work-trace
-files (briefs, execution plans) named without the `YYYY-MM-DD-` date prefix.
-Advisories name paths and never affect the exit code.
+The gate also emits advisories — docs past `doc_max_lines`, work-trace files
+(briefs, execution plans) named without the `YYYY-MM-DD-` date prefix, and
+session-memory files (`docs/sessions/*.md`) still `open`. Advisories name
+paths and never affect the exit code.
 
 A clean mechanical gate means the document graph and metadata are internally
 consistent. It does **not** mean prose matches runtime behavior.
@@ -157,6 +159,52 @@ missing pair retroactively in-session (it holds the transcript that says what
 the work was and why); a delegated critic reports the absence instead of
 inventing content; the mechanical gate reports undated trace filenames as an
 advisory, never a failure.
+
+## Session memory (opt-in model router, Claude Code only)
+
+`--features router` installs a dormant `UserPromptSubmit` hook plus `/router`
+and `worker-fable`. `/ai-help` ships with `doc-harness` instead — it lives in
+`shared/commands/` alongside the other cross-tool commands, not in the
+router's Claude-only branch. Off by default: the hook checks for
+`~/.config/mrcall-ai-kit/router.on` and exits with no output when the flag is
+absent, at the cost of one filesystem check per prompt. `/router on` registers
+the hook in `~/.claude/settings.json` (if not already registered) and creates
+the flag; `/router off` removes only the flag, leaving registration in place;
+`/router unregister` removes both.
+
+The intended shape: the session model is a cheap classifier (Haiku) that
+answers trivial prompts itself and delegates everything else to a pinned-model
+worker (`worker-sonnet` / `worker-opus` / `worker-fable`) via the native
+subagent primitive. Because a subagent starts with a fresh context, delegation
+without continuity loses whatever the previous worker understood — so a routed
+session gets a shared-memory file, `docs/sessions/<session-id>.md`, the same
+kind of object as `docs/active-context.md`: a living snapshot, never a log,
+same anti-drift discipline, same repo, readable with `cat`.
+
+**Who writes it, and when**: whoever answers the turn, at their own
+discretion — not the classifying model. The model that did the work is the
+only one that knows what was worth recording; a trivial turn correctly writes
+nothing. The write protocol travels in the hook's injected directive and in
+delegation prompts, so no worker definition changes for this.
+
+**Lifecycle**: a session file's frontmatter `status` is `open` until `/doc-end`
+reads it (when the router named one for this turn — see Phase 2 of the end
+workflow), folds whatever is durable into `active-context.md`, and flips it to
+`closed`. A session that ends without `/doc-end` leaves an `open` orphan.
+Liveness cannot be determined — Claude Code exposes no PID or lock for a
+session, only a transcript file whose mtime cannot distinguish a dead session
+from an idle one — so `/router sweep` reports open files with their age and a
+*probably dead* flag past 24 hours, and never closes or edits one itself;
+that judgment stays with a human.
+
+**Read scope**: `docs/sessions/**` follows the same rule as `docs/projects/**`
+— `doc-start` never opens it. The mechanical gate still indexes it: it
+validates `status` is exactly `open` or `closed` (a gate failure otherwise,
+the same enforcement as execution-plan status) and reports an advisory count
+of files still open (never a failure — an open file mid-session is normal,
+and judging which are stale is `/router sweep`'s job, not the gate's).
+`docs/sessions/` is gitignored by `doc-create` — these files are per-machine
+and ephemeral by design, not repository knowledge.
 
 ## Execution-plan schema
 
