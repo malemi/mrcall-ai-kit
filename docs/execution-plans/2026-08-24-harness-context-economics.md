@@ -11,7 +11,7 @@ an idea and nothing more, and what is waiting on a decision nobody has taken.
 
 Proposals 1 and 2 are done. Proposals 3 to 7 are `planned` in the schema's exact
 sense — conceived and written down, not started, and none of them may begin
-without an explicit go. Three of them need a decision from Mario before they
+without an explicit go. Two of them still need a decision from Mario before they
 need an engineer, and those decisions are named below rather than assumed.
 
 ## Order, and why it is this one
@@ -53,7 +53,7 @@ first.
 | 3 | — | none, technically. It reuses `doc_max_lines` rather than adding a profile key, so the gate and the guard agree on "big" without new config |
 | 4 routing rule | — | none. Prose only |
 | 4 orientation head | a decision on the marker | the gate change is small; rewriting ten sub-repo index heads is the real work, and it lands in `hb`, not here |
-| 5 | the `router-hook.py` `cwd` policy call, **and** the `docs/sessions/` gitignore gap | hard. Rotation cannot rest on a path that moves |
+| 5 | nothing outstanding. Both prerequisites cleared on 2026-08-24 — the path is pinned, and `docs/sessions/` is ignored everywhere it needed to be | was hard: rotation cannot rest on a path that moves, and it no longer moves |
 | 6 | a decision on the evidence path | none on 1-5. On Claude Code, deterministic enforcement additionally depends on an unverified `SubagentStop` capability |
 | 7 directive half | — | none. Two lines in the router hook's directive |
 | 7 meter half | 3 | hard. The per-session read counter lives inside the read guard's script |
@@ -75,17 +75,16 @@ first.
       existing assertions updated for the new line format
 - [x] Verified: gate clean on this repo, and re-run against `hb`, where the
       printed line matches the brief's proposed line exactly
+- [x] `shared/commands/doc-start.md` and its byte-identical Codex mirror: the
+      read-scope paragraph described the advisory as naming an oversized doc "by
+      path and line count", which under-describes what the gate prints — it is
+      path, line count, bytes, and estimated tokens
 
 Deliberately not in scope: the **thresholds** stay line-based. The brief's
 finding that "the checker measures the wrong quantity" argues for reporting
 bytes, not for a `doc_max_bytes` key — a new profile key would fail every older
 installed checker as an unknown key, which is the compatibility trap the
 `doc_max_lines` documentation already warns about.
-
-Follow-up, left undone by instruction: `shared/commands/doc-start.md` still
-describes the advisory as naming an oversized doc "by path and line count". That
-now under-describes what the gate prints. It is a factual touch-up to a command
-this pass was told not to open; fix it the next time `doc-start` is edited.
 
 ## 2 — Give the oversized-doc advisory an actuator — completed 2026-08-24
 
@@ -164,27 +163,31 @@ sub-repo's profile, because four of the ten sub-repos have no profile at all and
 no per-repository rule reaches them. More thresholds are not the answer: raising
 a limit does not stop a file growing, it only moves the line the file crosses.
 
-## 5 — Session rotation as a context boundary — planned, and blocked on a policy call
+## 5 — Session rotation as a context boundary — planned, prerequisites cleared
 
 Rotation brackets a **context window**; `/doc-start` and `/doc-end` bracket a
 **work session** and own the git baseline. A rotation must never run `doc-end`,
 never advance the baseline, and never promote anything into `active-context.md`.
 
-Two prerequisites, and neither is inside the proposal:
+Two prerequisites, neither inside the proposal, both now met:
 
-- [ ] **Mario's call**: `claude/scripts/router-hook.py` builds the session-memory
-      path from the `cwd` in its payload (verified: lines 50-56). The shell's
-      working directory persists across tool calls, so one `cd` into a sub-repo
-      moves the session file for the rest of the session, silently. Three
-      answers are defensible — pin to the directory the session started in,
-      resolve to the git top level, or prefer whichever file already exists. The
-      brief recommends pinning. Whichever wins, the hook should also decline to
-      create a second file for a session id that already has one elsewhere,
-      because that check catches the failure even if the path rule is wrong
-- [ ] `doc-create.md` adds the `docs/sessions/` line to `.gitignore` at bootstrap
-      and nothing else in the kit ever adds it, so a repository bootstrapped
-      before that existed never gets it. Two repositories in this tree are in
-      that state
+- [x] **Mario's call, taken 2026-08-24: pin the path to the directory the
+      session started in**, because it does not move when the work does.
+      `claude/scripts/router-hook.py` had built the session-memory path from the
+      `cwd` in its payload, which persists across tool calls, so one `cd` into a
+      sub-repo moved the session file for the rest of the session, silently. The
+      hook now resolves the directory once per session and reads that record on
+      every later turn. The second guard shipped with it: a
+      `docs/sessions/<id>.md` that already exists in the working directory or any
+      of its parents is adopted instead of duplicated, which catches the failure
+      even if the path rule is wrong and repairs a session already split by the
+      old one
+- [x] `docs/sessions/` is in `.gitignore` in `hb`, `mrcall-ai-kit`, `cs-kernel`
+      and the clone template `cs/templates/project/.gitignore.j2`, so no
+      repository in this tree can commit session memory. The gap itself is
+      narrowed, not closed: `doc-create.md` still writes that line only at
+      bootstrap and nothing else in the kit ever adds it, so a repository
+      bootstrapped before it existed still needs the line by hand
 
 Then the proposal itself:
 
