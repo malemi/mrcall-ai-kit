@@ -1,10 +1,4 @@
-# Regole operative globali per OpenCode
-
-Queste regole prima venivano iniettate via hook a ogni prompt in Claude Code.
-In OpenCode vivono qui come istruzioni globali.
-
-Le modifiche all'installazione OpenCode (plugin patchati, hack, workaround)
-sono documentate in [`HACKS.md`](./HACKS.md).
+# Global operating rules for OpenCode
 
 ## Fixing bugs
 

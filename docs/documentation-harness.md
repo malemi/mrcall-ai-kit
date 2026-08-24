@@ -21,6 +21,13 @@ model, so the tier follows the task rather than the delegating session; a
 subagent that declares none inherits the parent's and therefore saves context
 only.
 
+Two OpenCode capabilities are deliberately not ported to Claude Code: the
+watchdog daemon, which enforces timeout and budget through OpenCode's own
+session-abort API and has no Claude Code equivalent; and the multi-provider
+worker roster, since `model:` selects among models the session can already
+reach and provider routing is process-level, leaving Sonnet as the one useful
+cheaper tier.
+
 Two parts of consolidation are never delegable, in any environment: gathering
 the session signal, and deciding which knowledge is current. Both depend on the
 session transcript — decisions taken, approaches rejected, corrections

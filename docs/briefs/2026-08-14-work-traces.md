@@ -46,7 +46,5 @@ sessions — always creates a dated pair before execution:
 
 ## Out of scope
 
-- Rewriting `opencode/skills/orchestrator/REVIEW.md` (historical review
-  document, in Italian) — logged in [../harness-backlog.md](../harness-backlog.md).
 - A blocking naming check (would need harness v4 plus a repository
   migration).

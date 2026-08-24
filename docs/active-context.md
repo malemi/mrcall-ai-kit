@@ -71,11 +71,9 @@ cycle end to end; see Unresolved and Next.
   trivial-vs-delegated routing has never actually been exercised. Needs a
   plain turn with no such override, plus a way to confirm the acting model
   that doesn't depend on the visible indicator (see Unresolved).
-- Exercise `doc-create`'s v1→v2 migration path against a real v1 repository
+- Exercise `doc-create`'s v1→v3 migration path against a real v1 repository
   (not just `doc-critic`'s repair in isolation, which is already verified) to
   confirm the migration note produces the same archive-and-trim result when
   entered through the version-mismatch flow rather than invoked directly.
 - On the next protocol change, bump the embedded command/checker version and
   add its explicit repository migration before releasing it.
-- Rewrite `opencode/skills/orchestrator/REVIEW.md` in English, or supersede
-  and archive it (logged in `harness-backlog.md`).

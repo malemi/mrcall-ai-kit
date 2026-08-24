@@ -2,132 +2,90 @@
 
 Deferred doc-harness / orchestration improvements.
 
-## OPEN — `AGENTS.md` is in Italian and links to a file that doesn't exist
+## OPEN — orchestrator docs contradict the agent files they describe
 
-**Logged**: 2026-08-21, found incidentally by a `/doc-end` semantic review
-scoped to unrelated changes. `AGENTS.md` (OpenCode's global instructions file)
-is written entirely in Italian, violating the "everything we ship is in
-English" rule, and links to `./HACKS.md`, which does not exist in the repo.
-Neither defect is visible to the mechanical gate: `AGENTS.md` is outside
-`index_docs()`'s coverage (not `README.md`, not the configured `index_file`,
-not under `docs/`), so dead-link checking never reaches it and no session
-that doesn't directly touch the file will ever be told. Needs a dedicated
-pass: translate to English, and either create `HACKS.md` or fix/remove the
-link.
+**Logged**: 2026-08-24. Three statements in the orchestrator's documentation
+disagree with the files they describe. `opencode/agents/worker-glm.md`
+advertises "256k context" in its description while `llms.md` gives GLM 5.2 a
+1M window, so an orchestrator choosing a worker for a large-context task reads
+the wrong number. `opencode/agents/reviewer.md` hardcodes
+`model: opencode/claude-sonnet-5`, and no table in `llms.md` covers the
+reviewer, so the one model choice the protocol makes on the user's behalf is
+the only one left undocumented. `SKILL.md` and `ARCHITECTURE.md` carry the
+same procedures twice — the four-step watchdog protocol, the retry policy and
+the parallel-versus-sequential rule are near-verbatim in both — which
+guarantees they drift apart on the next edit. `SKILL.md` should hold the
+runtime instructions and `ARCHITECTURE.md` the design rationale, with no
+procedure copied between them.
 
-## OPEN — orchestrator REVIEW.md is an Italian artifact
+## OPEN — the orchestrator cannot change its model without being restarted
 
-**Logged**: 2026-08-14. `opencode/skills/orchestrator/REVIEW.md` is a ~300-line
-review document written in Italian. The work-trace pass of 2026-08-14 rewrote
-the orchestrator's *live* protocol files into English (SKILL.md question
-templates, `agents/orchestrator.md`) but deliberately left REVIEW.md: it is a
-historical analysis whose findings partly shaped the current protocol, and a
-wholesale rewrite is a dedicated job, not a side edit. On the next pass that
-touches the orchestrator, rewrite it in English — or decide it is superseded
-and archive it.
+**Logged**: 2026-08-24. `SKILL.md` Phase 1 asks which model should orchestrate
+the session and builds the options from the "Orchestrator Models" table in
+`llms.md`. If the user picks anything other than the model already running,
+the only instruction is to run `/models` and re-run the skill, which throws
+away the session and restarts the protocol at Phase 1. Phase 1 should instead
+offer to continue on the current model, or to switch manually and resume at
+Phase 2.
 
-## DONE — Mechanical enforcement of the living-context shape (harness v3)
+## OPEN — every task is verified three times
 
-**Status**: DONE (2026-08-04). The shape rule had two enforcement layers and
-both were LLM judgment, so both failed in the same repo on the same day: it
-drifted to ~1500 lines across two months of sessions that each said
-"consolidate", and was then cut from 1441 lines to 76 by a session that never
-invoked `doc-end`, discarding 1436 lines with no archive and four durable
-engineering invariants with them. No instruction to an agent can prevent an
-edit made by something that does not run the command.
+**Logged**: 2026-08-24. Lint, typecheck and tests each run three times per
+task. The worker prompt template in `SKILL.md` Phase 5 tells the worker to run
+them. The circuit-breaker step after every worker return tells the
+orchestrator to run them again through `bash`. The Phase 6 reviewer prompt
+passes the same commands to the reviewer, and `opencode/agents/reviewer.md`
+runs them a third time. On a slow suite that triples both the wall clock and
+the token spend of every delegation. The worker should run a minimal smoke
+test, the orchestrator the critical commands once per batch, and the reviewer
+should re-run only when something looks wrong.
 
-**Outcome**: `doc-check.py` gained `check_living_context` — any `##` section in
-`docs/active-context.md` outside `State now` / `Unresolved` / `Next` fails the
-gate. Deliberately narrow: headings are the objective half of the contract, so
-prose narration and "too long for what it says" stay with the semantic critic
-where judgment belongs. A `##` inside a code fence is content, not a section
-(the real file that motivated this contains such lines). The archive is exempt
-by design. `harness_version` bumped 2→3, since this is a new requirement on
-what a repository's `docs/` must contain.
+## OPEN — parallel delegation has no fan-out cap
 
-**Verified**: 21 checker tests (5 new, covering canonical/non-canonical, case
-and subsections, code fences, absent file, and archive exemption); replayed
-against the real pre-trim `active-context.md` from the repo above it reports 27
-violations.
+**Logged**: 2026-08-24. `SKILL.md` says that multiple `task` calls in one
+message run in parallel, and to parallelize whenever the subtasks are
+independent. Nothing bounds how many run at once. The watchdog enforces a
+timeout and a budget per worker, so a wide fan-out satisfies every guardrail
+the system has while still saturating a provider rate limit and multiplying
+spend by the number of workers. Concurrency needs a declared maximum the same
+way timeouts and budgets have one.
 
-## DONE — Pinned-model workers for Claude Code, so doc-end stops burning top-tier tokens
+## OPEN — a delegation cannot be resumed, and nobody has checked whether it could be
 
-**Status**: DONE (2026-08-04). `doc-end` ran entirely on whatever model the
-session used, which on a top-tier model is expensive for work that is partly
-mechanical. Delegating with no declared model does not help: a subagent
-inherits the parent's model, saving context but not cost.
+**Logged**: 2026-08-24. Every delegation is one-shot: the orchestrator calls
+`task`, the worker returns, and any follow-up is a fresh call with a fresh
+prompt. Nothing under `opencode/` uses a resume primitive — no agent, command
+or skill mentions resuming a worker by task id — and whether OpenCode's `task`
+tool supports one has never been checked against the tool's own schema. Until
+someone checks, a worker that stops one step short costs a full re-run. The
+check is cheap and it settles whether this is a gap in the protocol or a limit
+of the platform.
 
-**Outcome**: `claude/agents/worker-sonnet.md` (mechanical execution) and
-`claude/agents/worker-opus.md` (independent verification) declare their own
-`model:`, installed to `~/.claude/agents/` as part of `doc-harness` — not an
-opt-out, since `doc-end` depends on them. `doc-end` gained `Agent` in
-`allowed-tools` plus a delegation section written tool-agnostically, so the
-Codex and OpenCode mirrors stay byte-identical and degrade to inline work
-where no worker exists. Phases 2 and 3 (session signal; deciding what is
-current) are declared non-delegable — only the session holds the transcript.
+## OPEN — the gate never inspects a repository's root-level `AGENTS.md`
 
-**Verified live, both directions**: a Sonnet parent delegating to `worker-opus`
-got `claude-opus-5[1m]`; an Opus parent delegating to `worker-sonnet` got
-`claude-sonnet-5`, and that worker confirmed it has no `Agent` tool (no
-recursive delegation, mirroring OpenCode's `task: deny`). Installer verified in
-a disposable HOME. No `harness_version` bump: delegation changes how the
-command executes, not what a repository's `docs/` must contain.
+**Logged**: 2026-08-24. `index_docs()` in `shared/scripts/doc-check.py` builds
+the document set from exactly three sources: `README.md`, the `index_file`
+named in `docs/.doc-profile`, and everything matching `docs/**/*.md`. A
+root-level `AGENTS.md` matches none of them unless a repository happens to
+have named it as its index, so every check that walks that set skips it —
+dead links and the oversize advisory both. `AGENTS.md` is the agent
+instruction file OpenCode and Codex read, it is prose that links to other
+docs like any index does, and it is exactly the kind of file that keeps a
+pointer to something deleted months ago. Either `index_docs()` should include
+the root agent-instruction files by name, or the profile should gain a field
+naming extra top-level docs to cover.
 
-**Not ported from OpenCode** (deliberate): the watchdog daemon, which enforces
-timeout/budget through OpenCode's own session-abort API and has no Claude Code
-equivalent; and the multi-provider worker roster, since `model:` selects among
-models the session can already reach and provider routing is process-level,
-leaving Sonnet as the one useful cheaper tier.
+## OPEN — two orchestrator entry points that do not carry the same protocol
 
-## DONE — Archive pruned active-context.md content instead of discarding it (harness v2)
-
-**Status**: DONE (2026-08-04, commit `838eb78`). `doc-end` Phase 3 already said
-"reconsolidate, don't append", but nothing mechanical enforced it — a real
-downstream repo's `active-context.md` grew from ~120 to ~1500 lines over two
-months of sessions that each said "consolidate" in their own commit message.
-
-**Outcome**: pruned session narrative now moves to
-`docs/active-context-archive.md` (dated, newest first, verbatim) instead of
-being deleted. `doc-end` archives it proactively every session; `doc-critic`
-gained an independent living-context shape check which, as shipped in that
-commit, repaired the file directly rather than only flagging it — split the
-same day into report-when-delegated / repair-in-session, per the entry above,
-so this clause records `838eb78` and not current behavior. `harness_version` bumped 1→2
-(protocol change, per this repo's own compatibility-handshake design);
-`doc-create` gained an explicit v1→v2 migration note. Verified: 16 doc-check
-tests + the Codex install layout test pass, and the shape-repair behavior was
-exercised for real against a scratch fixture — confirmed byte-for-byte zero
-information loss versus the pre-repair git blob, correct STALE detection on
-the post-repair remainder. (Commit `838eb78`'s message says "18 doc-check
-tests"; the real count is 16 — 14 pre-existing plus 2 added. The commit
-message cannot be corrected, this line is the correction.)
-
-**Follow-up (open, see `docs/active-context.md` Next)**: the v1→v2 migration
-note in `doc-create.md` has not itself been exercised against a real v1 repo
-yet — only `doc-critic`'s repair was tested directly.
-
-## DONE — Wire OpenRouter into OpenCode for Auto Router
-
-**Status**: DONE (2026-07-25). Authentication and the Auto Router were verified
-end-to-end by delegating to `subagent_type="worker-auto"`. No extra provider
-declaration in `opencode.json` was required; the key in `auth.json` was enough.
-
-**Outcome**: the working OpenCode slug is `openrouter/openrouter/auto`, not
-`auto-beta`, which is absent from the registry. Full detail is in
-`docs/briefs/2026-08-01-test-worker-auto.md` and `docs/active-context.md`.
-
-**Sources** (verified 2026-07-25 on docs.openrouter.ai):
-- Auto Router: `https://openrouter.ai/docs/guides/routing/routers/auto-router.md`
-- OpenCode integration: `https://openrouter.ai/docs/cookbook/coding-agents/opencode-integration.md`
-- Latest Model Resolution: `https://openrouter.ai/docs/guides/routing/routers/latest-resolution`
-
-## DONE — Document auto-updating mechanisms in llms.md
-
-**Status**: DONE (2026-07-25).
-
-**Outcome**: `llms.md` now documents (1) the elastic `worker-auto` using
-`openrouter/openrouter/auto` and (2) the ten tilde-latest aliases present in the
-OpenCode registry (`openrouter/~anthropic/claude-opus-latest`,
-`~openai/gpt-latest`, and others). The Selection Guide routes unknown or
-volatile model choices and always-latest family choices to that section. It was
-verified against `opencode models` and official OpenRouter documentation.
+**Logged**: 2026-08-24. The kit ships the orchestrator twice. `/orchestrator`
+runs the `opencode/agents/orchestrator.md` primary agent, which inlines its
+own eight-step protocol. The `orchestrator` skill carries a fuller version of
+the same protocol and loads into whichever agent is running. Nothing tells a
+user which to use, and the two are not equivalent: the agent omits the
+watchdog daemon startup, the post-task gate that `SKILL.md` calls mandatory,
+and the precedence rules over `AGENTS.md`. A session started through the
+command therefore runs without the enforcement the skill treats as compulsory.
+The two also diverge at shutdown: the agent's Step 1 mirrors `SKILL.md`'s
+startup and creates `memory.md` when it is absent, but its Step 8 has no
+equivalent to `SKILL.md`'s "Shutdown = final flush + update `memory.md`", so a
+session driven through the agent creates the file and never updates it.

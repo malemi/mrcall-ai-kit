@@ -3,4 +3,4 @@ description: Launch interactive orchestrator — back-and-forth planning, task d
 agent: orchestrator
 ---
 
-Inizia il protocollo orchestrator
+Start the orchestrator protocol
