@@ -9,6 +9,17 @@ from pathlib import Path
 
 CHECKER = Path(__file__).parents[1] / "doc-check.py"
 COMMANDS = Path(__file__).parents[2] / "commands"
+HARNESS_DOC = Path(__file__).parents[3] / "docs" / "documentation-harness.md"
+
+
+def flowed(path: Path) -> str:
+    """A document's prose with all whitespace collapsed.
+
+    Contract and command prose wrap at the margin, so a substring assertion on a
+    sentence would break the moment an untouched paragraph is reflowed. Matching
+    on collapsed whitespace pins the rule and not the line breaks.
+    """
+    return " ".join(path.read_text(encoding="utf-8").split())
 
 
 def load_checker():
@@ -292,7 +303,10 @@ class DocCheckTests(unittest.TestCase):
             encoding="utf-8",
         )
         result = self.check()
-        self.assertIn("status.md: 150 lines (advisory limit: 100)", result.stdout)
+        self.assertIn(
+            "status.md: 150 lines, 1,050 bytes, ~262 tokens (advisory limit: 100 lines)",
+            result.stdout,
+        )
         self.assertNotIn("small.md", result.stdout)
         profile.write_text(
             "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 0\n",
@@ -362,6 +376,91 @@ class DocCheckTests(unittest.TestCase):
         )
         self.assertIn("feed.md: 102 lines", self.check().stdout)
 
+    def test_size_report_carries_bytes_and_a_token_estimate(self) -> None:
+        """Lines describe the file; bytes and tokens describe what opening it costs.
+
+        The limits count lines and the context window is billed in bytes, and the
+        two do not track each other — so the advisory has to carry the quantity
+        that is actually paid, or every argument built on it is unmeasurable.
+        `filler\\n` is 7 bytes, so 150 lines is 1,050 bytes and 262 tokens at the
+        stated bytes/4 convention.
+        """
+        docs = self.root / "docs"
+        (docs / "long.md").write_text("filler\n" * 150, encoding="utf-8")
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertIn(
+            "docs/long.md: 150 lines, 1,050 bytes, ~262 tokens (advisory limit: 100 lines)",
+            result.stdout,
+        )
+
+    def test_token_estimate_is_bytes_over_four(self) -> None:
+        """The divisor is a stated convention, not a tokenizer, and is pinned here.
+
+        Changing it silently would move every number the harness reports while
+        every other test still passed.
+        """
+        checker = load_checker()
+        self.assertEqual(checker.BYTES_PER_TOKEN, 4)
+        doc = self.root / "docs" / "exact.md"
+        doc.write_bytes(b"x" * 4001)
+        self.assertEqual(checker.size_note(doc, ""), "4,001 bytes, ~1,000 tokens")
+
+    def test_size_report_counts_bytes_the_way_wc_does(self) -> None:
+        """Bytes are `stat`, not `len(text.encode())`.
+
+        `read_text` translates CRLF to LF, so re-encoding the text it returns
+        under-reports a CRLF file by one byte per line — 1,050 instead of the
+        1,200 `wc -c` prints. The operator has to be able to reproduce the number
+        without opening the file, which is the same standard the line count meets.
+        """
+        (self.root / "docs" / "crlf.md").write_bytes(b"filler\r\n" * 150)
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertIn(
+            "docs/crlf.md: 150 lines, 1,200 bytes, ~300 tokens (advisory limit: 100 lines)",
+            result.stdout,
+        )
+        self.assertNotIn("1,050 bytes", result.stdout)
+
+    def test_thin_index_failure_carries_bytes_and_a_token_estimate(self) -> None:
+        """The thin-index failure is where the line/byte divergence bites hardest.
+
+        A dense table index passes a 200-line limit while being the single most
+        expensive item a session loads, so the failure message reports the same
+        three numbers as the advisory.
+        """
+        (self.root / "CLAUDE.md").write_text("one\ntwo\nthree\n", encoding="utf-8")
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\nindex_max_lines = 2\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("[THIN INDEX]", result.stdout)
+        self.assertIn(
+            "CLAUDE.md has 3 lines, 14 bytes, ~3 tokens (thin-index limit: 2 lines;",
+            result.stdout,
+        )
+
+    def test_contract_records_the_token_figure_as_a_convention(self) -> None:
+        """The estimate must never be presentable as a tokenizer result.
+
+        It is bytes/4, it is right within a small factor, and the contract has to
+        say so — otherwise the first person to compare it with a real tokenizer
+        reads the gate as broken.
+        """
+        contract = flowed(HARNESS_DOC)
+        self.assertIn("bytes divided by four", contract)
+        self.assertIn("never a tokenizer result", contract)
+
     def test_size_report_orders_largest_first_then_alphabetically(self) -> None:
         docs = self.root / "docs"
         (docs / "big.md").write_text("filler\n" * 300, encoding="utf-8")
@@ -411,7 +510,10 @@ class DocCheckTests(unittest.TestCase):
         (self.root / "docs" / "fine.md").write_text("filler\n" * 50, encoding="utf-8")
         warnings = checker.check_doc_sizes(self.root, "CLAUDE.md", 10)
         # the unreadable doc is skipped, and the scan carries on past it
-        self.assertEqual(warnings, ["docs/fine.md: 50 lines (advisory limit: 10)"])
+        self.assertEqual(
+            warnings,
+            ["docs/fine.md: 50 lines, 350 bytes, ~87 tokens (advisory limit: 10 lines)"],
+        )
 
     def test_size_report_survives_a_doc_outside_the_repo_root(self) -> None:
         """`index_file` can resolve inside the repo while not being lexically under

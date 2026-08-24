@@ -22,9 +22,10 @@ Checks (which run depends on the repo's profile — see below):
                   the repos in a table; the inventory lives ONLY in <index_file>.
   5. DOC SIZE     (always, ADVISORY) — names every doc past `doc_max_lines`.
                   Reported, never enforced: it never contributes to the exit code
-                  (which still reflects checks 1-4 alone). Only a path and a line
-                  count cross, so a session learns a doc has exploded without
-                  opening it.
+                  (which still reflects checks 1-4 alone). Only a path, a line
+                  count, and what reading it costs in bytes and estimated tokens
+                  cross, so a session learns a doc has exploded without opening
+                  it.
   6. TRACE NAMES  (always, ADVISORY) — names every work-trace file (a Markdown
                   file under docs/briefs/ or docs/execution-plans/) whose
                   filename lacks the `YYYY-MM-DD-` date prefix. Reported, never
@@ -67,6 +68,10 @@ from pathlib import Path
 
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 HARNESS_VERSION = 3
+# Bytes per token: a stated convention for English prose, NOT a tokenizer result.
+# It carries none of the argument — every size comparison is a ratio between two
+# numbers produced by this divisor, so a wrong divisor cancels out.
+BYTES_PER_TOKEN = 4
 KNOWN_PROFILE_KEYS = {
     "harness_version", "schema_version", "mode", "index_file", "inventory_ignore",
     "build", "smoke", "index_max_lines", "doc_max_lines",
@@ -231,15 +236,43 @@ def check_dead_links(root: Path, index_file: str) -> list[str]:
     return errors
 
 
+def size_note(doc: Path, text: str) -> str:
+    """`<bytes> bytes, ~<tokens> tokens` — the quantity the limits do NOT measure.
+
+    Both size limits count lines, and a context window is billed in bytes. The
+    two do not track each other: 160 lines of dense tables outweigh 400 lines of
+    prose, so a file can pass the thin-index check while being the single most
+    expensive thing a session loads. Reporting only lines describes the file;
+    reporting bytes and tokens describes what opening it does to the session,
+    which is the number any decision here actually turns on.
+
+    Bytes come from `stat` — the number `wc -c` prints, reproducible by hand
+    without opening the file, which is the same standard the line count is held
+    to. Not `len(text.encode())`: `read_text` translates CRLF, so re-encoding
+    would under-report a file by one byte per line. `text` is only the fallback
+    for a doc that was readable a moment ago and can no longer be stat'd.
+
+    Tokens are bytes // BYTES_PER_TOKEN, a convention recorded as such in
+    docs/documentation-harness.md, printed with a `~` because it is an estimate
+    and never a tokenizer result.
+    """
+    try:
+        size = doc.stat().st_size
+    except OSError:
+        size = len(text.encode("utf-8"))
+    return f"{size:,} bytes, ~{size // BYTES_PER_TOKEN:,} tokens"
+
+
 def check_index_thin(root: Path, index_file: str, maximum: int) -> list[str]:
     index = root / index_file
     if not maximum or not index.is_file():
         return []
-    count = len(index.read_text(encoding="utf-8").splitlines())
+    text = index.read_text(encoding="utf-8")
+    count = len(text.splitlines())
     if count > maximum:
         return [
-            f"{index_file} has {count} lines (thin-index limit: {maximum}; "
-            "set `index_max_lines = 0` to disable)"
+            f"{index_file} has {count} lines, {size_note(index, text)} "
+            f"(thin-index limit: {maximum} lines; set `index_max_lines = 0` to disable)"
         ]
     return []
 
@@ -252,10 +285,12 @@ def check_doc_sizes(root: Path, index_file: str, maximum: int) -> list[str]:
     not have; the only thing worth automating is that nobody has to notice the
     growth by accident. So this reports and stops there.
 
-    It deliberately reports the path and the line count and NOTHING else. That is
-    what lets it cover `docs/projects/**`, which a session must never open at
-    start-up: knowing `<project>/status.md` is 900 lines costs a dozen tokens,
-    while reading it to find out costs thousands.
+    It deliberately reports the path, the line count, the byte size and a token
+    estimate, and NOTHING else. That is what lets it cover `docs/projects/**`,
+    which a session must never open at start-up: knowing `<project>/status.md` is
+    900 lines and ~14,000 tokens costs a dozen tokens, while reading it to find
+    out costs those fourteen thousand. The size is what makes the line
+    actionable — see `size_note`.
 
     `docs/active-context-archive.md` is exempt — it is cold storage that grows
     forever by design, so flagging it every run would be noise, not signal.
@@ -267,7 +302,7 @@ def check_doc_sizes(root: Path, index_file: str, maximum: int) -> list[str]:
     """
     if maximum <= 0:                      # 0 disables it; a negative value is invalid
         return []                         # and separately reported by read_profile
-    oversized: list[tuple[int, str]] = []
+    oversized: list[tuple[int, str, str]] = []
     for doc in index_docs(root, index_file):
         try:
             rel = doc.relative_to(root).as_posix()
@@ -276,17 +311,19 @@ def check_doc_sizes(root: Path, index_file: str, maximum: int) -> list[str]:
         if rel in SIZE_EXEMPT:
             continue
         try:
-            # `count("\n")` and not `splitlines()`: the latter also breaks on form
-            # feeds and unicode separators, so it can report more lines than `wc -l`.
-            # The number has to be one the operator can reproduce without opening it.
-            count = doc.read_text(encoding="utf-8").count("\n")
+            text = doc.read_text(encoding="utf-8")
         except (OSError, UnicodeDecodeError):
             continue
+        # `count("\n")` and not `splitlines()`: the latter also breaks on form
+        # feeds and unicode separators, so it can report more lines than `wc -l`.
+        # The number has to be one the operator can reproduce without opening it.
+        count = text.count("\n")
         if count > maximum:
-            oversized.append((count, rel))
+            oversized.append((count, rel, size_note(doc, text)))
     return [
-        f"{rel}: {count} line{'' if count == 1 else 's'} (advisory limit: {maximum})"
-        for count, rel in sorted(oversized, key=lambda item: (-item[0], item[1]))
+        f"{rel}: {count} line{'' if count == 1 else 's'}, {note} "
+        f"(advisory limit: {maximum} lines)"
+        for count, rel, note in sorted(oversized, key=lambda item: (-item[0], item[1]))
     ]
 
 

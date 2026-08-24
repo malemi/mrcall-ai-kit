@@ -78,6 +78,17 @@ The gate also emits advisories — docs past `doc_max_lines`, work-trace files
 session-memory files (`docs/sessions/*.md`) still `open`. Advisories name
 paths and never affect the exit code.
 
+Every size message — the oversized-doc advisory and the thin-index failure —
+carries bytes and an estimated token count beside the line count. The limits
+count lines while a context window is billed in bytes, and the two do not track
+each other: a dense table of 160 lines can outweigh 400 lines of prose, so an
+index passes its thin-index check while being the most expensive single item a
+session loads. Bytes are the on-disk size, the number `wc -c` prints. The token
+figure is a stated convention, bytes divided by four, and never a tokenizer
+result; it is printed with a `~` and is accurate within a small factor, which is
+all any decision here turns on — every comparison is a ratio between two numbers
+produced by the same divisor.
+
 A clean mechanical gate means the document graph and metadata are internally
 consistent. It does **not** mean prose matches runtime behavior.
 
@@ -107,10 +118,11 @@ result.
   that size check;
 - `doc_max_lines`: optional non-negative advisory size limit applied to every
   indexed doc, default `400`; `0` disables the report. Purely informational —
-  the gate names each doc past the limit by path and line count, and the exit
-  code is unaffected. Because a profile travels in git while the checker is
-  installed per machine, write this key only when the repo wants a value other
-  than the default: an older checker rejects it as an unknown key and fails.
+  the gate names each doc past the limit by path, line count, byte size and
+  estimated tokens, and the exit code is unaffected. Because a profile travels
+  in git while the checker is installed per machine, write this key only when
+  the repo wants a value other than the default: an older checker rejects it as
+  an unknown key and fails.
 
 Unknown keys and invalid enum values are errors. Comments are explanatory only;
 a commented `build` example is not a configured build command. Defaults keep
