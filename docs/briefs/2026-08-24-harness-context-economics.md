@@ -1,8 +1,9 @@
 # Context economics: the harness starts cheap and reads expensive
 
-**Date**: 2026-08-24 · **Plan**: none yet. Nothing here is accepted for
-execution, so `docs/execution-plans/2026-08-24-harness-context-economics.md` is
-written when a proposal is picked up, not before.
+**Date**: 2026-08-24 · **Plan**:
+[../execution-plans/2026-08-24-harness-context-economics.md](../execution-plans/2026-08-24-harness-context-economics.md),
+which carries the lifecycle — Proposals 1 and 2 shipped on 2026-08-24, the rest
+are `planned` and none of them has a go.
 
 The gate names this file in its oversized-doc advisory. Verdict under Proposal
 2's own rule: **keep whole** — it is one argument resting on one table, and
@@ -145,11 +146,11 @@ reasoning is gone and only what it wrote survives.
 the line count, and the thin-index failure message gains the same.
 
 ```
-- docs/known-issues-and-solutions.md: 1186 lines, 71,585 bytes, ~17,900 tokens (advisory limit: 400 lines)
+- docs/known-issues-and-solutions.md: 1186 lines, 71,585 bytes, ~17,896 tokens (advisory limit: 400 lines)
 ```
 
 This comes first because every other proposal argues from a number the operator
-cannot currently see. "1186 lines" is a fact about a file. "~17,900 tokens" is a
+cannot currently see. "1186 lines" is a fact about a file. "~17,896 tokens" is a
 fact about what opening it does to the session, and that is the fact that
 decides anything. The gate already reads each indexed document to count lines,
 so the bytes are free. One sentence in `documentation-harness.md` records that
