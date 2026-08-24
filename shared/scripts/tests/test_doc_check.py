@@ -461,6 +461,22 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("bytes divided by four", contract)
         self.assertIn("never a tokenizer result", contract)
 
+    def test_oversized_docs_have_a_recorded_consumer(self) -> None:
+        """The advisory's actuator is prose, so a future edit must not drop it.
+
+        A sensor with no actuator is how a document grows from 26 KB to 71 KB
+        while being reported at every session: `doc-end` owns the verdict,
+        `doc-start` deliberately owns nothing, and the contract records both.
+        """
+        self.assertIn("## Oversized docs — reviewed", flowed(HARNESS_DOC))
+        end = flowed(COMMANDS / "doc-end.md")
+        self.assertIn("## Oversized docs — reviewed", end)
+        self.assertIn("`docs/harness-backlog.md`", end)
+        self.assertIn("keep whole", end)
+        self.assertIn("split logs, never split indexes", end)
+        start = flowed(COMMANDS / "doc-start.md")
+        self.assertNotIn("Oversized docs — reviewed", start)
+
     def test_size_report_orders_largest_first_then_alphabetically(self) -> None:
         docs = self.root / "docs"
         (docs / "big.md").write_text("filler\n" * 300, encoding="utf-8")

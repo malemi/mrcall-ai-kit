@@ -89,6 +89,16 @@ result; it is printed with a `~` and is accurate within a small factor, which is
 all any decision here turns on — every comparison is a ratio between two numbers
 produced by the same divisor.
 
+The oversized list has exactly one consumer, and it is `doc-end`. For every
+document the gate names that is not already carried in the
+`## Oversized docs — reviewed` section of `docs/harness-backlog.md`, `doc-end`
+records a verdict there: `split`, which is work and therefore also an ordinary
+backlog entry, or `keep whole` with its reason on the same line. `doc-start`
+does nothing with the list beyond reporting it, so session start stays cheap.
+Neither command may touch the oversized document itself — the verdict is a line
+in the backlog and nothing else moves — and a document with a recorded verdict
+is never asked about again, so the steady state is zero work.
+
 A clean mechanical gate means the document graph and metadata are internally
 consistent. It does **not** mean prose matches runtime behavior.
 
