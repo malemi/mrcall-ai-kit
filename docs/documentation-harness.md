@@ -210,6 +210,24 @@ session gets a shared-memory file, `docs/sessions/<session-id>.md`, the same
 kind of object as `docs/active-context.md`: a living snapshot, never a log,
 same anti-drift discipline, same repo, readable with `cat`.
 
+**Where it lives**: the repository the session started in, decided once and
+then fixed for the rest of the session. The hook's payload carries the shell's
+working directory, and that moves with every `cd`, so deriving the path from it
+gives a session a different memory file the moment work enters a sub-repo. The
+failure is silent by construction: a successor that follows the moved path
+finds nothing, creates an empty file, and starts from zero while the
+accumulated snapshot sits in another repository. So the hook resolves the
+directory once, records it under `~/.config/mrcall-ai-kit/sessions/`, and reads
+that record on every later turn. Two rules run before the record is written. A
+`docs/sessions/<session-id>.md` that already exists in the working directory or
+any of its parents is adopted rather than duplicated — one session never gets
+two files, and a session already split by the old cwd-derived path is repaired
+by its next routed turn. Failing that, the starting directory is recovered from
+the transcript path, whose project directory Claude Code fixes when the session
+opens. A session whose start cannot be established at all falls back to the
+working directory, and only when a `docs/` tree is already there: this hook
+names a path, it never creates one.
+
 **Who writes it, and when**: whoever answers the turn, at their own
 discretion — not the classifying model. The model that did the work is the
 only one that knows what was worth recording; a trivial turn correctly writes

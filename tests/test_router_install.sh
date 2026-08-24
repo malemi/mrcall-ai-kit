@@ -86,3 +86,54 @@ out="$(HOME="$docs_home" bash -c "printf '{\"session_id\":\"t1\",\"cwd\":\"$docs
 [[ "$out" == *"Session memory"* ]] || { echo "expected memory note with a docs/ dir, got: $out" >&2; exit 1; }
 [[ "$out" == *"docs/sessions/t1.md"* ]] || { echo "expected the session file path in the directive, got: $out" >&2; exit 1; }
 echo "router-hook.py dormancy + injection: PASS"
+
+# One routed turn: <home> <payload> -> the directive the hook prints.
+hook_run() { printf '%s' "$2" | HOME="$1" python3 "$KIT_DIR/claude/scripts/router-hook.py"; }
+
+# ── the session path is pinned: a cd mid-session must not move it ──────────
+pin_home="$TEST_ROOT/pin-home"
+mkdir -p "$pin_home/.config/mrcall-ai-kit" \
+         "$pin_home/repo/docs" "$pin_home/repo/sub/docs" "$pin_home/elsewhere/docs"
+touch "$pin_home/.config/mrcall-ai-kit/router.on"
+# Every later directory has a docs/ tree of its own, so the old cwd-derived rule
+# would have named a different file on each of these turns.
+for dir in "$pin_home/repo" "$pin_home/repo/sub" "$pin_home/elsewhere"; do
+  out="$(hook_run "$pin_home" "{\"session_id\":\"s1\",\"cwd\":\"$dir\",\"transcript_path\":\"/tmp/t.jsonl\"}")"
+  [[ "$out" == *"$pin_home/repo/docs/sessions/s1.md"* ]] \
+    || { echo "session path moved after a cd to $dir, got: $out" >&2; exit 1; }
+done
+# Naming a path is the whole job: the hook creates nothing in any repository.
+test ! -e "$pin_home/repo/docs/sessions"
+test ! -e "$pin_home/repo/sub/docs/sessions"
+test ! -e "$pin_home/elsewhere/docs/sessions"
+echo "router-hook.py pins the session path across a cd: PASS"
+
+# ── an existing session file wins, and one session never gets two ──────────
+guard_home="$TEST_ROOT/guard-home"
+mkdir -p "$guard_home/.config/mrcall-ai-kit" \
+         "$guard_home/repo/docs/sessions" "$guard_home/repo/sub/docs/sessions"
+touch "$guard_home/.config/mrcall-ai-kit/router.on"
+# A session already split by the old rule: first routed turn happens deeper than
+# the file it has been accumulating, and no pin exists yet.
+printf -- '---\nstatus: open\n---\n' > "$guard_home/repo/docs/sessions/s2.md"
+out="$(hook_run "$guard_home" "{\"session_id\":\"s2\",\"cwd\":\"$guard_home/repo/sub\",\"transcript_path\":\"/tmp/t.jsonl\"}")"
+[[ "$out" == *"$guard_home/repo/docs/sessions/s2.md"* ]] \
+  || { echo "expected the existing session file to be adopted, got: $out" >&2; exit 1; }
+# Both exist: the stray one a moved path already created is always the deeper one.
+printf -- '---\nstatus: open\n---\n' > "$guard_home/repo/docs/sessions/s3.md"
+: > "$guard_home/repo/sub/docs/sessions/s3.md"
+out="$(hook_run "$guard_home" "{\"session_id\":\"s3\",\"cwd\":\"$guard_home/repo/sub\",\"transcript_path\":\"/tmp/t.jsonl\"}")"
+[[ "$out" == *"$guard_home/repo/docs/sessions/s3.md"* ]] \
+  || { echo "expected the outermost existing session file, got: $out" >&2; exit 1; }
+echo "router-hook.py adopts an existing session file: PASS"
+
+# ── the starting directory survives in the transcript path ─────────────────
+tr_home="$TEST_ROOT/tr-home"
+mkdir -p "$tr_home/.config/mrcall-ai-kit" "$tr_home/repo/docs" "$tr_home/repo/sub/docs"
+touch "$tr_home/.config/mrcall-ai-kit/router.on"
+# Claude Code's project directory: the start directory, slashes and dots dashed.
+encoded="$tr_home/repo"; encoded="${encoded//\//-}"; encoded="${encoded//./-}"
+out="$(hook_run "$tr_home" "{\"session_id\":\"s4\",\"cwd\":\"$tr_home/repo/sub\",\"transcript_path\":\"$tr_home/.claude/projects/$encoded/s4.jsonl\"}")"
+[[ "$out" == *"$tr_home/repo/docs/sessions/s4.md"* ]] \
+  || { echo "expected the start directory from the transcript path, got: $out" >&2; exit 1; }
+echo "router-hook.py recovers the start directory from the transcript: PASS"

@@ -23,9 +23,10 @@ answer trivial prompts directly, delegate the rest to a pinned-model worker
 share continuity via a per-session memory file, `docs/sessions/<id>.md` — the
 short-lived sibling of `active-context.md`, same living-snapshot discipline,
 written by whoever answers a turn, promoted into `active-context.md` and
-closed by `/doc-end`. The full contract (shape, write protocol, promotion,
-`/router sweep`'s liveness heuristic) is in `documentation-harness.md` §
-Session memory. `doc-check.py` validates `docs/sessions/*.md` status
+closed by `/doc-end`. Its directory is resolved once and pinned for the
+session's whole life, so a `cd` into a sub-repo cannot move it. The full
+contract (shape, path rule, write protocol, promotion, `/router sweep`'s
+liveness heuristic) is in `documentation-harness.md` § Session memory. `doc-check.py` validates `docs/sessions/*.md` status
 (open/closed) and reports an advisory count of open files; `doc-start` never
 reads that directory, the same rule as `docs/projects/**`. `/ai-help` was
 added alongside it: introspects whatever commands/skills/agents are actually
@@ -38,10 +39,12 @@ registration) on every call; it now prints state plus the next command only,
 and expands only when something is actually broken (flag set but hook not
 registered).
 
-Mechanically verified: 39 `doc-check.py` pytest cases and `tests/test_router_install.sh`
-(5 assertions — sandbox install alone, dropped without Claude Code selected,
+Mechanically verified: 45 `doc-check.py` pytest cases and `tests/test_router_install.sh`
+(8 assertions — sandbox install alone, dropped without Claude Code selected,
 no duplicate `worker-fable` manifest entry when combined with doc-harness,
-uninstall removes exactly the router artifacts, hook dormancy/injection) all
+uninstall removes exactly the router artifacts, hook dormancy/injection, the
+session path held across a cd, an existing session file adopted rather than
+duplicated, the start directory recovered from the transcript path) all
 pass; the mechanical gate is clean on this repo. **Not yet verified live** —
 the router has been switched on for real on this machine (hook registered in
 `~/.claude/settings.json`, flag present), but no session has cleanly exercised
