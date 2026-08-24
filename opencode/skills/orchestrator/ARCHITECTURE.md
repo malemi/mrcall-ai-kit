@@ -13,7 +13,7 @@ The orchestrator is a **skill** that transforms any agent into an interactive pr
 ├── skills/orchestrator/
 │   ├── SKILL.md              # Runtime protocol (what to do)
 │   ├── ARCHITECTURE.md       # This file (why it's designed this way)
-│   ├── memory.md             # Global orchestrator memory
+│   ├── memory.md             # Runtime state, created on first startup
 │   └── scripts/
 │       ├── watchdog.py       # Watchdog daemon (timeout/budget enforcement)
 │       ├── watchdog-cli      # CLI for task registration/check/deregister
@@ -21,7 +21,7 @@ The orchestrator is a **skill** that transforms any agent into an interactive pr
 │       └── post_task_gate.py # Post-task verification gate
 ├── llms.md                   # LLM metadata
 ├── agents/
-│   ├── orchestrator.md       # Primary agent — loads skill on startup
+│   ├── orchestrator.md       # Primary agent — inlines its own protocol
 │   ├── build.md              # Default dev agent
 │   ├── reviewer.md           # Code reviewer (subagent)
 │   └── worker-*.md           # One per LLM (subagents)
@@ -35,6 +35,12 @@ The orchestrator is a **skill** that transforms any agent into an interactive pr
 | Global | `skills/orchestrator/memory.md` | Cross-session, cross-project | Orchestrator at shutdown |
 | Repository | `<project>/docs/` | Project rules, conventions | Developers |
 | Plan | `<project>/docs/execution-plans/YYYY-MM-DD-<slug>.md` (+ paired `docs/briefs/YYYY-MM-DD-<slug>.md`) | Per-workstream lifecycle + task status | Orchestrator during execution |
+
+The global file is runtime state, not part of the install. The kit ships no
+`memory.md`, so the startup sequence in `SKILL.md` creates a seeded one when it
+is missing. `.gitignore` keeps it untracked, which matters in symlink-mode
+installs: there `~/.config/opencode/skills/orchestrator` points at the kit
+checkout, so the orchestrator's writes land inside the repository.
 
 ## LLM Selection Strategy
 
@@ -100,12 +106,12 @@ The orchestrator parses these headers to determine next steps. Workers that retu
 2. Create `~/.config/opencode/agents/worker-<name>.md` following the template in existing workers
 3. Restart session to register
 
-Do not create a short alias file (e.g. `sonnet.md`). Legacy aliases are removed. If a short alias exists for the same model, delete it.
+Do not create a short alias file (e.g. `sonnet.md`). If a short alias exists for the same model, delete it.
 
 ## Security Considerations
 
 - Workers have `bash: allow` — they can run arbitrary shell commands. Only delegate to trusted LLMs.
 - `external_directory` permission gates structured tool calls (read/edit/glob/list) but does NOT sandbox shell commands. A worker with `bash: allow` can access arbitrary paths via shell argv. Treat `bash: allow` as full trust in the model.
-- Legacy alias agents (short names without `worker-*` prefix) have been removed. All delegation targets are now `worker-*` agents with explicit `task: deny` to prevent recursive delegation.
-- Orchestrator has `edit: ask` — user approves all edits except trivial post-review fixes.
+- The delegation targets the kit ships are the `worker-*` agents and `reviewer`, all with explicit `task: deny` to prevent recursive delegation.
+- Orchestrator has `edit: allow` — nothing in the permission system stops it writing code, so the restriction to trivial post-review fixes rests entirely on the Edit Policy in `SKILL.md`.
 - Reviewer has `edit: deny` — read-only, reports findings.

@@ -105,7 +105,7 @@ USER REQUEST
 
 - **Reading and exploration**: always do this yourself. You have the big context window; workers don't.
 - **Planning**: always yours. You hold the architecture in your head.
-- **Small edits** (1-3 lines, trivial fixes): you can do these directly if they're faster than delegating. The `edit: ask` permission means the user will approve.
+- **Small edits** (1-3 lines, trivial fixes): you can do these directly if they're faster than delegating.
 - **Anything complex or mechanical**: delegate. Your token budget is for thinking, not typing.
 
 ## Parallelism

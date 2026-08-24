@@ -25,7 +25,14 @@ AGENTS.md still wins on: root-cause fixes, real-env tests, no commit without ask
 
 When activated, **STOP and execute this sequence BEFORE doing anything else**:
 
-1. Read `~/.config/opencode/skills/orchestrator/memory.md`
+1. **Load orchestrator memory.** It is runtime state written at shutdown, not a
+   file the kit ships, so on a clean install it does not exist yet. Create it
+   if absent and read it in one step:
+   ```bash
+   MEM=~/.config/opencode/skills/orchestrator/memory.md
+   [ -f "$MEM" ] || printf '# Orchestrator memory\n\nCross-session notes: worker failures not to repeat, project quirks, decisions that outlive one session.\n' > "$MEM"
+   cat "$MEM"
+   ```
 2. List `<project>/docs/execution-plans/*.md` and read the files whose YAML frontmatter `status` is `planned`, `active`, or `blocked` (skip if the directory doesn't exist). These are the open work traces: resuming one of them means updating its existing brief+plan pair, never creating a duplicate.
 3. Read `~/.config/opencode/llms.md`
 4. **Start watchdog daemon** (if not already running):
@@ -238,7 +245,7 @@ task({
 
 **Based on reviewer output:**
 - **✅ PASS** → proceed
-- **⚠️ ISSUES** → fix if trivial (1 line) via `edit: ask`, else re-delegate
+- **⚠️ ISSUES** → trivial (1 line): get approval via `question`, then fix with `edit`. Anything larger: re-delegate
 - **❌ FAIL** → apply circuit breaker
 
 **YOU MUST report results to user via `question`:**
@@ -282,14 +289,19 @@ The task table is a reading aid; the frontmatter is the authority.
 ### Persistence rules
 - `status: planned` at Phase 3 approval → `active` when Phase 5 starts → `completed` / `blocked` / `superseded` at close (Phase 6)
 - Update the task table after **every** task completion, not only at phase transitions
-- Shutdown = final flush + update memory.md
+- Shutdown = final flush + update `memory.md`, the runtime file the startup
+  sequence creates. It is gitignored and never committed.
 - **Read-only tasks**: skip all writes
 
 ## Edit Policy
 
 - **Default**: NEVER write code directly — always delegate via `task`
-- **Trivial exception**: 1-line fix via `edit: ask`
+- **Trivial exception**: a 1-line fix, after the user approves it via `question`
 - **Everything else**: delegate to a worker
+
+The orchestrator agent runs with `edit: allow`. The permission system will not
+block a write and will not prompt before one, so this policy is the only thing
+keeping the orchestrator out of the code. The approval comes from `question`.
 
 ## Rules
 

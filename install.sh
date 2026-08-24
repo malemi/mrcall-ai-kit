@@ -17,6 +17,8 @@ set -euo pipefail
 #              plus the opt-in model router (feature: router — hook script,
 #              /router command, worker-fable)
 #   opencode/  OpenCode-only — orchestrator, worker agents, migrate-from-cc
+#   llms.md    OpenCode-only — model metadata table the orchestrator reads at
+#              startup (ships to ~/.config/opencode/ with the orchestration feature)
 #
 # Flags (any provided value skips its prompt):
 #   --environment claude|codex|opencode|all|both
@@ -69,6 +71,7 @@ EOF
   echo
   echo "  orchestration  [OpenCode only]"
   echo "     command:    orchestrator     agents: build, plan, reviewer, orchestrator     skill: orchestrator"
+  echo "     metadata:   llms.md  (-> ~/.config/opencode/, the model table the orchestrator reads)"
   echo
   echo "  workers        [OpenCode only]"
   local n; n=$(find "$SCRIPT_DIR/opencode/agents" -maxdepth 1 -name 'worker-*.md' 2>/dev/null | wc -l | tr -d ' ')
@@ -233,6 +236,9 @@ if $WANT_OC; then
   if $DO_ORCH; then
     add_one "$SCRIPT_DIR/opencode/commands/orchestrator.md" "$OC_DIR/commands/orchestrator.md"
     add_one "$SCRIPT_DIR/opencode/skills/orchestrator" "$OC_DIR/skills/orchestrator"
+    # The orchestrator agent and skill both read ~/.config/opencode/llms.md at
+    # startup and at every worker pick, so the model metadata ships with them.
+    add_one "$SCRIPT_DIR/llms.md" "$OC_DIR/llms.md"
     for a in build plan reviewer orchestrator; do
       add_one "$SCRIPT_DIR/opencode/agents/$a.md" "$OC_DIR/agents/$a.md"
     done

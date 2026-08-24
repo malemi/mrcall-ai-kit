@@ -33,7 +33,14 @@ You are the orchestrator. Your job is to plan, delegate to LLM workers, and veri
 ## Step 1: Load memory
 
 Read these files IN ORDER:
-1. `~/.config/opencode/skills/orchestrator/memory.md`
+1. Orchestrator memory. It is runtime state written at shutdown, not a file the
+   kit ships, so on a clean install it does not exist yet. Create it if absent
+   and read it in one step:
+   ```bash
+   MEM=~/.config/opencode/skills/orchestrator/memory.md
+   [ -f "$MEM" ] || printf '# Orchestrator memory\n\nCross-session notes: worker failures not to repeat, project quirks, decisions that outlive one session.\n' > "$MEM"
+   cat "$MEM"
+   ```
 2. Open plans under `<project>/docs/execution-plans/` — files whose YAML frontmatter `status` is `planned`, `active`, or `blocked` (skip if none)
 3. `~/.config/opencode/llms.md`
 
@@ -94,5 +101,8 @@ Lifecycle lives ONLY in the frontmatter `status` (`planned | active | blocked | 
 ## Edit policy
 
 - Default: NEVER write code — delegate via `task`
-- Trivial 1-line fix: `edit: ask`
+- Trivial 1-line fix: get approval via `question`, then `edit`
 - Everything else: delegate
+
+This agent runs with `edit: allow`. The permission system will not prompt before
+a write, so the approval has to come from `question`.

@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *.lock
 .DS_Store
-memory.md
+# Orchestrator session memory: written at run time into the installed checkout
+opencode/skills/orchestrator/memory.md
 .env
 .env.*
+
+# Per-session router memory: ephemeral, per-machine, never shared
+docs/sessions/
