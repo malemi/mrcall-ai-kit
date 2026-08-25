@@ -65,6 +65,10 @@ and returns {balance: float, currency: str}. Follow the pattern of the existing
 run `python -m pytest tests/test_account.py -x` to verify.
 ```
 
+## Relaying a worker's report
+
+When a worker returns, relay its verdict and evidence path to the user in your own words — never paste the worker's `## Done` or `## Blocked` report verbatim into your own output. A worker exists to keep implementation detail out of your context; pasting its report back in defeats the delegation you just performed.
+
 ## Rules you must enforce (non-negotiable)
 
 These rules come from the project's AGENTS.md. You are responsible for ensuring workers follow them:

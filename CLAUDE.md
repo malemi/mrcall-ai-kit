@@ -1,5 +1,11 @@
 # mrcall-ai-kit — index
 
+**Stack**: Bash + Python + Markdown
+**Entry point**: `install.sh` (global installer)
+**Do not break**: All docs in English; this index is the single source of truth and carries no duplicated inventory — other docs point here
+
+<!-- orientation ends -->
+
 Thin index for AI tools. Pointers only; no prose, no duplicated inventory.
 
 Reusable AI-tool config for **Claude Code**, **Codex**, and **OpenCode**: a

@@ -10,7 +10,9 @@ def main():
     parser.add_argument('--expect-files', type=str, help='Comma-separated paths that must exist')
     parser.add_argument('--run', type=str, help='Shell command to run')
     parser.add_argument('--require-done', action='store_true', help='Require ## Done (not used in logic yet)')
-    
+    parser.add_argument('--budget-lines', type=int, default=20,
+                        help='Max non-empty lines in a report; 0 disables the budget check')
+
     args = parser.parse_args()
     
     # Read input
@@ -73,6 +75,32 @@ def main():
     # If no Done -> already failed or invalid, so exit 1 or 2 already
     if not has_done:
         sys.exit(1)  # Should not reach here due to above, but safety
+
+    # Report budget. A worker exists to keep work out of the caller's context,
+    # and a report that pastes a diff back in defeats the delegation it just did.
+    # Enforced rather than warned: a warning here would be the same
+    # sensor-without-actuator that let the advisories be ignored for months.
+    if args.budget_lines:
+        if len(lines) > args.budget_lines:
+            print(f'FAIL: Report is {len(lines)} lines, budget is {args.budget_lines}. '
+                  f'Write long evidence to $TMPDIR/mrcall-ai-kit/<task-id>/ and cite the path.',
+                  file=sys.stderr)
+            sys.exit(1)
+        diff_markers = ('diff --git', '@@ ', '+++ ', '--- ')
+        pasted = [ln for ln in lines if ln.startswith(diff_markers)]
+        if pasted:
+            print(f'FAIL: Report contains a pasted diff ({pasted[0][:40]!r}). '
+                  f'Cite an evidence path instead.', file=sys.stderr)
+            sys.exit(1)
+        if 'Traceback (most recent call last)' in content:
+            print('FAIL: Report contains a stack trace. Cite an evidence path instead.',
+                  file=sys.stderr)
+            sys.exit(1)
+        if not any(ln.startswith('- Unverified:') for ln in lines):
+            print('FAIL: Report has no `- Unverified:` line. It is never dropped for '
+                  'brevity — it is what keeps a short report from being a confident lie.',
+                  file=sys.stderr)
+            sys.exit(1)
 
     # Check expected files
     if args.expect_files:

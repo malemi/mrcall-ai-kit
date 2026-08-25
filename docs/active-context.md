@@ -10,70 +10,87 @@ of appending session history; Git and completed briefs retain that history.
 
 ## State now
 
-Harness v3 is in force across Claude Code, Codex, and OpenCode; the full
-contract is [`documentation-harness.md`](documentation-harness.md).
+Harness v3 is in force across Claude Code, Codex, and OpenCode. The contract is
+[`documentation-harness.md`](documentation-harness.md); the router half of it
+was split out to [`model-router.md`](model-router.md) on 2026-08-25, when the
+first document crossed its own size advisory.
 
-An opt-in Claude Code model router is committed and installed (work trace:
-[`docs/briefs/2026-08-21-cc-model-router.md`](briefs/2026-08-21-cc-model-router.md) /
-[`docs/execution-plans/2026-08-21-cc-model-router.md`](execution-plans/2026-08-21-cc-model-router.md)):
-a dormant `UserPromptSubmit` hook (`claude/scripts/router-hook.py`) that, once
-`/router on` creates a flag file, turns the session model into a classifier —
-answer trivial prompts directly, delegate the rest to a pinned-model worker
-(`worker-sonnet` / `worker-opus` / the new `worker-fable`). Delegated workers
-share continuity via a per-session memory file, `docs/sessions/<id>.md` — the
-short-lived sibling of `active-context.md`, same living-snapshot discipline,
-written by whoever answers a turn, promoted into `active-context.md` and
-closed by `/doc-end`. Its directory is resolved once and pinned for the
-session's whole life, so a `cd` into a sub-repo cannot move it. The full
-contract (shape, path rule, write protocol, promotion, `/router sweep`'s
-liveness heuristic) is in `documentation-harness.md` § Session memory. `doc-check.py` validates `docs/sessions/*.md` status
-(open/closed) and reports an advisory count of open files; `doc-start` never
-reads that directory, the same rule as `docs/projects/**`. `/ai-help` was
-added alongside it: introspects whatever commands/skills/agents are actually
-installed (frontmatter descriptions), rather than a written list that goes
-stale.
+**The context-economics workstream is finished** (work trace:
+[`briefs/2026-08-24-harness-context-economics.md`](briefs/2026-08-24-harness-context-economics.md)
+/ [`execution-plans/2026-08-24-harness-context-economics.md`](execution-plans/2026-08-24-harness-context-economics.md),
+`status: completed`). What the harness now does that it did not:
 
-`/router`'s `on`/`off`/`status`/`unregister` output was rewritten (commit
-`4918e1a`): it had been printing internals (flag file, symlink, settings.json
-registration) on every call; it now prints state plus the next command only,
-and expands only when something is actually broken (flag set but hook not
-registered).
+- The gate prints bytes and an estimated token count beside every line count,
+  and `doc-end` must record a `split` or `keep whole` verdict in
+  `harness-backlog.md` for each oversized document it names.
+- **`split` means deletion, never relocation** — stated at length in
+  `doc-end.md`, as contract in `documentation-harness.md`, and pinned by a test
+  so an edit cannot quietly drop it. It forbids moving text into another
+  document to shrink a line count, forbids writing into a generated file, and
+  states that an as-built document is never an append target.
+- In `meta` mode the gate names every sub-repo index with no orientation head
+  (`<!-- orientation ends -->`), and `doc-start` carries the matching routing
+  rule: the ownership map answers by itself, so a sub-repo index is opened when
+  work enters that repository's code, never to decide whether it belongs there.
+- Every `worker-*` agent carries a `## Report budget` — twenty lines, no diff,
+  no file listing, no stack trace — with `Unverified:` and `Evidence:` in the
+  `## Done` block and long evidence going to `$TMPDIR/mrcall-ai-kit/<task-id>/`.
+- The caller's own reading budget, about a hundred lines per request, rides in
+  the router's injected directive, alongside the rule that a worker's report is
+  relayed in your own words and never pasted verbatim.
+- Session rotation has a `## Hand-off` contract (constraints first, because
+  compaction destroys those first) and a resume rule: the successor reads the
+  hand-off plus `active-context.md` and does **not** run `/doc-start`.
 
-Mechanically verified: 45 `doc-check.py` pytest cases and `tests/test_router_install.sh`
-(8 assertions — sandbox install alone, dropped without Claude Code selected,
-no duplicate `worker-fable` manifest entry when combined with doc-harness,
-uninstall removes exactly the router artifacts, hook dormancy/injection, the
-session path held across a cd, an existing session file adopted rather than
-duplicated, the start directory recovered from the transcript path) all
-pass; the mechanical gate is clean on this repo. **Not yet verified live** —
-the router has been switched on for real on this machine (hook registered in
-`~/.claude/settings.json`, flag present), but no session has cleanly exercised
-actual trivial-vs-delegated routing or the session-memory write/read/promote
-cycle end to end; see Unresolved and Next.
+**One standing constraint came out of it: this kit installs no hooks on the
+people who install it.** That rejected the `PreToolUse` read guard, the
+automatic rotation trigger, `SubagentStop` budget enforcement, and the
+per-session read meter. The consequence is not softened anywhere: on Claude
+Code nothing deterministic enforces any of the budgets above — they are prose
+addressed to a model. OpenCode does enforce the report budget, in
+`post_task_gate.py`, which rejects an over-budget report, a pasted diff, a
+stack trace, or a missing `Unverified:` line. The one existing hook, the
+router, keeps its licence because nothing happens until someone runs
+`/router on`.
+
+**The link checker no longer reads code as links.** `MD_LINK` is `[...](...)`,
+which ordinary source matches — `Array.fill[Byte](packetSize)` was reported as
+a link to `packetSize`. Fenced blocks and inline backtick spans are blanked
+before the scan. Measured on starchat: 20 findings became 1 real one.
+
+**The router is in live use across several concurrent sessions**, not just
+installed: `docs/sessions/` in this tree, in `mrcall-cs` and in `starchat` all
+hold real session-memory files, two of them already `closed` by `/doc-end`. A
+routed session on 2026-08-25 answered trivial turns directly and delegated
+substantial ones to pinned-model workers whose returned edits landed in this
+repository, in `cs-kernel` and in `starchat`.
+
+Mechanically verified: 53 `doc-check.py` pytest cases plus
+`test_router_install.sh`, `test_codex_install.sh` and
+`test_orchestration_install.sh` all pass, and the gate is clean on this repo.
 
 ## Unresolved
 
-- Whether `/router on`'s "restart the session" guidance is actually
-  necessary: one session activated the router and the hook fired on the very
-  next prompt with no process restart. A single data point, not confirmed
-  either way.
-- Whether a session can be relied on to know its own active model:
-  `/model haiku` reported success and `~/.claude/settings.json` correctly
-  persisted `"model": "haiku"` (no project or env override found), and
-  Claude Code's own docs say `/model` switches the running session
-  immediately, not just new ones — but the visible model indicator kept
-  showing Sonnet 5 in the same session, and the session had no way to
-  self-verify which model was actually executing. Matters directly for the
-  smoke test below.
+- **A routed session can run all day and never create its session-memory file.**
+  One did on 2026-08-25: the injected directive names `docs/sessions/<id>.md`
+  every turn and says to create it if missing, and nothing did, while other
+  sessions the same day wrote theirs normally. The mechanism works — the gap is
+  that the instruction is ignorable, not that the code is broken.
+- Rotation has no invocation. The hand-off contract says what a rotation
+  contains; an operator gets one by asking in words. A `/router rotate` verb
+  was floated and dropped as never having been part of the proposal.
+- Whether `/router on`'s "restart the session" guidance is necessary: one
+  session activated the router and the hook fired on the very next prompt with
+  no restart. A single data point, not confirmed either way.
+- Whether a session can be relied on to know its own active model: `/model
+  haiku` reported success and `~/.claude/settings.json` persisted it, but the
+  visible indicator kept showing Sonnet 5 and the session had no way to
+  self-verify which model was executing.
 
 ## Next
 
-- Run the router's live smoke test properly: every attempt so far has had a
-  more specific override in play (Plan Mode superseding routing for one
-  task, `doc-end`'s own non-delegable phases for a consolidation), so
-  trivial-vs-delegated routing has never actually been exercised. Needs a
-  plain turn with no such override, plus a way to confirm the acting model
-  that doesn't depend on the visible indicator (see Unresolved).
+- Make the session-memory file harder to skip, since a routed session ran a
+  whole day without writing one while other sessions wrote theirs.
 - Exercise `doc-create`'s v1→v3 migration path against a real v1 repository
   (not just `doc-critic`'s repair in isolation, which is already verified) to
   confirm the migration note produces the same archive-and-trim result when

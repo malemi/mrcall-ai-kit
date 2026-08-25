@@ -33,6 +33,13 @@ Counting them is fine; reading them is not. They belong to the gate's index set,
 
 `docs/sessions/**` — the opt-in model router's per-session shared memory, when that feature is installed — follows the identical rule and for the identical reason: it is loaded by a running session that needs it, never as ambient start-up context. The gate counts and advises on it (an `open session file(s)` line, same shape as the other advisories); this command never opens one.
 
+## Routing in a meta-repo — a sub-repo index is never opened to decide where work belongs
+In `meta` mode the index's ownership map already answers the routing question by itself: it says which repository owns which concern, and that is the whole answer. Reading a sub-repo's own index to work out whether a change belongs there inverts the cost — the map is one table, the indexes are ten files, and the answer was in the table the entire time.
+
+So: open a sub-repo index when work has entered that repository's **code**, never to decide whether it should. If the map cannot answer, the defect is in the map — say so, and fix the map — rather than paying ten reads to route one change.
+
+The gate helps in the other direction. Each sub-repo index should open with an orientation head — stack, entry points, build and test command, the rules that must not be broken — closed by an `<!-- orientation ends -->` marker, so that a session which *does* need to enter that repository can orient on a dozen lines instead of the whole file. In `meta` mode the gate prints an advisory naming each index that has no such head. Like every advisory it never blocks, and this command does nothing with it beyond carrying it through to the output.
+
 ## Profile
 After the version preflight succeeds, read the remaining profile keys: schema version, mode, index file, optional build/smoke command, and routing. It is machine-readable `key = value` data; comments never carry values. Mode is exactly `meta` or `leaf`; `build`/`smoke`, when present, must be non-empty. If invalid, report the violation and stop.
 !`cat docs/.doc-profile 2>/dev/null || echo "NO PROFILE — run /doc-create to bootstrap this repo's docs/."`
@@ -43,7 +50,7 @@ Resolve `index_file` from the profile. Do not assume a configured index was auto
 ## Index integrity (run first)
 The gate below fails on dead doc links and, in meta mode, on repo-inventory drift or a duplicated repo-index. Surface any failure in the output line's *violations* slot and fix it before other work.
 
-The gate also prints `advisory` blocks — docs past `doc_max_lines`, and work-trace files (briefs, execution plans) named without their `YYYY-MM-DD-` date prefix. They are not failures and never block: carry those lines through to the output unchanged (the Output section says where they go) and leave them alone. Do not open a named file to assess it, do not trim or rename it, do not propose a restructuring unasked — reporting is the whole job, and the operator decides what to do about it.
+The gate also prints `advisory` blocks — docs past `doc_max_lines`, work-trace files (briefs, execution plans) named without their `YYYY-MM-DD-` date prefix, and in meta mode any sub-repo index with no orientation head. They are not failures and never block: carry those lines through to the output unchanged (the Output section says where they go) and leave them alone. Do not open a named file to assess it, do not trim or rename it, do not propose a restructuring unasked — reporting is the whole job, and the operator decides what to do about it.
 !`python3 "$HOME/.config/mrcall-ai-kit/doc-check.py" --repo . 2>&1 || true`
 
 ## Phase 1 — Durable layer (read on demand)
@@ -63,6 +70,6 @@ The build/smoke command (see profile) guards code work — it is NOT a session-s
 
 ## Output
 No summaries or greetings. Keep mechanical integrity distinct from semantic confidence; no semantic critic runs here. One line:
-`Context loaded. [N] docs indexed. Baseline <sha> (<N> content commits behind HEAD; working tree clean|dirty). [mechanical gate: clean | violations]. [oversized docs: N]. [undated traces: N]. [open sessions: N]. [semantic review: not run]. [open plans]. Ready to work.`
+`Context loaded. [N] docs indexed. Baseline <sha> (<N> content commits behind HEAD; working tree clean|dirty). [mechanical gate: clean | violations]. [oversized docs: N]. [undated traces: N]. [open sessions: N]. [unoriented indexes: N]. [semantic review: not run]. [open plans]. Ready to work.`
 
-The *oversized docs*, *undated traces*, and *open sessions* slots carry counts only; omit each slot entirely when the gate reported none of its kind. When one is non-zero, reproduce the gate's advisory lines verbatim underneath the summary, one per line — a repo can have ten of them and they do not belong inside a one-line summary. Add no commentary of your own to them.
+The *oversized docs*, *undated traces*, *open sessions*, and *unoriented indexes* slots carry counts only; omit each slot entirely when the gate reported none of its kind. When one is non-zero, reproduce the gate's advisory lines verbatim underneath the summary, one per line — a repo can have ten of them and they do not belong inside a one-line summary. Add no commentary of your own to them.

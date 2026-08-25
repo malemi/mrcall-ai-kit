@@ -529,7 +529,7 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("belongs in the template that produces the file", end)
         # The contract records that the rule exists; the command file states it.
         contract = flowed(HARNESS_DOC)
-        self.assertIn("a deletion decision, not a relocation", contract)
+        self.assertIn("a deletion decision before it is anything else", contract)
         self.assertIn("never an append target", contract)
         self.assertIn("keep whole", end)
         self.assertIn("split logs, never split indexes", end)

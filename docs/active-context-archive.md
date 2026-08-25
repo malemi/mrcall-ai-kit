@@ -5,6 +5,34 @@ newest first, preserved verbatim. Cold storage: never read by `/doc-start`,
 queried on demand to answer "when did we do X" without reconstructing it from
 `git log -p`.
 
+## 2026-08-25 — the router's pre-live verification record
+
+Superseded by live use on 2026-08-25, when the router drove a full working
+session. Kept because it is the record of what had and had not been proved
+before that.
+
+`/router`'s `on`/`off`/`status`/`unregister` output was rewritten (commit
+`4918e1a`): it had been printing internals (flag file, symlink, settings.json
+registration) on every call; it now prints state plus the next command only,
+and expands only when something is actually broken (flag set but hook not
+registered).
+
+Mechanically verified: 45 `doc-check.py` pytest cases and
+`tests/test_router_install.sh` (8 assertions — sandbox install alone, dropped
+without Claude Code selected, no duplicate `worker-fable` manifest entry when
+combined with doc-harness, uninstall removes exactly the router artifacts, hook
+dormancy/injection, the session path held across a cd, an existing session file
+adopted rather than duplicated, the start directory recovered from the
+transcript path) all pass; the mechanical gate is clean on this repo. **Not yet
+verified live** — the router has been switched on for real on this machine
+(hook registered in `~/.claude/settings.json`, flag present), but no session has
+cleanly exercised actual trivial-vs-delegated routing or the session-memory
+write/read/promote cycle end to end.
+
+Every live attempt up to that point had had a more specific override in play:
+Plan Mode superseding routing for one task, `doc-end`'s own non-delegable
+phases for a consolidation.
+
 ## 2026-08-21 — Router feature confirmed committed; status-output UX fix
 
 Earlier `active-context.md` stated the router feature (hook, `/router`

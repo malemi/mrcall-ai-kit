@@ -89,3 +89,21 @@ The two also diverge at shutdown: the agent's Step 1 mirrors `SKILL.md`'s
 startup and creates `memory.md` when it is absent, but its Step 8 has no
 equivalent to `SKILL.md`'s "Shutdown = final flush + update `memory.md`", so a
 session driven through the agent creates the file and never updates it.
+
+## Oversized docs — reviewed
+
+One line per document the gate's oversized advisory has named, with the verdict
+that settled it. A document listed here is never asked about again.
+
+- `docs/documentation-harness.md` — **split**, 2026-08-25. It had crossed the 400-line
+  limit by accumulating a second subject: the opt-in model router, its session memory,
+  the rotation hand-off, and the worker-report budget. Those moved to
+  `docs/model-router.md`, leaving the harness contract comfortably under the
+  limit. The
+  split is by subject and not by size — the gate and the `/doc-*` contract apply
+  whether or not the router is installed, so a session that wants to know what
+  `/doc-start` does should not pay for the delegation machinery.
+- `docs/briefs/2026-08-24-harness-context-economics.md` — **keep whole**, 555
+  lines. It is a dated brief: the record of one analysis, argued end to end, and
+  its verdict is already stated in its own opening. Splitting an argument leaves
+  two halves that each read as incomplete, and nothing here is a log.

@@ -74,9 +74,26 @@ Markdown under `docs/`, plus the root README and configured index. It checks:
   is exempt by design — dated sections are what it is for.
 
 The gate also emits advisories — docs past `doc_max_lines`, work-trace files
-(briefs, execution plans) named without the `YYYY-MM-DD-` date prefix, and
-session-memory files (`docs/sessions/*.md`) still `open`. Advisories name
-paths and never affect the exit code.
+(briefs, execution plans) named without the `YYYY-MM-DD-` date prefix,
+session-memory files (`docs/sessions/*.md`) still `open`, and in `meta` mode any
+sub-repo index without an orientation head. Advisories name paths and never
+affect the exit code.
+
+**Orientation heads.** A sub-repo index should open with stack, entry points,
+build and test command, and the rules that must not be broken, closed by an
+`<!-- orientation ends -->` marker. A session entering that repository then
+orients on a dozen lines instead of the whole index. The marker is an HTML
+comment so it vanishes from the rendered document while staying greppable;
+"everything above the first `##`" was rejected as the convention because it
+gives the gate nothing to test — an index opening straight into `## Docs` would
+be indistinguishable from one with a well-written head. Enforcement lives in the
+meta-repo's gate rather than in each sub-repo's profile because sub-repos are
+not required to have a profile, and a per-repository rule reaches none of the
+ones that don't. The gate resolves each sub-repo's index through its own profile
+when it has one, and falls back to `CLAUDE.md`. The advisory pairs with a rule
+in `doc-start`: in a meta-repo the index's ownership map answers routing by
+itself, so a sub-repo index is opened when work enters that repository's code,
+never to decide whether it belongs there.
 
 Every size message — the oversized-doc advisory and the thin-index failure —
 carries bytes and an estimated token count beside the line count. The limits
@@ -98,6 +115,21 @@ does nothing with the list beyond reporting it, so session start stays cheap.
 Neither command may touch the oversized document itself — the verdict is a line
 in the backlog and nothing else moves — and a document with a recorded verdict
 is never asked about again, so the steady state is zero work.
+
+`split` is a deletion decision before it is anything else: it means judging what
+in the document still deserves to exist and removing what does not, never moving
+the same prose into an existing document to shrink a line count. One move is
+legitimate and narrow — a document that has grown a second subject may be cut
+along that seam into a new document with its own title, its own routing line and
+a pointer left behind, provided both halves stand alone. Moving text into a
+generated file — one a template overwrites, marked as such by a "regenerated
+by" / "do not hand-edit" header or equivalent — is forbidden outright, because
+the next render discards it; content that belongs there belongs in the
+template's own repository instead. And a durable document is never an append
+target: an as-built or architecture document describes what the system *is*,
+while rationale and history belong in a CHANGELOG or a dated brief, so a
+document that accumulates entries over time has become a log whatever its title
+says.
 
 A clean mechanical gate means the document graph and metadata are internally
 consistent. It does **not** mean prose matches runtime behavior.
@@ -189,69 +221,13 @@ the work was and why); a delegated critic reports the absence instead of
 inventing content; the mechanical gate reports undated trace filenames as an
 advisory, never a failure.
 
-## Session memory (opt-in model router, Claude Code only)
+## Session memory, rotation, and worker reports
 
-`--features router` installs a dormant `UserPromptSubmit` hook plus `/router`
-and `worker-fable`. `/ai-help` ships with `doc-harness` instead — it lives in
-`shared/commands/` alongside the other cross-tool commands, not in the
-router's Claude-only branch. Off by default: the hook checks for
-`~/.config/mrcall-ai-kit/router.on` and exits with no output when the flag is
-absent, at the cost of one filesystem check per prompt. `/router on` registers
-the hook in `~/.claude/settings.json` (if not already registered) and creates
-the flag; `/router off` removes only the flag, leaving registration in place;
-`/router unregister` removes both.
-
-The intended shape: the session model is a cheap classifier (Haiku) that
-answers trivial prompts itself and delegates everything else to a pinned-model
-worker (`worker-sonnet` / `worker-opus` / `worker-fable`) via the native
-subagent primitive. Because a subagent starts with a fresh context, delegation
-without continuity loses whatever the previous worker understood — so a routed
-session gets a shared-memory file, `docs/sessions/<session-id>.md`, the same
-kind of object as `docs/active-context.md`: a living snapshot, never a log,
-same anti-drift discipline, same repo, readable with `cat`.
-
-**Where it lives**: the repository the session started in, decided once and
-then fixed for the rest of the session. The hook's payload carries the shell's
-working directory, and that moves with every `cd`, so deriving the path from it
-gives a session a different memory file the moment work enters a sub-repo. The
-failure is silent by construction: a successor that follows the moved path
-finds nothing, creates an empty file, and starts from zero while the
-accumulated snapshot sits in another repository. So the hook resolves the
-directory once, records it under `~/.config/mrcall-ai-kit/sessions/`, and reads
-that record on every later turn. Two rules run before the record is written. A
-`docs/sessions/<session-id>.md` that already exists in the working directory or
-any of its parents is adopted rather than duplicated — one session never gets
-two files, and a session already split by the old cwd-derived path is repaired
-by its next routed turn. Failing that, the starting directory is recovered from
-the transcript path, whose project directory Claude Code fixes when the session
-opens. A session whose start cannot be established at all falls back to the
-working directory, and only when a `docs/` tree is already there: this hook
-names a path, it never creates one.
-
-**Who writes it, and when**: whoever answers the turn, at their own
-discretion — not the classifying model. The model that did the work is the
-only one that knows what was worth recording; a trivial turn correctly writes
-nothing. The write protocol travels in the hook's injected directive and in
-delegation prompts, so no worker definition changes for this.
-
-**Lifecycle**: a session file's frontmatter `status` is `open` until `/doc-end`
-reads it (when the router named one for this turn — see Phase 2 of the end
-workflow), folds whatever is durable into `active-context.md`, and flips it to
-`closed`. A session that ends without `/doc-end` leaves an `open` orphan.
-Liveness cannot be determined — Claude Code exposes no PID or lock for a
-session, only a transcript file whose mtime cannot distinguish a dead session
-from an idle one — so `/router sweep` reports open files with their age and a
-*probably dead* flag past 24 hours, and never closes or edits one itself;
-that judgment stays with a human.
-
-**Read scope**: `docs/sessions/**` follows the same rule as `docs/projects/**`
-— `doc-start` never opens it. The mechanical gate still indexes it: it
-validates `status` is exactly `open` or `closed` (a gate failure otherwise,
-the same enforcement as execution-plan status) and reports an advisory count
-of files still open (never a failure — an open file mid-session is normal,
-and judging which are stale is `/router sweep`'s job, not the gate's).
-`docs/sessions/` is gitignored by `doc-create` — these files are per-machine
-and ephemeral by design, not repository knowledge.
+The opt-in model router, the per-session shared memory it writes
+(`docs/sessions/<id>.md`), the hand-off that brackets a context window, and the
+budget a worker's report must respect all live in
+[`model-router.md`](model-router.md). They are a separate subject: the gate and
+the `/doc-*` contract below apply whether or not the router is installed.
 
 ## Execution-plan schema
 

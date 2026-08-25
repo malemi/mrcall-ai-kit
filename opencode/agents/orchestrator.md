@@ -72,6 +72,10 @@ Worker prompt must include: Context, Task, Conventions, Verification commands.
 
 Circuit breaker: 2 attempts max. Different approach each time. Never same prompt twice. After 2 failures, ask user what to do.
 
+## Relaying a worker's report
+
+Relay a worker's verdict and evidence path in your own words — never paste its `## Done` or `## Blocked` report verbatim into your output. A worker exists to keep work out of your context; pasting the report back cancels the delegation you just performed.
+
 ## Step 7: Verify
 
 Delegate review to `reviewer` subagent. Report results via `question`.

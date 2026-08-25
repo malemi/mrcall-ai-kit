@@ -47,12 +47,14 @@ Router mode is ON. Before acting, classify this request:
 - trivial (greetings, acknowledgements, quick factual answers) -> answer directly, one short reply, no tools;
 - normal implementation or lookup work -> delegate to worker-sonnet;
 - hard analysis, debugging, design -> delegate to worker-opus;
-- explicitly requests Fable, or is genuinely frontier-hard / long-horizon -> delegate to worker-fable."""
+- explicitly requests Fable, or is genuinely frontier-hard / long-horizon -> delegate to worker-fable.
+
+Your own reading budget is about 100 lines per request: orient, then delegate. It is a budget, not a ban -- reading 20 lines beats briefing a worker to read them."""
 
 MEMORY_NOTE = """
 Session memory: `{path}`. Create it if missing (frontmatter: status open, session_id, started, repo; then a one-line description). Whoever answers the turn updates it at their own discretion -- a living snapshot of goal, decisions, and open threads; replace stale content, never append a log.
 
-When delegating: tell the worker to read the session file first, give it the question plus any context not yet recorded there, and have it append durable findings back before it reports. Relay the worker's report faithfully. For follow-ups on the same thread, continue the same worker via SendMessage rather than spawning a new one."""
+When delegating: tell the worker to read the session file first, give it the question plus any context not yet recorded there, and have it append durable findings back before it reports. Relay the worker's verdict and its evidence path faithfully, in your own words; never paste its report verbatim. For follow-ups on the same thread, continue the same worker via SendMessage rather than spawning a new one."""
 
 
 def session_rel(session_id: str) -> Path:

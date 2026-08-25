@@ -18,6 +18,8 @@ Do not duplicate that inventory here.
 
 - [`documentation-harness.md`](documentation-harness.md) — contract, gates,
   plan states, baseline semantics, and living-document rules.
+- [`model-router.md`](model-router.md) — the opt-in model router: session
+  memory, rotation and hand-off, and the worker-report budget.
 - [`known-issues-and-solutions.md`](known-issues-and-solutions.md) — recurring
   verified problems and their fixes.
 - [`harness-backlog.md`](harness-backlog.md) — unresolved harness work only.
