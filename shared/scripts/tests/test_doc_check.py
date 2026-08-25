@@ -91,6 +91,46 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("docs/briefs/nested/brief.md", result.stdout)
         self.assertIn("[DEAD LINKS]", result.stdout)
 
+    def test_code_is_not_scanned_for_links(self) -> None:
+        """Source that looks like a link is not a link.
+
+        `MD_LINK` is `[...](...)`, which a great deal of ordinary code matches:
+        `Array.fill[Byte](packetSize)` reads as a link to `packetSize`. Running
+        the gate over starchat's docs produced 19 such findings against 1 real
+        one, which puts a clean gate out of reach for any repository that
+        documents code. Both forms must be blanked — a fenced block and a
+        backtick span inside a sentence.
+        """
+        (self.root / "docs" / "code.md").write_text(
+            "# Code\n\n"
+            "```scala\n"
+            "val buf = Array.fill[Byte](packetSize)(0)\n"
+            "```\n\n"
+            'Inline, mid-sentence: `get[String]("from")` is a field read.\n'
+            "~~~python\n"
+            "d = payload[\"k\"](arg)\n"
+            "~~~\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("dead link", result.stdout)
+
+    def test_a_real_dead_link_still_fails_beside_code(self) -> None:
+        """Blanking code must not blank the document — the check still works."""
+        (self.root / "docs" / "mixed.md").write_text(
+            "# Mixed\n\n"
+            "```scala\n"
+            "Array.fill[Byte](packetSize)\n"
+            "```\n\n"
+            "[gone](nowhere.md)\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("dead link: (nowhere.md)", result.stdout)
+        self.assertNotIn("packetSize", result.stdout)
+
     def test_profile_schema_rejects_unknown_invalid_and_empty_values(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
             "harness_version = 3\nmode = other\nindex_file = missing.md\n"
@@ -472,6 +512,25 @@ class DocCheckTests(unittest.TestCase):
         end = flowed(COMMANDS / "doc-end.md")
         self.assertIn("## Oversized docs — reviewed", end)
         self.assertIn("`docs/harness-backlog.md`", end)
+
+    def test_split_is_deletion_and_never_relocation(self) -> None:
+        """The rule exists because the opposite was done, and it cost real work.
+
+        An oversized index was "split" by moving 107 lines of prose into that
+        repository's architecture document — which is generated from a template
+        and states so in its own header, so the moved text was scheduled for
+        destruction on arrival. Nothing was decided, one file shrank, and the
+        repository got bigger. A future edit must not quietly drop this.
+        """
+        end = flowed(COMMANDS / "doc-end.md")
+        self.assertIn("`split` means deletion, never relocation.", end)
+        self.assertIn("Never move text into a generated file.", end)
+        self.assertIn("A durable document is never an append target.", end)
+        self.assertIn("belongs in the template that produces the file", end)
+        # The contract records that the rule exists; the command file states it.
+        contract = flowed(HARNESS_DOC)
+        self.assertIn("a deletion decision, not a relocation", contract)
+        self.assertIn("never an append target", contract)
         self.assertIn("keep whole", end)
         self.assertIn("split logs, never split indexes", end)
         start = flowed(COMMANDS / "doc-start.md")
@@ -650,6 +709,83 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("## Read scope — `docs/projects/**` is never opened here", command)
         self.assertIn("`docs/execution-plans/**/*.md` and nothing else", command)
         self.assertIn("`docs/sessions/**`", command)
+
+    # --- ORIENTATION HEADS (meta mode, advisory) ---
+
+    def _meta_with_sub_repo(self, index_body: str, *, profile: str | None = None) -> None:
+        """A meta-repo whose `## Services` table names one sub-repo.
+
+        `index_body` is that sub-repo's index; `profile` gives it a profile of its
+        own, which is the case the fallback to `CLAUDE.md` must not swallow.
+        """
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 3\nmode = meta\nindex_file = CLAUDE.md\ninventory_ignore =\n",
+            encoding="utf-8",
+        )
+        (self.root / "CLAUDE.md").write_text(
+            "# Index\n\n## Services\n\n"
+            "| Service | Path | Role |\n"
+            "|---------|------|------|\n"
+            "| sub | `sub/` | a sub-repo |\n",
+            encoding="utf-8",
+        )
+        sub = self.root / "sub"
+        sub.mkdir()
+        if profile is None:
+            (sub / "CLAUDE.md").write_text(index_body, encoding="utf-8")
+        else:
+            (sub / "docs").mkdir()
+            (sub / "docs" / ".doc-profile").write_text(profile, encoding="utf-8")
+            (sub / "CLAUDE.md").write_text("# Decoy\n", encoding="utf-8")
+            (sub / "AGENTS.md").write_text(index_body, encoding="utf-8")
+
+    def test_sub_repo_index_without_an_orientation_head_is_reported(self) -> None:
+        self._meta_with_sub_repo("# Sub\n\n## Docs\n\nsee docs/\n")
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
+        self.assertIn("1 sub-repo index(es) without an orientation head", result.stdout)
+        self.assertIn("sub/CLAUDE.md: no orientation head", result.stdout)
+
+    def test_orientation_marker_silences_the_advisory(self) -> None:
+        self._meta_with_sub_repo(
+            "# Sub\n\n**Stack**: Python\n\n<!-- orientation ends -->\n\n## Docs\n"
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("orientation head", result.stdout)
+
+    def test_orientation_advisory_does_not_run_in_leaf_mode(self) -> None:
+        """A leaf repo has no sub-repos, so the check has nothing to say."""
+        self._meta_with_sub_repo("# Sub\n\n## Docs\n")
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 3\nmode = leaf\nindex_file = CLAUDE.md\ninventory_ignore =\n",
+            encoding="utf-8",
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("orientation head", result.stdout)
+
+    def test_sub_repo_profile_names_the_index_that_is_checked(self) -> None:
+        """A sub-repo with its own profile is judged on the index it declares."""
+        self._meta_with_sub_repo(
+            "# Sub\n\n## Docs\n",
+            profile="harness_version = 3\nmode = leaf\nindex_file = AGENTS.md\n",
+        )
+        result = self.check()
+        self.assertIn("sub/AGENTS.md: no orientation head", result.stdout)
+        self.assertNotIn("sub/CLAUDE.md", result.stdout)
+
+    def test_orientation_advisory_never_fails_the_gate(self) -> None:
+        """It rides alongside a real failure without changing the exit code's cause."""
+        self._meta_with_sub_repo("# Sub\n\n## Docs\n")
+        (self.root / "docs" / "execution-plans" / "p.md").write_text(
+            "---\nstatus: nonsense\n---\n# Plan\n", encoding="utf-8"
+        )
+        result = self.check()
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("[PLAN STATUS]", result.stdout)
+        self.assertIn("sub/CLAUDE.md: no orientation head", result.stdout)
 
 
 if __name__ == "__main__":

@@ -10,7 +10,10 @@ pre-commit hook.
 
 Checks (which run depends on the repo's profile — see below):
   1. DEAD LINKS   (always) — every relative markdown link in README.md,
-                  <index_file>, and docs/**/*.md must resolve on disk.
+                  <index_file>, and docs/**/*.md must resolve on disk. Code is
+                  never scanned: fenced blocks and inline backtick spans are
+                  blanked first, because `Array.fill[Byte](packetSize)` matches
+                  the Markdown-link pattern exactly and is not a link.
   2. LIVING CTX   (always) — docs/active-context.md carries only the canonical
                   `## State now` / `## Unresolved` / `## Next` sections. Any other
                   one is changelog drift; pruned narrative belongs in
@@ -41,6 +44,15 @@ Checks (which run depends on the repo's profile — see below):
                   normal mid-session and only becomes stale once its owning
                   session is long gone, which this check cannot determine —
                   see the `/router sweep` command for that judgment call.
+  9. ORIENTATION  (meta mode only, ADVISORY) — names every sub-repo index in the
+                  `## Services` table whose head is not closed by the
+                  `<!-- orientation ends -->` marker. The head carries stack,
+                  entry points, build and test command, and the rules that must
+                  not be broken, so a session can learn where work belongs by
+                  reading a dozen lines instead of a whole index. Enforcement
+                  lives here rather than in each sub-repo's profile because
+                  sub-repos are not required to have one, and a per-repository
+                  rule reaches none of the ones that don't.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
     harness_version   = 3                    (must match installed harness)
@@ -67,6 +79,8 @@ import sys
 from pathlib import Path
 
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
+# An inline code span: a run of backticks, its content, the same run again.
+INLINE_CODE = re.compile(r"(`+)[^`]*?\1")
 HARNESS_VERSION = 3
 # Bytes per token: a stated convention for English prose, NOT a tokenizer result.
 # It carries none of the argument — every size comparison is a ratio between two
@@ -83,6 +97,10 @@ CONTEXT_SECTIONS = {"state now", "unresolved", "next"}
 SIZE_EXEMPT = {"docs/active-context-archive.md"}
 # Work traces (briefs and execution plans) are dated so they sort by workstream.
 TRACE_DIRS = ("docs/briefs", "docs/execution-plans")
+# Closes the orientation head of a sub-repo index. An HTML comment rather than a
+# heading: it vanishes from the rendered document but stays greppable, and unlike
+# "everything above the first `##`" it gives this gate something to actually test.
+ORIENTATION_MARKER = "<!-- orientation ends -->"
 # Repo convention is the hyphenated ISO date (`2026-08-14-slug.md`); the old
 # `^\d{8}` form never matched it and flagged every dated trace as undated.
 TRACE_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-.+\.md$")
@@ -220,11 +238,38 @@ def is_independent_repo(d: Path) -> bool:
     return d.is_dir() and (d / ".git").exists()
 
 
+def strip_code(text: str) -> str:
+    """Markdown with fenced blocks and inline code spans blanked out.
+
+    The link check must never see code. `MD_LINK` is `[...](...)`, and a great
+    deal of ordinary source matches it exactly: `Array.fill[Byte](packetSize)`
+    and `get[String]("from")` are both read as links to `packetSize` and
+    `"from"`. Reporting those as dead links puts a clean gate out of reach for
+    any repository that documents code, which is every repository — starchat's
+    docs produced 19 of them against 1 real finding.
+
+    Inline spans are stripped as well as fenced blocks, because the pattern
+    fires on a single backticked snippet in a sentence, not only inside a fence.
+
+    Line structure is preserved: blanked lines stay as empty lines, so a line
+    number taken from this text still refers to the same line of the original.
+    """
+    out: list[str] = []
+    fenced = False
+    for line in text.splitlines():
+        if line.lstrip().startswith(("```", "~~~")):
+            fenced = not fenced
+            out.append("")
+            continue
+        out.append("" if fenced else INLINE_CODE.sub("", line))
+    return "\n".join(out)
+
+
 def check_dead_links(root: Path, index_file: str) -> list[str]:
     errors: list[str] = []
     for doc in index_docs(root, index_file):
         base = doc.parent
-        for m in MD_LINK.finditer(doc.read_text(encoding="utf-8")):
+        for m in MD_LINK.finditer(strip_code(doc.read_text(encoding="utf-8"))):
             target = m.group(1).strip()
             if target.startswith(("http://", "https://", "mailto:", "#")):
                 continue
@@ -498,6 +543,62 @@ def check_living_context(root: Path) -> list[str]:
     return errors
 
 
+def sub_repo_index(root: Path, name: str) -> Path | None:
+    """A sub-repo's index file, honouring its own profile when it has one.
+
+    Most sub-repos have no `docs/.doc-profile` at all, which is exactly why this
+    advisory is enforced from the meta-repo: `CLAUDE.md` is the fallback, and it
+    is what the ones without a profile actually use.
+    """
+    base = root / name
+    if not base.is_dir():
+        return None
+    index_name = "CLAUDE.md"
+    try:
+        profile = (base / "docs" / ".doc-profile").read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        profile = ""
+    for raw in profile.splitlines():
+        line = raw.split("#", 1)[0].strip()
+        if line.startswith("index_file") and "=" in line:
+            candidate = line.split("=", 1)[1].strip()
+            if candidate:
+                index_name = candidate
+    idx = base / index_name
+    return idx if idx.is_file() else None
+
+
+def check_orientation_heads(root: Path, index_file: str) -> list[str]:
+    """ADVISORY — name every sub-repo index whose head is not marked.
+
+    Defensive throughout, like the other advisories: it must never take the gate
+    down. A sub-repo whose index is missing or unreadable is skipped in silence,
+    because that is INVENTORY DRIFT's finding to report and saying it twice in
+    two different vocabularies helps nobody.
+    """
+    missing: list[str] = []
+    try:
+        names = sorted(canonical_repo_dirs(root, index_file) - {"docs"})
+    except (OSError, UnicodeDecodeError):
+        return []
+    for name in names:
+        idx = sub_repo_index(root, name)
+        if idx is None:
+            continue
+        try:
+            text = idx.read_text(encoding="utf-8")
+        except (OSError, UnicodeDecodeError):
+            continue
+        if ORIENTATION_MARKER in text:
+            continue
+        missing.append(
+            f"{idx.relative_to(root)}: no orientation head — a session must read "
+            f"the whole index to learn the stack, the entry points and the build "
+            f"command (close the head with `{ORIENTATION_MARKER}`)"
+        )
+    return missing
+
+
 def check_inventory(root: Path, index_file: str, ignore: set[str]) -> list[str]:
     errors: list[str] = []
     canonical = canonical_repo_dirs(root, index_file)
@@ -586,6 +687,7 @@ def main() -> int:
     oversized = check_doc_sizes(root, index_file, doc_max_lines)
     undated = check_trace_naming(root)
     open_sessions = check_open_sessions(root)
+    unoriented = check_orientation_heads(root, index_file) if meta else []
 
     failed = [(name, errs) for name, errs in groups if errs]
     if not failed:
@@ -611,6 +713,13 @@ def main() -> int:
     if open_sessions:
         print(f"advisory — {len(open_sessions)} open session file(s), NOT a gate failure:")
         for warning in open_sessions:
+            print(f"    - {warning}")
+    if unoriented:
+        print(
+            f"advisory — {len(unoriented)} sub-repo index(es) without an "
+            f"orientation head, NOT a gate failure:"
+        )
+        for warning in unoriented:
             print(f"    - {warning}")
     return 1 if failed else 0
 
