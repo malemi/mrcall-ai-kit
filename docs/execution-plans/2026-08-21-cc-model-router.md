@@ -33,8 +33,8 @@ Brief: [../briefs/2026-08-21-cc-model-router.md](../briefs/2026-08-21-cc-model-r
   - Settled by use, 2026-08-25. Routing is exercised daily across concurrent
     sessions: trivial turns answered directly, substantial ones delegated to
     pinned-model workers. Session memory is written, and `/doc-end` has
-    promoted and closed real files — `docs/sessions/` in this tree holds two
-    marked `closed`, and `mrcall-cs` and `starchat` hold live ones.
+    promoted and closed real files — `hb/docs/sessions/` holds two marked
+    `closed`, and `mrcall-cs` and `starchat` hold live ones.
   - **One thing this does NOT settle**, and it moves to `active-context.md`
     rather than staying here: whether a session can know its own acting model.
     The visible indicator disagreed with a persisted `/model haiku`, and a

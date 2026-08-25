@@ -95,8 +95,10 @@ session driven through the agent creates the file and never updates it.
 One line per document the gate's oversized advisory has named, with the verdict
 that settled it. A document listed here is never asked about again.
 
-- `docs/documentation-harness.md` — **split**, 2026-08-25. It had crossed the 400-line
-  limit by accumulating a second subject: the opt-in model router, its session memory,
+- `docs/documentation-harness.md` — **split**, 2026-08-25. The gate named it at 457
+  lines in the working tree, mid-session, and the split was committed before
+  that state ever was — so git shows it at 349 and no commit will corroborate
+  the number. It had grown a second subject: the opt-in model router, its session memory,
   the rotation hand-off, and the worker-report budget. Those moved to
   `docs/model-router.md`, leaving the harness contract comfortably under the
   limit. The

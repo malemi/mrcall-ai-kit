@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 4918e1aeb7db09a8c0528fe262f9b97ad40a4e4f
-doc_baseline_date: 2026-08-21
+doc_baseline_commit: 4d04b3c01c2873d9567b9bbf58baf84fd8c5760e
+doc_baseline_date: 2026-08-25
 ---
 
 # Active Context
@@ -13,7 +13,7 @@ of appending session history; Git and completed briefs retain that history.
 Harness v3 is in force across Claude Code, Codex, and OpenCode. The contract is
 [`documentation-harness.md`](documentation-harness.md); the router half of it
 was split out to [`model-router.md`](model-router.md) on 2026-08-25, when the
-first document crossed its own size advisory.
+first document grew a second subject and the gate named it.
 
 **The context-economics workstream is finished** (work trace:
 [`briefs/2026-08-24-harness-context-economics.md`](briefs/2026-08-24-harness-context-economics.md)
@@ -25,9 +25,10 @@ first document crossed its own size advisory.
   `harness-backlog.md` for each oversized document it names.
 - **`split` means deletion, never relocation** — stated at length in
   `doc-end.md`, as contract in `documentation-harness.md`, and pinned by a test
-  so an edit cannot quietly drop it. It forbids moving text into another
-  document to shrink a line count, forbids writing into a generated file, and
-  states that an as-built document is never an append target.
+  so an edit cannot quietly drop it. Cutting a document that has grown a second
+  subject into a new document that stands alone is allowed; moving text into an
+  *existing* document to shrink a line count is not, nor is writing into a
+  generated file, and an as-built document is never an append target.
 - In `meta` mode the gate names every sub-repo index with no orientation head
   (`<!-- orientation ends -->`), and `doc-start` carries the matching routing
   rule: the ownership map answers by itself, so a sub-repo index is opened when
@@ -59,8 +60,8 @@ a link to `packetSize`. Fenced blocks and inline backtick spans are blanked
 before the scan. Measured on starchat: 20 findings became 1 real one.
 
 **The router is in live use across several concurrent sessions**, not just
-installed: `docs/sessions/` in this tree, in `mrcall-cs` and in `starchat` all
-hold real session-memory files, two of them already `closed` by `/doc-end`. A
+installed. The `docs/sessions/` directories in `hb`, `mrcall-cs` and `starchat`
+all hold real session-memory files, two of them already `closed` by `/doc-end`. A
 routed session on 2026-08-25 answered trivial turns directly and delegated
 substantial ones to pinned-model workers whose returned edits landed in this
 repository, in `cs-kernel` and in `starchat`.
