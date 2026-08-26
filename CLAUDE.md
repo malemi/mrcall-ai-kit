@@ -33,6 +33,10 @@ User-facing overview lives in [`README.md`](README.md).
 
 ## Conventions
 
+- **Nothing enters unless it reduces uncertainty** — a sentence, an
+  abstraction, a flag. If its absence would change nothing the reader believes
+  or does, delete it. Logs are exempt and take everything. See
+  [`docs/principles.md`](docs/principles.md).
 - All docs in English.
 - Single source of truth = this index; other docs point here.
 - Work traces: orchestrated or multi-session work starts by creating

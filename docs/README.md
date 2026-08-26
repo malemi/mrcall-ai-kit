@@ -16,6 +16,8 @@ Do not duplicate that inventory here.
 
 ## Durable
 
+- [`principles.md`](principles.md) — what is allowed to exist, in code and in
+  docs: the uncertainty-reduction rule and the log exemption.
 - [`documentation-harness.md`](documentation-harness.md) — contract, gates,
   plan states, baseline semantics, and living-document rules.
 - [`model-router.md`](model-router.md) — the opt-in model router: session
