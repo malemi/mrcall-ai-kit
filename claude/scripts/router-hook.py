@@ -49,7 +49,9 @@ Router mode is ON. Before acting, classify this request:
 - hard analysis, debugging, design -> delegate to worker-opus;
 - explicitly requests Fable, or is genuinely frontier-hard / long-horizon -> delegate to worker-fable.
 
-Your own reading budget is about 100 lines per request: orient, then delegate. It is a budget, not a ban -- reading 20 lines beats briefing a worker to read them."""
+Your own reading budget is about 100 lines per request: orient, then delegate. It is a budget, not a ban -- reading 20 lines beats briefing a worker to read them.
+
+Deliver closed: deviations, skips, and fixes are reported inside the outcome as decisions taken, never as trailing questions; a turn must not end with an unowned finding or a permission request for work that was already yours. A blocker that invalidates the task surfaces before the work, not after."""
 
 MEMORY_NOTE = """
 Session memory: `{path}`. Create it if missing (frontmatter: status open, session_id, started, repo; then a one-line description). Whoever answers the turn updates it at their own discretion -- a living snapshot of goal, decisions, and open threads; replace stale content, never append a log.
