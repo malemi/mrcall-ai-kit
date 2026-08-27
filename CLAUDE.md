@@ -6,6 +6,10 @@
 
 <!-- orientation ends -->
 
+<!-- doc-scope:start -->
+Scope: Canonical thin index for repository ownership, layout, and documentation routing; detailed contracts live in linked docs.
+<!-- doc-scope:end -->
+
 Thin index for AI tools. Pointers only; no prose, no duplicated inventory.
 
 Reusable AI-tool config for **Claude Code**, **Codex**, and **OpenCode**: a
@@ -19,6 +23,8 @@ User-facing overview lives in [`README.md`](README.md).
 - [`docs/active-context.md`](docs/active-context.md) — volatile state
   (last done / in progress / next).
 - [`docs/execution-plans/`](docs/execution-plans/) — active plans.
+- [`docs/scope-guard.md`](docs/scope-guard.md) — scope declaration and optional
+  runtime guard contract.
 
 ## Layout
 

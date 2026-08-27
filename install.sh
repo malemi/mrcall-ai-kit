@@ -22,7 +22,8 @@ set -euo pipefail
 #
 # Flags (any provided value skips its prompt):
 #   --environment claude|codex|opencode|all|both
-#   --features    doc-harness,orchestration,workers,migrate,router   (or: all)
+#   --features    doc-harness,orchestration,workers,migrate,router,scope-guard (or: all)
+#   --activate-scope-guard claude|codex|opencode|all (explicit hook opt-in)
 #   --mode        symlink|copy
 #   --on-exist    skip|overwrite|backup
 #   --yes         skip the final confirmation
@@ -37,7 +38,8 @@ CODEX_SKILLS_DIR="$HOME/.agents/skills"
 KIT_GLOBAL="$HOME/.config/mrcall-ai-kit"   # tool-independent home for doc-check.py
 MANIFEST="$KIT_GLOBAL/installed.tsv"       # append-only install log, read by ./uninstall.sh
 
-ENVIRONMENT="" ; FEATURES="" ; MODE="" ; ON_EXIST="" ; ASSUME_YES=false ; DRY_RUN=false
+ENVIRONMENT="" ; FEATURES="" ; MODE="" ; ON_EXIST="" ; ACTIVATE_SCOPE=""
+ASSUME_YES=false ; DRY_RUN=false
 
 list_entries() { # $1=dir → comma-joined basenames (strip .md), or (none)
   local d="$1" out="" f
@@ -53,9 +55,14 @@ Interactive by default; pass flags for non-interactive / CI use.
 
 Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features LIST|all]
                     [--mode symlink|copy] [--on-exist skip|overwrite|backup]
+                    [--activate-scope-guard RUNTIMES|all]
                     [--yes] [--dry-run] [--help]
 
-  --features: doc-harness, orchestration, workers, migrate, router   (comma list, or: all)
+  --features: doc-harness, orchestration, workers, migrate, router, scope-guard
+              (comma list, or: all)
+  --activate-scope-guard: explicitly register scope-guard hooks/plugins for a
+              comma-separated subset of claude,codex,opencode (or: all).
+              --yes and --features scope-guard alone leave it dormant.
   --mode:     symlink = edit the kit = edit your config; copy = frozen snapshot.
   --on-exist: what to do when a target file already exists.
 
@@ -86,6 +93,10 @@ EOF
   echo "     agent:      worker-fable  (installed with doc-harness too, if selected)"
   echo "     script:     router-hook.py  (-> ~/.config/mrcall-ai-kit/, a dormant UserPromptSubmit hook)"
   echo
+  echo "  scope-guard    [cross-tool -> every selected runtime; opt-in hook/plugin]"
+  echo "     installs:   common engine, registration helper, runtime adapter, command/skill"
+  echo "     activation: dormant by default; interactive prompt or --activate-scope-guard"
+  echo
   echo "Destinations: Claude Code -> ~/.claude/{commands,skills,agents}/ ; Codex -> ~/.agents/skills/ ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
   echo "Environment alias: both = Claude Code + OpenCode; all = all three tools."
   echo "Global install only. A repo's own docs/ is bootstrapped separately by invoking the doc-create workflow."
@@ -97,6 +108,7 @@ while [[ $# -gt 0 ]]; do
     --features)    FEATURES="${2:-}";    shift 2 ;;
     --mode)        MODE="${2:-}";        shift 2 ;;
     --on-exist)    ON_EXIST="${2:-}";    shift 2 ;;
+    --activate-scope-guard) ACTIVATE_SCOPE="${2:-}"; shift 2 ;;
     --yes|-y)      ASSUME_YES=true;      shift ;;
     --dry-run)     DRY_RUN=true;         shift ;;
     --help|-h) print_help; exit 0 ;;
@@ -159,13 +171,14 @@ $WANT_CC || $WANT_CODEX || $WANT_OC || { echo "Nothing selected. Exiting." >&2; 
 
 # ── Resolve features (offer OC-only content only if OpenCode is selected) ───
 want_feature() { [[ ",$FEATURES," == *",$1,"* || "$FEATURES" == all ]]; }
-DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false
+DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false ; DO_SCOPE=false
 if [[ -n "$FEATURES" ]]; then
   want_feature doc-harness  && DO_DOC=true
   want_feature orchestration && DO_ORCH=true
   want_feature workers       && DO_WORKERS=true
   want_feature migrate       && DO_MIGRATE=true
   want_feature router       && DO_ROUTER=true
+  want_feature scope-guard  && DO_SCOPE=true
 else
   need_tty_or_flag "--features"
   ask_yn "Install doc-harness (doc-create/start/end + doc-check + doc-critic)? [GLOBAL, cross-tool]" y && DO_DOC=true
@@ -177,6 +190,7 @@ else
   if $WANT_CC; then
     ask_yn "Install the opt-in model router (Haiku session as classifier + pinned workers)? [Claude Code only, dormant until /router on]" n && DO_ROUTER=true
   fi
+  ask_yn "Install scope guard (dormant unless activated separately)? [GLOBAL, cross-tool]" n && DO_SCOPE=true
 fi
 # OC-only features are meaningless without OpenCode selected.
 if ! $WANT_OC && { $DO_ORCH || $DO_WORKERS || $DO_MIGRATE; }; then
@@ -188,6 +202,38 @@ if ! $WANT_CC && $DO_ROUTER; then
   echo "router is Claude Code-only; ignoring it (Claude Code not selected)." >&2
   DO_ROUTER=false
 fi
+
+# Scope-guard activation is always a separate opt-in. `--yes` only skips the
+# final installer confirmation and never enables a hook by itself.
+ACTIVATE_CC=false ; ACTIVATE_CODEX=false ; ACTIVATE_OC=false
+activate_requested() { [[ ",$ACTIVATE_SCOPE," == *",$1,"* || "$ACTIVATE_SCOPE" == all ]]; }
+if $DO_SCOPE; then
+  if [[ -n "$ACTIVATE_SCOPE" ]]; then
+    IFS=',' read -r -a requested_scope_runtimes <<< "$ACTIVATE_SCOPE"
+    for runtime in "${requested_scope_runtimes[@]}"; do
+      case "$runtime" in claude|codex|opencode|all) ;; *) echo "--activate-scope-guard must be claude,codex,opencode or all" >&2; exit 1 ;; esac
+    done
+    if [[ "$ACTIVATE_SCOPE" == all ]]; then
+      ACTIVATE_CC=$WANT_CC ; ACTIVATE_CODEX=$WANT_CODEX ; ACTIVATE_OC=$WANT_OC
+    else
+      activate_requested claude   && ACTIVATE_CC=true
+      activate_requested codex    && ACTIVATE_CODEX=true
+      activate_requested opencode && ACTIVATE_OC=true
+    fi
+  elif is_tty; then
+    $WANT_CC && ask_yn "Activate scope guard for claude now (it adds a hook)?" n && ACTIVATE_CC=true
+    $WANT_CODEX && ask_yn "Activate scope guard for codex now (it adds a hook)?" n && ACTIVATE_CODEX=true
+    $WANT_OC && ask_yn "Activate scope guard for opencode now (it adds a hook)?" n && ACTIVATE_OC=true
+  fi
+else
+  [[ -z "$ACTIVATE_SCOPE" ]] || { echo "--activate-scope-guard requires --features scope-guard (or all)" >&2; exit 1; }
+fi
+$ACTIVATE_CC && ! $WANT_CC && { echo "cannot activate scope guard for unselected runtime: claude" >&2; exit 1; }
+$ACTIVATE_CODEX && ! $WANT_CODEX && { echo "cannot activate scope guard for unselected runtime: codex" >&2; exit 1; }
+$ACTIVATE_OC && ! $WANT_OC && { echo "cannot activate scope guard for unselected runtime: opencode" >&2; exit 1; }
+$WANT_CC || ACTIVATE_CC=false
+$WANT_CODEX || ACTIVATE_CODEX=false
+$WANT_OC || ACTIVATE_OC=false
 
 # ── Mode + existing-file policy ────────────────────────────────────────────
 [[ -n "$MODE" ]]     || { need_tty_or_flag "--mode";     MODE="$(ask_choice 'Symlink or copy? (symlink = edit kit = edit config)' symlink symlink copy)"; }
@@ -232,6 +278,22 @@ if $DO_ROUTER; then
   # selected; add it alone only when doc-harness was skipped.
   $DO_DOC || add_one "$SCRIPT_DIR/claude/agents/worker-fable.md" "$CC_DIR/agents/worker-fable.md"
 fi
+if $DO_SCOPE; then
+  add_one "$SCRIPT_DIR/shared/scripts/scope_guard.py" "$KIT_GLOBAL/scope-guard/scope_guard.py"
+  add_one "$SCRIPT_DIR/shared/scripts/scope_guard_register.py" "$KIT_GLOBAL/scope-guard/scope_guard_register.py"
+  if $WANT_CC; then
+    add_one "$SCRIPT_DIR/claude/scripts/scope-guard-hook.py" "$KIT_GLOBAL/scope-guard/claude/scope-guard.py"
+    add_one "$SCRIPT_DIR/claude/commands/scope-guard.md" "$CC_DIR/commands/scope-guard.md"
+  fi
+  if $WANT_CODEX; then
+    add_one "$SCRIPT_DIR/codex/scripts/scope-guard-hook.py" "$KIT_GLOBAL/scope-guard/codex/scope-guard.py"
+    add_one "$SCRIPT_DIR/codex/skills/scope-guard" "$CODEX_SKILLS_DIR/scope-guard"
+  fi
+  if $WANT_OC; then
+    add_one "$SCRIPT_DIR/opencode/plugins/scope-guard.ts" "$KIT_GLOBAL/scope-guard/opencode/scope-guard.ts"
+    add_one "$SCRIPT_DIR/opencode/commands/scope-guard.md" "$OC_DIR/commands/scope-guard.md"
+  fi
+fi
 if $WANT_OC; then
   if $DO_ORCH; then
     add_one "$SCRIPT_DIR/opencode/commands/orchestrator.md" "$OC_DIR/commands/orchestrator.md"
@@ -262,6 +324,9 @@ while [[ $i -lt ${#PLAN_SRC[@]} ]]; do
   printf "  %-8s %s\n" "$MODE" "${PLAN_DST[$i]}"
   i=$((i+1))
 done
+$ACTIVATE_CC && printf "  %-8s %s\n" "activate" "Claude scope guard -> $CC_DIR/settings.json"
+$ACTIVATE_CODEX && printf "  %-8s %s\n" "activate" "Codex scope guard -> $HOME/.codex/hooks.json"
+$ACTIVATE_OC && printf "  %-8s %s\n" "activate" "OpenCode scope guard -> $OC_DIR/plugins/mrcall-scope-guard.ts"
 echo
 
 # ── Confirm ────────────────────────────────────────────────────────────────
@@ -277,7 +342,6 @@ record_install() { # $1=mode $2=dest $3=src $4=backup — append one manifest li
 
 install_item() { # $1=src $2=dst
   local src="$1" dst="$2" bak=""
-  mkdir -p "$(dirname "$dst")"
   if [[ -e "$dst" || -L "$dst" ]]; then
     case "$ON_EXIST" in
       skip)      echo "  skip     $dst (exists)"; return ;;
@@ -286,6 +350,7 @@ install_item() { # $1=src $2=dst
     esac
   fi
   if $DRY_RUN; then echo "  [dry]    $MODE $dst"; return; fi
+  mkdir -p "$(dirname "$dst")"
   if [[ "$MODE" == symlink ]]; then ln -s "$src" "$dst"; else cp -r "$src" "$dst"; fi
   record_install "$MODE" "$dst" "$src" "$bak"
   echo "  $MODE   $dst"
@@ -298,6 +363,20 @@ while [[ $i -lt ${#PLAN_SRC[@]} ]]; do
   i=$((i+1))
 done
 
+if $DO_SCOPE; then
+  register_scope_guard() { # $1=runtime $2=registry path
+    local runtime="$1" registry="$2"
+    if $DRY_RUN; then
+      echo "  [dry]    register scope guard for $runtime in $registry"
+    else
+      python3 "$KIT_GLOBAL/scope-guard/scope_guard_register.py" "$runtime" on
+    fi
+  }
+  $ACTIVATE_CC && register_scope_guard claude "$CC_DIR/settings.json"
+  $ACTIVATE_CODEX && register_scope_guard codex "$HOME/.codex/hooks.json"
+  $ACTIVATE_OC && register_scope_guard opencode "$OC_DIR/plugins/mrcall-scope-guard.ts"
+fi
+
 # ── Summary ────────────────────────────────────────────────────────────────
 echo
 echo "── Done ──"
@@ -307,4 +386,9 @@ $WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."
+if $DO_SCOPE; then
+  if $WANT_CC && ! $ACTIVATE_CC; then echo "  Claude scope guard installed but dormant: run /scope-guard on to activate."; fi
+  if $WANT_CODEX && ! $ACTIVATE_CODEX; then echo "  Codex scope guard installed but dormant: invoke the scope-guard skill to activate."; fi
+  if $WANT_OC && ! $ACTIVATE_OC; then echo "  OpenCode scope guard installed but dormant: run /scope-guard on to activate."; fi
+fi
 $DRY_RUN || echo "  Install log: $MANIFEST  (run ./uninstall.sh to undo exactly these)."

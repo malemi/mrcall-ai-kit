@@ -60,6 +60,21 @@ if ! $DRY_RUN && ! $ASSUME_YES; then
 fi
 
 if $DRY_RUN; then RM="would remove"; RS="would restore"; else RM="removed"; RS="restored"; fi
+
+# Registrations live in runtime-owned settings/plugin locations and therefore
+# are not manifest artifacts. Remove only entries identified by the shared
+# structural helper before that helper itself is uninstalled.
+SCOPE_REGISTER="$KIT_GLOBAL/scope-guard/scope_guard_register.py"
+if [[ -f "$SCOPE_REGISTER" ]]; then
+  for runtime in claude codex opencode; do
+    if $DRY_RUN; then
+      python3 "$SCOPE_REGISTER" "$runtime" unregister --dry-run
+    else
+      python3 "$SCOPE_REGISTER" "$runtime" unregister
+    fi
+  done
+fi
+
 removed=0
 for d in "${order[@]}"; do
   if [[ -L "$d" ]]; then

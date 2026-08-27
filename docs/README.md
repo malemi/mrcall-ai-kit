@@ -1,5 +1,9 @@
 # docs/
 
+<!-- doc-scope:start -->
+Scope: Routing index for transversal documentation; repository inventory and ownership remain in the configured root index.
+<!-- doc-scope:end -->
+
 Index of transversal docs for this repo. The repo overview, roles, and
 ownership live only in the index file — see [`../CLAUDE.md`](../CLAUDE.md).
 Do not duplicate that inventory here.
@@ -20,6 +24,8 @@ Do not duplicate that inventory here.
   docs: the uncertainty-reduction rule and the log exemption.
 - [`documentation-harness.md`](documentation-harness.md) — contract, gates,
   plan states, baseline semantics, and living-document rules.
+- [`scope-guard.md`](scope-guard.md) — scope declaration format, runtime guard
+  behavior, capability levels, and known bypasses.
 - [`model-router.md`](model-router.md) — the opt-in model router: session
   memory, rotation and hand-off, and the worker-report budget.
 - [`known-issues-and-solutions.md`](known-issues-and-solutions.md) — recurring

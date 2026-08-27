@@ -44,7 +44,11 @@ Checks (which run depends on the repo's profile — see below):
                   normal mid-session and only becomes stale once its owning
                   session is long gone, which this check cannot determine —
                   see the `/router sweep` command for that judgment call.
-  9. ORIENTATION  (meta mode only, ADVISORY) — names every sub-repo index in the
+  9. DOC SCOPE    (always) — the configured index, docs/README.md, and
+                  docs/active-context.md each carry exactly one valid scope
+                  declaration. Scope blocks are optional elsewhere, but any
+                  block that is present must use the canonical format.
+ 10. ORIENTATION  (meta mode only, ADVISORY) — names every sub-repo index in the
                   `## Services` table whose head is not closed by the
                   `<!-- orientation ends -->` marker. The head carries stack,
                   entry points, build and test command, and the rules that must
@@ -55,7 +59,7 @@ Checks (which run depends on the repo's profile — see below):
                   rule reaches none of the ones that don't.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
-    harness_version   = 3                    (must match installed harness)
+    harness_version   = 4                    (must match installed harness)
     schema_version    = 1                    (optional for legacy profiles)
     mode              = meta | leaf          (default: leaf — links only)
     index_file        = CLAUDE.md            (the single-source index)
@@ -81,7 +85,7 @@ from pathlib import Path
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # An inline code span: a run of backticks, its content, the same run again.
 INLINE_CODE = re.compile(r"(`+)[^`]*?\1")
-HARNESS_VERSION = 3
+HARNESS_VERSION = 4
 # Bytes per token: a stated convention for English prose, NOT a tokenizer result.
 # It carries none of the argument — every size comparison is a ratio between two
 # numbers produced by this divisor, so a wrong divisor cancels out.
@@ -104,6 +108,8 @@ ORIENTATION_MARKER = "<!-- orientation ends -->"
 # Repo convention is the hyphenated ISO date (`2026-08-14-slug.md`); the old
 # `^\d{8}` form never matched it and flagged every dated trace as undated.
 TRACE_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}-.+\.md$")
+DOC_SCOPE_START = "<!-- doc-scope:start -->"
+DOC_SCOPE_END = "<!-- doc-scope:end -->"
 
 
 def repo_root(explicit: str | None) -> Path:
@@ -278,6 +284,75 @@ def check_dead_links(root: Path, index_file: str) -> list[str]:
                 continue
             if not (base / target).exists():
                 errors.append(f"{doc.relative_to(root)} → dead link: ({m.group(1)})")
+    return errors
+
+
+def check_doc_scopes(root: Path, index_file: str) -> list[str]:
+    """Validate the v4 scope declaration on routing docs and anywhere it appears.
+
+    A declaration is intentionally tiny and rigid so both the gate and runtime
+    guards agree on one representation::
+
+        <!-- doc-scope:start -->
+        Scope: non-empty purpose and boundary, optionally continued
+        <!-- doc-scope:end -->
+
+    The three routing documents require exactly one block. Other indexed
+    Markdown may omit it, but a partial, duplicate, or malformed declaration is
+    never treated as absent.
+    """
+    required = {
+        Path(index_file).as_posix(),
+        "docs/README.md",
+        "docs/active-context.md",
+    }
+    errors: list[str] = []
+    for doc in index_docs(root, index_file):
+        rel = doc.relative_to(root).as_posix()
+        lines = doc.read_text(encoding="utf-8").splitlines()
+        visible: list[tuple[int, str]] = []
+        fenced = False
+        for i, line in enumerate(lines):
+            if line.lstrip().startswith(("```", "~~~")):
+                fenced = not fenced
+                continue
+            if not fenced:
+                visible.append((i, line))
+        starts = [i for i, line in visible if line == DOC_SCOPE_START]
+        ends = [i for i, line in visible if line == DOC_SCOPE_END]
+        marker_like = [
+            (i, line) for i, line in visible
+            if line.strip().startswith("<!-- doc-scope:")
+            and line not in {DOC_SCOPE_START, DOC_SCOPE_END}
+        ]
+
+        if not starts and not ends and not marker_like:
+            if rel in required:
+                errors.append(f"{rel}: missing required doc-scope block")
+            continue
+        if marker_like:
+            for number, line in marker_like:
+                errors.append(
+                    f"{rel}:{number + 1}: malformed doc-scope delimiter `{line.strip()}`"
+                )
+        if len(starts) != 1 or len(ends) != 1:
+            errors.append(
+                f"{rel}: expected exactly one `{DOC_SCOPE_START}` and one "
+                f"`{DOC_SCOPE_END}` (found {len(starts)} start, {len(ends)} end)"
+            )
+            continue
+        start, end = starts[0], ends[0]
+        if start >= end:
+            errors.append(f"{rel}: doc-scope delimiters are out of order")
+            continue
+        body = "\n".join(lines[start + 1:end]).strip()
+        if not body.startswith("Scope:"):
+            errors.append(f"{rel}: doc-scope content must begin with `Scope:`")
+        elif not body[len("Scope:"):].strip():
+            errors.append(f"{rel}: doc-scope `Scope:` text must not be empty")
+    for rel in sorted(required):
+        if not (root / rel).is_file():
+            errors.append(f"{rel}: required doc-scope routing document does not exist")
     return errors
 
 
@@ -673,6 +748,7 @@ def main() -> int:
     groups = [
         ("PROFILE", profile_errors),
         ("DEAD LINKS", check_dead_links(root, index_file)),
+        ("DOC SCOPE", check_doc_scopes(root, index_file)),
         ("THIN INDEX", check_index_thin(root, index_file, index_max_lines)),
         ("PLAN STATUS", check_plan_statuses(root)),
         ("SESSION STATUS", check_session_statuses(root)),

@@ -55,6 +55,36 @@ the command output it claims to have produced.
   the decision, the approach — one dated file each. They carry no lifecycle
   metadata; state lives only in the paired execution plan.
 
+## Document scope declarations (harness v4)
+
+Harness v4 gives routing documents a small, machine-readable statement of
+purpose and boundary:
+
+```markdown
+<!-- doc-scope:start -->
+Scope: A concise, non-empty statement of this document's purpose and boundary;
+the text may continue on following lines.
+<!-- doc-scope:end -->
+```
+
+The configured index, `docs/README.md`, and `docs/active-context.md` each require
+exactly one canonical block. Other indexed Markdown files need no declaration,
+but any declaration that appears is validated. Delimiters occupy their own lines
+exactly, outside fenced code, and enclose non-empty text beginning `Scope:`.
+Partial, duplicate, reversed, malformed, or empty blocks fail the
+mechanical gate.
+
+Syntax is only the deterministic half of the contract. The semantic critic
+compares changed declarations with the file's actual routing role and content;
+stale, misleading, or over-broad scope is semantic drift. A delegated critic
+reports it without inventing a replacement. An in-session critic repairs it
+only when transcript-backed knowledge determines the correct boundary.
+
+Declarations are useful without runtime enforcement: they put the intended
+boundary in every agent's document context. Optional hook/plugin enforcement,
+capability labels, activation, and bypasses are specified separately in
+[`scope-guard.md`](scope-guard.md).
+
 ## Mechanical and semantic guarantees
 
 The deterministic, repository-local mechanical gate recursively indexes
@@ -65,6 +95,7 @@ Markdown under `docs/`, plus the root README and configured index. It checks:
 - execution-plan status metadata;
 - session-memory status metadata (`docs/sessions/*.md`);
 - the configured index and meta-repository inventory ownership;
+- canonical scope declaration syntax and required routing-file presence;
 - baseline format and ancestry when a baseline is present;
 - the living context's section headings: `docs/active-context.md` carries only
   `State now`, `Unresolved`, and `Next`. This is the objective half of the shape
@@ -187,9 +218,12 @@ changing repository documentation.
 
 An authorized docs migration changes only harness-owned metadata and structure,
 preserves repository knowledge, writes the new version last, and must finish
-with a clean mechanical gate. Codex entry-point skills inherit the version from
-their installed shared `WORKFLOW.md`, so all three environments use the same
-handshake.
+with a clean mechanical gate. The explicit v3-to-v4 migration adds one accurate
+scope declaration to each required routing document, validates a pre-existing
+block instead of duplicating it, and does not stamp optional documents.
+`doc-start` and `doc-end` never perform that migration implicitly. Codex
+entry-point skills inherit the version from their installed shared
+`WORKFLOW.md`, so all three environments use the same handshake.
 
 ## Work traces
 

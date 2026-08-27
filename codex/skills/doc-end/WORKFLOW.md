@@ -17,14 +17,14 @@ Everything else is delegable when your environment provides a pinned-model worke
 A worker returns `## Done` or `## Blocked`. Anything else, or a `## Done` whose "Verified" line quotes no real command output, is a failure: re-delegate with a corrected prompt or do it yourself. Never report a worker's claim as a verified fact without its evidence.
 
 ## Harness version preflight — run before every other step
-This command implements `harness_version = 3`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
+This command implements `harness_version = 4`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
 
-- Equal to `3` ⇒ continue.
-- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 3). Run doc-create and explicitly choose the docs/ upgrade before consolidating.`
-- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 3, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
+- Equal to `4` ⇒ continue.
+- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 4). Run doc-create and explicitly choose the docs/ upgrade before consolidating.`
+- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 4, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
 - Missing profile ⇒ suggest `doc-create` and stop.
 
-Never edit session docs, advance the baseline, or run partial consolidation across a mismatch.
+Never edit session docs, add scope declarations, advance the baseline, or run partial consolidation across a mismatch.
 
 ## Gate check — is consolidation needed?
 At least one must hold, else output `No consolidation needed.` and stop:

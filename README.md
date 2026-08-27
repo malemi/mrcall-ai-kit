@@ -15,6 +15,8 @@ Powerful. Easy to install, easier to use.
 - Different agents can work together on a shared memory
 - You never start from stale documentation
 - You never end a session with documentation half-updated
+- Each routing document can declare its exact purpose and boundary in a
+  mechanically checked scope block
 
 ## Install
 
@@ -68,6 +70,8 @@ pinned to specific models, brought in automatically for particular jobs.
 
 Want the full detail? See
 [`docs/documentation-harness.md`](docs/documentation-harness.md).
+The optional runtime enforcement design and its current verification status are
+in [`docs/scope-guard.md`](docs/scope-guard.md).
 
 ## License
 

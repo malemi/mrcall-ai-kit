@@ -6,14 +6,14 @@ allowed-tools: Bash(git *) Bash(ls *) Bash(python3 *) Bash(cat *) Bash(make *) B
 Load project knowledge: durable layer on demand, volatile state up front. Pull the smallest high-signal set into context — not everything.
 
 ## Harness version preflight — run before every other step
-This command implements `harness_version = 3`. Read `docs/.doc-profile` and compare its `harness_version` before loading project context or running the gate.
+This command implements `harness_version = 4`. Read `docs/.doc-profile` and compare its `harness_version` before loading project context or running the gate.
 
-- Equal to `3` ⇒ continue.
-- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 3). Run doc-create and explicitly choose the docs/ upgrade, or leave the repo unchanged.`
-- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 3, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
+- Equal to `4` ⇒ continue.
+- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 4). Run doc-create and explicitly choose the docs/ upgrade, or leave the repo unchanged.`
+- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 4, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
 - Missing profile ⇒ this repo is not bootstrapped; suggest `doc-create` and stop.
 
-Never repair or bypass a mismatch inside `doc-start`.
+Never repair, add scope declarations, or bypass a mismatch inside `doc-start`.
 
 ## Delegation — trim the plumbing, never the payload
 

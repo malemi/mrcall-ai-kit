@@ -5,7 +5,19 @@ description: Verify documentation against code reality, and check whether docs/a
 
 # doc-critic — does the documentation match the code, and is active-context.md still a snapshot?
 
-The mechanical gate (`doc-check.py`) catches dead links, inventory drift, and duplicate indexes. It CANNOT catch *semantic* drift: a doc that confidently describes something the code no longer does. That is the rot that survives for months — a dead pipeline documented as live, an architecture describing a service that was split, a "supported" flag that was removed. This skill is that check. It also cannot catch *shape* drift: `doc-end` Phase 3 says "reconsolidate, don't append" every time it runs, but that instruction is easy to satisfy lazily (prepend today's summary, touch nothing else) and nothing mechanical was watching — a real repo's `active-context.md` grew from ~120 to ~1500 lines over two months of sessions that each individually said "consolidate" in their commit message. The shape check below is the backstop for exactly that failure.
+The mechanical gate (`doc-check.py`) catches dead links, inventory drift,
+duplicate indexes, and malformed scope declarations. It CANNOT catch *semantic*
+drift: a doc that confidently describes something the code no longer does. That
+is the rot that survives for months — a dead pipeline documented as live, an
+architecture describing a service that was split, a "supported" flag that was
+removed. This skill is that check. It also checks whether a syntactically valid
+scope declaration truthfully describes the document's routing role and content.
+It also cannot catch *shape* drift: `doc-end` Phase 3 says "reconsolidate, don't
+append" every time it runs, but that instruction is easy to satisfy lazily
+(prepend today's summary, touch nothing else) and nothing mechanical was
+watching — a real repo's `active-context.md` grew from ~120 to ~1500 lines over
+two months of sessions that each individually said "consolidate" in their commit
+message. The shape check below is the backstop for exactly that failure.
 
 ## When to run
 Invoked by `/doc-end`, scoped to the **docs touched this session** (`git diff <doc_baseline_commit>..HEAD -- '*.md'`). Can also run standalone as a full-repo audit, or in-session from `doc-create`'s migration. Run the living-context shape check (next section) before the per-claim audit in every case: where you are allowed to repair, the claim pass then only has to verify the small current remainder rather than the history on its way out; where you are not, you still want the violation reported before anything else, because it changes what the claim pass is auditing.
@@ -50,6 +62,21 @@ Phase 3 prescribes. This finding sends the decision back; it does not force a
 pair into existence: the session may resolve it by stating, in its output's
 *work trace* slot, that the work was a small fix needing no trace.
 
+## Scope declarations — validate meaning, not only syntax
+
+For every changed document carrying a canonical `doc-scope` block, compare its
+`Scope:` statement with the document's actual role, routing position, and
+content. A declaration is STALE when it names a purpose the file no longer
+serves, omits a material subject the file now owns, claims authority held by a
+different document, or is so broad that it supplies no useful boundary. The
+configured index, `docs/README.md`, and `docs/active-context.md` always receive
+this semantic check even when only their declarations changed.
+
+When delegated, report a misleading or over-broad declaration and do not invent
+a replacement. When running in-session, repair it only from transcript-backed
+knowledge plus the document's verified routing role; if that evidence does not
+determine an accurate boundary, mark it UNVERIFIABLE instead of guessing.
+
 ## What to verify — for each factual claim in the changed docs
 Extract the concrete, checkable claims (not prose/opinion) and verify each against the actual code:
 
@@ -58,6 +85,18 @@ Extract the concrete, checkable claims (not prose/opinion) and verify each again
 3. **Accurate shape** — counts ("9 tools"), routes, table/column names, ports, hosts: spot-check the load-bearing ones against source.
 4. **Right owner** — does the doc attribute a capability to the correct service/repo? (e.g. after a split, don't describe repo A as doing what moved to repo B.)
 5. **English** — is every artifact (docs, comments, script prompts) in English? Flag non-English content unless it is explicitly end-user-facing localized copy (a customer email, an `it-IT` UI string). The surrounding code/docs stay English.
+6. **Scope** — does each changed declaration accurately and narrowly describe
+   what the document owns, and what it does not? A valid marker around stale,
+   misleading, or over-broad prose is semantic drift, not a clean result.
+7. **State, not story** — flag sentences in any changed doc that narrate
+   process or defend choices instead of describing the present system: "since
+   X was impossible, we did Y", "this was removed, so now there is Z", "as
+   requested", a tool-by-tool account of how a result was reached. Apply the
+   `principles.md` test: if the sentence were absent, what would the reader
+   believe or do differently? A constraint that still binds ("provider P sells
+   no usable numbers in country C") is state and stays; a justification of a
+   past decision belongs in the commit or the brief, and its presence in a doc
+   is a finding.
 
 ## How to work (reflexion loop)
 - For each claim: verdict `CONFIRMED` (matches code), `STALE` (code says otherwise — quote the file:line), or `UNVERIFIABLE` (say why; do not guess).
@@ -66,4 +105,4 @@ Extract the concrete, checkable claims (not prose/opinion) and verify each again
 - Prefer reading the real source over trusting a prior doc; the code wins over the doc every time.
 
 ## Output
-Lead with the shape check, always — one of `active-context.md: shape OK`, `active-context.md: archived — N → M lines (archive: +K lines)` (repaired in-session), or `active-context.md: shape violation — NOT repaired here, Phase 3 must redo it` plus the list of what is mis-shaped (delegated). The third form is a blocking finding, not an observation: whoever called you must not advance the baseline until it is resolved. If the diff shows substantial work with no trace pair touched, add the `TRACE:` line next — resolved by the session's explicit decision, never by inventing files. Then the claim list: `STALE: <claim> — code says <file:line: reality>` / `UNVERIFIABLE: <claim> — <why>`. If everything checks out: `Critic clean — N claims verified.`
+Lead with the shape check, always — one of `active-context.md: shape OK`, `active-context.md: archived — N → M lines (archive: +K lines)` (repaired in-session), or `active-context.md: shape violation — NOT repaired here, Phase 3 must redo it` plus the list of what is mis-shaped (delegated). The third form is a blocking finding, not an observation: whoever called you must not advance the baseline until it is resolved. If the diff shows substantial work with no trace pair touched, add the `TRACE:` line next — resolved by the session's explicit decision, never by inventing files. Then the claim list: `STALE: <claim> — code says <file:line: reality>` / `UNVERIFIABLE: <claim> — <why>` / `STORY: <sentence> — narrates process, belongs in <commit|brief|archive>`. If everything checks out: `Critic clean — N claims verified.`
