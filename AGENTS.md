@@ -1,4 +1,9 @@
-# Global operating rules for OpenCode
+# Project operating rules
+
+<!-- doc-scope:start -->
+Scope: Project-owned operating rules and thin repository index; harness protocol
+lives in managed `CLAUDE.md`, and durable detail lives under `docs/`.
+<!-- doc-scope:end -->
 
 ## Fixing bugs
 
@@ -46,3 +51,49 @@ Do not ask questions to the user unless you really cannot answer (e.g.
 security decisions). In general, you must plan -> develop -> test [as
 close to real life] -> plan ... Unit tests are syntactic tests, we need
 semantic tests.
+
+## Repository index
+
+**Stack**: Bash + Python + Markdown
+**Entry point**: `install.sh` (global installer)
+**Do not break**: All docs in English; this index is the single source of truth
+and carries no duplicated inventory — other docs point here
+
+<!-- orientation ends -->
+
+Thin index for AI tools. Pointers only; no duplicated durable prose.
+
+Reusable AI-tool config for **Claude Code**, **Codex**, and **OpenCode**: a
+documentation harness plus (OpenCode-only) multi-model orchestration and
+migration tooling, and (Claude Code-only) an opt-in model router. User-facing
+overview lives in [`README.md`](README.md).
+
+### Docs
+
+- [`docs/README.md`](docs/README.md) — index of transversal docs.
+- [`docs/active-context.md`](docs/active-context.md) — volatile state
+  (last done / in progress / next).
+- [`docs/execution-plans/`](docs/execution-plans/) — active plans.
+- [`docs/scope-guard.md`](docs/scope-guard.md) — scope declaration and optional
+  runtime guard contract.
+
+### Layout
+
+- `shared/` — source workflows, `doc-check.py` gate, `CLAUDE.md` template, and
+  `doc-critic` skill.
+- `claude/` — Claude Code-only: pinned-model worker agents the doc workflows
+  delegate to, plus the opt-in model router (`commands/router.md`,
+  `scripts/router-hook.py`).
+- `codex/` — Codex-native skill entry points for the shared doc workflows.
+- `opencode/` — OpenCode-only: orchestration, worker agents, watchdog, and
+  migration tooling.
+- `install.sh` / `uninstall.sh` — global installer / uninstaller.
+
+### Conventions
+
+- **Nothing enters unless it reduces uncertainty** — a sentence, an
+  abstraction, a flag. If its absence would change nothing the reader believes
+  or does, delete it. Logs are exempt and take everything. See
+  [`docs/principles.md`](docs/principles.md).
+- All docs are in English.
+- Single source of project truth = this index; other docs point here.

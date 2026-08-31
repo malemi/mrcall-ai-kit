@@ -43,8 +43,12 @@ the command output it claims to have produced.
 
 ## Layers and ownership
 
-- The configured index file is thin and owns repository inventory, roles, and
-  ownership.
+- Root `AGENTS.md` is the configured project-owned index. It is thin and owns
+  repository instructions, inventory, roles, conventions, commands, and links
+  to durable knowledge. Its 200-line budget is entirely project content.
+- Root `CLAUDE.md` is the configured harness-managed entry point. It is an exact
+  copy of the installed versioned template: generic protocol, inline scope, and
+  `@AGENTS.md`. Repositories never customize it.
 - `docs/README.md` routes readers without duplicating the index.
 - Durable documents describe verified, long-lived facts.
 - `docs/active-context.md` is a volatile snapshot of current state, unresolved
@@ -55,9 +59,9 @@ the command output it claims to have produced.
   the decision, the approach — one dated file each. They carry no lifecycle
   metadata; state lives only in the paired execution plan.
 
-## Document scope declarations (harness v4)
+## Managed entry point and document scopes (harness v6)
 
-Harness v4 gives routing documents a small, machine-readable statement of
+Harness v6 gives every routing document a small, machine-readable statement of
 purpose and boundary:
 
 ```markdown
@@ -67,12 +71,18 @@ the text may continue on following lines.
 <!-- doc-scope:end -->
 ```
 
-The configured index, `docs/README.md`, and `docs/active-context.md` each require
-exactly one canonical block. Other indexed Markdown files need no declaration,
-but any declaration that appears is validated. Delimiters occupy their own lines
-exactly, outside fenced code, and enclose non-empty text beginning `Scope:`.
-Partial, duplicate, reversed, malformed, or empty blocks fail the
-mechanical gate.
+Managed `CLAUDE.md`, project-owned `AGENTS.md`, `docs/README.md`, and
+`docs/active-context.md` each require exactly one canonical block. Other indexed
+Markdown files need no declaration, but any declaration that appears is
+validated. Delimiters occupy their own lines exactly, outside fenced code, and
+enclose non-empty text beginning `Scope:`. Partial, duplicate, reversed,
+malformed, or empty blocks fail the mechanical gate. The v5
+`doc-index-scope` form is obsolete and rejected.
+
+The inline block consumes only its small canonical declaration in `AGENTS.md`;
+this is deliberate. Project instructions need a boundary visible to every
+runtime that loads the file, and every remaining line in the 200-line budget
+belongs to the project. No other harness protocol consumes that budget.
 
 Syntax is only the deterministic half of the contract. The semantic critic
 compares changed declarations with the file's actual routing role and content;
@@ -88,14 +98,17 @@ capability labels, activation, and bypasses are specified separately in
 ## Mechanical and semantic guarantees
 
 The deterministic, repository-local mechanical gate recursively indexes
-Markdown under `docs/`, plus the root README and configured index. It checks:
+Markdown under `docs/`, plus the root README, configured project index, and
+configured managed entry point. It checks:
 
 - relative Markdown links;
 - `.doc-profile` keys and values;
 - execution-plan status metadata;
 - session-memory status metadata (`docs/sessions/*.md`);
 - the configured index and meta-repository inventory ownership;
-- canonical scope declaration syntax and required routing-file presence;
+- canonical inline scope syntax and required routing-file presence;
+- exact equality between configured `harness_file` and the installed template,
+  fixed v6 ownership paths, and absence of the obsolete v5 sidecar;
 - baseline format and ancestry when a baseline is present;
 - the living context's section headings: `docs/active-context.md` carries only
   `State now`, `Unresolved`, and `Next`. This is the objective half of the shape
@@ -121,7 +134,7 @@ be indistinguishable from one with a well-written head. Enforcement lives in the
 meta-repo's gate rather than in each sub-repo's profile because sub-repos are
 not required to have a profile, and a per-repository rule reaches none of the
 ones that don't. The gate resolves each sub-repo's index through its own profile
-when it has one, and falls back to `CLAUDE.md`. The advisory pairs with a rule
+when it has one, and falls back to `AGENTS.md`. The advisory pairs with a rule
 in `doc-start`: in a meta-repo the index's ownership map answers routing by
 itself, so a sub-repo index is opened when work enters that repository's code,
 never to decide whether it belongs there.
@@ -181,7 +194,10 @@ result.
 - `schema_version`: `1` in every newly created profile; a missing value is
   accepted only for backward compatibility with legacy profiles;
 - `mode`: `leaf` or `meta`;
-- `index_file`: repository-relative existing Markdown index;
+- `index_file`: root `AGENTS.md` in harness v6, the project-owned Markdown
+  index;
+- `harness_file`: root `CLAUDE.md` in harness v6, the managed Markdown entry
+  point, distinct from `index_file`;
 - `inventory_ignore`: optional comma-separated top-level directory names for
   meta-repository inventory checks;
 - `build`: optional smoke/build command used before code changes; omit the key
@@ -218,10 +234,14 @@ changing repository documentation.
 
 An authorized docs migration changes only harness-owned metadata and structure,
 preserves repository knowledge, writes the new version last, and must finish
-with a clean mechanical gate. The explicit v3-to-v4 migration adds one accurate
-scope declaration to each required routing document, validates a pre-existing
-block instead of duplicating it, and does not stamp optional documents.
-`doc-start` and `doc-end` never perform that migration implicitly. Codex
+with a clean mechanical gate. The explicit v5-to-v6 migration preserves the
+complete old project index in root `AGENTS.md`, replaces root `CLAUDE.md` with
+the canonical template, removes the obsolete sidecar, swaps the profile paths,
+and stops before mutation on a conflicting non-empty `AGENTS.md`. An explicitly
+reconciled repository may proceed because the current task already made the
+content decision; migration logic never guesses a merge. Older migrations
+remove only exact historical harness markers before applying the same split.
+`doc-start` and `doc-end` never perform a migration implicitly. Codex
 entry-point skills inherit the version from their installed shared
 `WORKFLOW.md`, so all three environments use the same handshake.
 
@@ -244,10 +264,11 @@ workstream is expected to span sessions or is too large for the living context
 alone. A quick single-session fix needs no pair; the living context and git
 already record it.
 
-Because no `doc-*` command is running at the moment such work begins, the rule
-itself must already be in context: the configured index file carries a one-line
-pointer stating it (`doc-create` writes that line), which is what makes the
-rule fire exactly in repositories that use this harness and nowhere else.
+The rule itself lives in managed root `CLAUDE.md`. Claude Code reads that file
+and follows its `@AGENTS.md` import; Codex and OpenCode read root `AGENTS.md`
+natively. `doc-start` explicitly loads both configured files unless the current
+session confirms their exact content is already present, so workflow behavior
+does not depend on guessing runtime injection.
 
 Enforcement is layered like the living-context shape: `doc-end` creates a
 missing pair retroactively in-session (it holds the transcript that says what
@@ -287,10 +308,11 @@ reconciled into living documentation. It must resolve and be an ancestor of
 `HEAD`.
 
 The documentation update recording that baseline can be committed after the
-referenced code commit. A docs-only reconciliation commit after the baseline is
+referenced code commit. A reconciliation commit touching only `docs/**`, the
+configured project index, and the configured harness entry point after the baseline is
 therefore not product drift. Start-of-session reporting distinguishes
-code-bearing commits from docs-only commits when possible and reports
-uncommitted changes separately.
+code-bearing commits from harness-only commits and reports uncommitted changes
+separately.
 
 The end workflow reviews committed changes since the baseline and relevant
 working-tree changes. It advances the baseline only after the mechanical gate

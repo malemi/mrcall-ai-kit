@@ -2,9 +2,10 @@
 """
 doc-check.py — the documentation integrity gate of the mrcall-ai-kit doc-harness.
 
-Single source of truth: one canonical index file (default `CLAUDE.md`) holds the
-repo inventory / roles / ownership; the other docs point to it and never
-duplicate it. This checker fails (exit 1) when the docs drift from that rule, so
+Single source of truth: project-owned `AGENTS.md` holds repository inventory,
+roles, ownership, and instructions; harness-managed `CLAUDE.md` holds only the
+versioned protocol and imports that project file. This checker fails (exit 1)
+when the docs drift from that rule, so
 rot cannot survive a `/doc-start`, a `/doc-end`, or (if a repo opts in) a
 pre-commit hook.
 
@@ -44,11 +45,15 @@ Checks (which run depends on the repo's profile — see below):
                   normal mid-session and only becomes stale once its owning
                   session is long gone, which this check cannot determine —
                   see the `/router sweep` command for that judgment call.
-  9. DOC SCOPE    (always) — the configured index, docs/README.md, and
-                  docs/active-context.md each carry exactly one valid scope
-                  declaration. Scope blocks are optional elsewhere, but any
-                  block that is present must use the canonical format.
- 10. ORIENTATION  (meta mode only, ADVISORY) — names every sub-repo index in the
+  9. DOC SCOPE    (always) — the configured harness file, project index,
+                  docs/README.md, and docs/active-context.md each carry exactly
+                  one valid inline scope declaration. External index-scope
+                  declarations are obsolete. Scope blocks are optional elsewhere,
+                  but any block present must use the canonical format.
+ 10. HARNESS TEMPLATE (always) — the configured harness file matches the
+                  installed canonical template byte-for-byte. Project-specific
+                  guidance belongs in the configured index instead.
+ 11. ORIENTATION  (meta mode only, ADVISORY) — names every sub-repo index in the
                   `## Services` table whose head is not closed by the
                   `<!-- orientation ends -->` marker. The head carries stack,
                   entry points, build and test command, and the rules that must
@@ -59,10 +64,11 @@ Checks (which run depends on the repo's profile — see below):
                   rule reaches none of the ones that don't.
 
 Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
-    harness_version   = 4                    (must match installed harness)
+    harness_version   = 6                    (must match installed harness)
     schema_version    = 1                    (optional for legacy profiles)
     mode              = meta | leaf          (default: leaf — links only)
-    index_file        = CLAUDE.md            (the single-source index)
+    index_file        = AGENTS.md            (project-owned single-source index)
+    harness_file      = CLAUDE.md            (managed harness entry point)
     inventory_ignore  = dir1, dir2           (sub-repo dirs to skip in INVENTORY)
     build             = command              (optional metadata; never executed)
     smoke             = command              (optional metadata; never executed)
@@ -77,6 +83,7 @@ Stdlib only, no network.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import subprocess
 import sys
@@ -85,14 +92,14 @@ from pathlib import Path
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # An inline code span: a run of backticks, its content, the same run again.
 INLINE_CODE = re.compile(r"(`+)[^`]*?\1")
-HARNESS_VERSION = 4
+HARNESS_VERSION = 6
 # Bytes per token: a stated convention for English prose, NOT a tokenizer result.
 # It carries none of the argument — every size comparison is a ratio between two
 # numbers produced by this divisor, so a wrong divisor cancels out.
 BYTES_PER_TOKEN = 4
 KNOWN_PROFILE_KEYS = {
-    "harness_version", "schema_version", "mode", "index_file", "inventory_ignore",
-    "build", "smoke", "index_max_lines", "doc_max_lines",
+    "harness_version", "schema_version", "mode", "index_file", "harness_file",
+    "inventory_ignore", "build", "smoke", "index_max_lines", "doc_max_lines",
 }
 PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
 SESSION_STATUSES = {"open", "closed"}
@@ -129,7 +136,8 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
     prof = root / "docs" / ".doc-profile"
     profile_exists = prof.exists()
     values: dict[str, str] = {
-        "mode": "leaf", "index_file": "CLAUDE.md", "inventory_ignore": "",
+        "mode": "leaf", "index_file": "AGENTS.md", "inventory_ignore": "",
+        "harness_file": "CLAUDE.md",
         "index_max_lines": "200", "doc_max_lines": "400",
     }
     errors: list[str] = []
@@ -155,16 +163,24 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
         errors.append("docs/.doc-profile: `mode` must be `leaf` or `meta`")
     if "schema_version" in values and values["schema_version"] != "1":
         errors.append("docs/.doc-profile: `schema_version` must be `1`")
-    index = root / values["index_file"]
-    if profile_exists and (not values["index_file"] or not index.is_file()):
-        errors.append(f"docs/.doc-profile: index file `{values['index_file']}` does not exist")
-    elif profile_exists:
-        if index.suffix.lower() != ".md":
-            errors.append("docs/.doc-profile: `index_file` must be a Markdown (`.md`) file")
-        try:
-            index.resolve().relative_to(root.resolve())
-        except ValueError:
-            errors.append("docs/.doc-profile: `index_file` must stay inside the repo")
+    for key, label in (("index_file", "index"), ("harness_file", "harness")):
+        path = root / values[key]
+        if profile_exists and (not values[key] or not path.is_file()):
+            errors.append(f"docs/.doc-profile: {label} file `{values[key]}` does not exist")
+        elif profile_exists:
+            if path.suffix.lower() != ".md":
+                errors.append(f"docs/.doc-profile: `{key}` must be a Markdown (`.md`) file")
+            try:
+                path.resolve().relative_to(root.resolve())
+            except ValueError:
+                errors.append(f"docs/.doc-profile: `{key}` must stay inside the repo")
+    if (
+        profile_exists
+        and values["index_file"]
+        and values["harness_file"]
+        and (root / values["index_file"]).resolve() == (root / values["harness_file"]).resolve()
+    ):
+        errors.append("docs/.doc-profile: `index_file` and `harness_file` must be distinct")
     for key in ("build", "smoke"):
         if key in values and not values[key]:
             errors.append(f"docs/.doc-profile: `{key}` must not be empty when present")
@@ -199,11 +215,24 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
                         f"docs harness version {profile_version} is newer than installed version "
                         f"{HARNESS_VERSION}; upgrade the installed mrcall-ai-kit commands"
                     )
+                elif "harness_file" not in seen:
+                    errors.append(
+                        "docs/.doc-profile: missing required `harness_file` for harness v6"
+                    )
+                else:
+                    if values["index_file"] != "AGENTS.md":
+                        errors.append(
+                            "docs/.doc-profile: harness v6 requires `index_file = AGENTS.md`"
+                        )
+                    if values["harness_file"] != "CLAUDE.md":
+                        errors.append(
+                            "docs/.doc-profile: harness v6 requires `harness_file = CLAUDE.md`"
+                        )
     return values, errors, profile_exists
 
 
-def index_docs(root: Path, index_file: str) -> list[Path]:
-    docs = [root / "README.md", root / index_file]
+def index_docs(root: Path, index_file: str, harness_file: str) -> list[Path]:
+    docs = [root / "README.md", root / index_file, root / harness_file]
     docs_dir = root / "docs"
     if docs_dir.exists():
         docs += sorted(docs_dir.rglob("*.md"))
@@ -271,9 +300,9 @@ def strip_code(text: str) -> str:
     return "\n".join(out)
 
 
-def check_dead_links(root: Path, index_file: str) -> list[str]:
+def check_dead_links(root: Path, index_file: str, harness_file: str) -> list[str]:
     errors: list[str] = []
-    for doc in index_docs(root, index_file):
+    for doc in index_docs(root, index_file, harness_file):
         base = doc.parent
         for m in MD_LINK.finditer(strip_code(doc.read_text(encoding="utf-8"))):
             target = m.group(1).strip()
@@ -287,8 +316,8 @@ def check_dead_links(root: Path, index_file: str) -> list[str]:
     return errors
 
 
-def check_doc_scopes(root: Path, index_file: str) -> list[str]:
-    """Validate the v4 scope declaration on routing docs and anywhere it appears.
+def check_doc_scopes(root: Path, index_file: str, harness_file: str) -> list[str]:
+    """Validate v6 inline scope declarations on routing documents.
 
     A declaration is intentionally tiny and rigid so both the gate and runtime
     guards agree on one representation::
@@ -297,17 +326,19 @@ def check_doc_scopes(root: Path, index_file: str) -> list[str]:
         Scope: non-empty purpose and boundary, optionally continued
         <!-- doc-scope:end -->
 
-    The three routing documents require exactly one block. Other indexed
-    Markdown may omit it, but a partial, duplicate, or malformed declaration is
-    never treated as absent.
+    The managed harness entry point, project-owned index, docs router, and living
+    snapshot require exactly one block. Other indexed Markdown may omit it, but
+    a partial, duplicate, or malformed declaration is never treated as absent.
+    Harness v6 has no external index-scope form.
     """
     required = {
+        Path(harness_file).as_posix(),
         Path(index_file).as_posix(),
         "docs/README.md",
         "docs/active-context.md",
     }
     errors: list[str] = []
-    for doc in index_docs(root, index_file):
+    for doc in index_docs(root, index_file, harness_file):
         rel = doc.relative_to(root).as_posix()
         lines = doc.read_text(encoding="utf-8").splitlines()
         visible: list[tuple[int, str]] = []
@@ -325,6 +356,15 @@ def check_doc_scopes(root: Path, index_file: str) -> list[str]:
             if line.strip().startswith("<!-- doc-scope:")
             and line not in {DOC_SCOPE_START, DOC_SCOPE_END}
         ]
+        legacy_external = [
+            (i, line) for i, line in visible
+            if line.strip().startswith("<!-- doc-index-scope:")
+        ]
+        for number, line in legacy_external:
+            errors.append(
+                f"{rel}:{number + 1}: obsolete external index-scope delimiter "
+                f"`{line.strip()}`; harness v6 requires inline scope"
+            )
 
         if not starts and not ends and not marker_like:
             if rel in required:
@@ -353,6 +393,44 @@ def check_doc_scopes(root: Path, index_file: str) -> list[str]:
     for rel in sorted(required):
         if not (root / rel).is_file():
             errors.append(f"{rel}: required doc-scope routing document does not exist")
+    return errors
+
+
+def find_harness_template() -> Path | None:
+    configured = os.environ.get("MRCALL_DOC_HARNESS_TEMPLATE")
+    candidates = [
+        Path(configured) if configured else None,
+        Path(__file__).resolve().parents[1] / "templates" / "CLAUDE.md",
+        Path(__file__).resolve().with_name("CLAUDE.template.md"),
+    ]
+    return next((path for path in candidates if path is not None and path.is_file()), None)
+
+
+def check_harness_template(root: Path, harness_file: str) -> list[str]:
+    """Require the repository harness entry point to match its installed template."""
+    obsolete = root / ".claude" / "rules" / "doc-harness.md"
+    errors = []
+    if obsolete.exists() or obsolete.is_symlink():
+        errors.append(
+            ".claude/rules/doc-harness.md: obsolete harness v5 sidecar remains; "
+            "remove it during the v6 migration"
+        )
+    template = find_harness_template()
+    if template is None:
+        return errors + ["canonical CLAUDE.md harness template is not installed"]
+    target = root / harness_file
+    if not target.is_file():
+        return errors
+    try:
+        expected = template.read_bytes()
+        actual = target.read_bytes()
+    except OSError as exc:
+        return errors + [f"{harness_file}: cannot compare managed harness template: {exc}"]
+    if actual != expected:
+        errors.append(
+            f"{harness_file}: managed harness file differs from the installed template; "
+            "put repository guidance in `AGENTS.md` and run doc-create migration"
+        )
     return errors
 
 
@@ -397,7 +475,7 @@ def check_index_thin(root: Path, index_file: str, maximum: int) -> list[str]:
     return []
 
 
-def check_doc_sizes(root: Path, index_file: str, maximum: int) -> list[str]:
+def check_doc_sizes(root: Path, index_file: str, harness_file: str, maximum: int) -> list[str]:
     """ADVISORY — name every doc that has grown past `doc_max_lines`.
 
     Never a gate failure. Whether a long document should be split, trimmed, or
@@ -423,7 +501,7 @@ def check_doc_sizes(root: Path, index_file: str, maximum: int) -> list[str]:
     if maximum <= 0:                      # 0 disables it; a negative value is invalid
         return []                         # and separately reported by read_profile
     oversized: list[tuple[int, str, str]] = []
-    for doc in index_docs(root, index_file):
+    for doc in index_docs(root, index_file, harness_file):
         try:
             rel = doc.relative_to(root).as_posix()
         except ValueError:                # an index_file reached from outside the root
@@ -622,13 +700,12 @@ def sub_repo_index(root: Path, name: str) -> Path | None:
     """A sub-repo's index file, honouring its own profile when it has one.
 
     Most sub-repos have no `docs/.doc-profile` at all, which is exactly why this
-    advisory is enforced from the meta-repo: `CLAUDE.md` is the fallback, and it
-    is what the ones without a profile actually use.
+    advisory is enforced from the meta-repo: `AGENTS.md` is the v6 fallback.
     """
     base = root / name
     if not base.is_dir():
         return None
-    index_name = "CLAUDE.md"
+    index_name = "AGENTS.md"
     try:
         profile = (base / "docs" / ".doc-profile").read_text(encoding="utf-8")
     except (OSError, UnicodeDecodeError):
@@ -734,6 +811,7 @@ def main() -> int:
     root = repo_root(args.repo)
     prof, profile_errors, _ = read_profile(root)
     index_file = prof["index_file"]
+    harness_file = prof["harness_file"]
     meta = prof["mode"].lower() == "meta"
     ignore = {s.strip() for s in prof["inventory_ignore"].split(",") if s.strip()}
 
@@ -747,8 +825,9 @@ def main() -> int:
         doc_max_lines = 0
     groups = [
         ("PROFILE", profile_errors),
-        ("DEAD LINKS", check_dead_links(root, index_file)),
-        ("DOC SCOPE", check_doc_scopes(root, index_file)),
+        ("DEAD LINKS", check_dead_links(root, index_file, harness_file)),
+        ("DOC SCOPE", check_doc_scopes(root, index_file, harness_file)),
+        ("HARNESS TEMPLATE", check_harness_template(root, harness_file)),
         ("THIN INDEX", check_index_thin(root, index_file, index_max_lines)),
         ("PLAN STATUS", check_plan_statuses(root)),
         ("SESSION STATUS", check_session_statuses(root)),
@@ -760,7 +839,7 @@ def main() -> int:
         groups.append(("DUPLICATE INDEX", check_no_dup_index(root, index_file)))
 
     # Advisories, deliberately outside `groups`: they must never change the exit code.
-    oversized = check_doc_sizes(root, index_file, doc_max_lines)
+    oversized = check_doc_sizes(root, index_file, harness_file, doc_max_lines)
     undated = check_trace_naming(root)
     open_sessions = check_open_sessions(root)
     unoriented = check_orientation_heads(root, index_file) if meta else []

@@ -1,8 +1,7 @@
 # Scope guard: delivering a document's purpose at the instant it is written
 
-**Date**: 2026-08-26 · **Plan**: none yet. The convention pairs a brief with an
-execution plan, but the build has no go; this file records the design and the
-open questions, and the plan gets written when the build is approved.
+**Date**: 2026-08-26 · **Plan**:
+[scope-guard execution plan](../execution-plans/2026-08-26-scope-guard.md).
 
 ## Problem
 
@@ -84,12 +83,12 @@ file per session, not one per write.
 
 ### The scope has exactly one source
 
-`hb/docs/active-context.md` already states its boundary in prose, in its opening
-lines. Adding a `scope:` frontmatter field would make two copies of one rule, and
-two copies diverge — that is how this design kills itself within a few months.
-Either the frontmatter becomes the only home and the prose header is deleted, or
-the hook reads the prose header and no frontmatter field exists. One source, and
-the gate can check that it is present on the files that route.
+Routing documents use one canonical delimited scope block rather than a second
+frontmatter field beside prose. Harness v6 keeps an inline block in each file
+that owns a routing boundary: the exact managed `CLAUDE.md`, the project-owned
+`AGENTS.md`, `docs/README.md`, and `docs/active-context.md`. The guard reads only
+the target document's inline declaration; the gate rejects the obsolete v5
+external index-scope form.
 
 ### A stale scope is worse than no scope
 
@@ -117,19 +116,20 @@ the design buys is a reduction of the failure class from "it never came up" to "
 came up and I got it wrong" — a much smaller class, and a correctable one, because
 at that point there is a stated reason to argue with instead of a blank.
 
-It costs one round trip per marked file per session. If the marker spreads to too
+It costs one round trip per scoped file per session. If protection spreads to too
 many files it becomes friction and people start working around it. It belongs
-only on documents that **route** — the `active-context.md` files, the indexes, the
-`CLAUDE.md` files — where one surplus line is not redundancy but noise competing
-with the lines that carry the routing.
+only on documents that **route**. Harness v6 gives `CLAUDE.md` and `AGENTS.md`
+their own declarations, so the protected boundary is visible in the file it
+governs and requires no cross-file lookup.
 
 ## Why it belongs in mrcall-ai-kit
 
 The kit already ships hooks (`claude/scripts/router-hook.py`) and the `/doc-*`
 harness that defines these documents in the first place. A declared scope is a
-natural extension of the contract the harness already imposes: `doc-check.py` can
-verify its presence on the files that route, and `doc-create` can stamp it into
-the skeleton. Born here it holds for every repository that installs the kit,
+natural extension of the contract the harness already imposes: `doc-check.py`
+validates the inline form, while `doc-create` renders the managed `CLAUDE.md`
+and establishes routing declarations without mixing project guidance into that
+template. Born here it holds for every repository that installs the kit,
 instead of being a convention each project reinvents and then forgets.
 
 ## What this is, and what it is not

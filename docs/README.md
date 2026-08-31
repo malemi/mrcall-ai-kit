@@ -5,7 +5,7 @@ Scope: Routing index for transversal documentation; repository inventory and own
 <!-- doc-scope:end -->
 
 Index of transversal docs for this repo. The repo overview, roles, and
-ownership live only in the index file — see [`../CLAUDE.md`](../CLAUDE.md).
+ownership live only in the index file — see [`../AGENTS.md`](../AGENTS.md).
 Do not duplicate that inventory here.
 
 ## Volatile

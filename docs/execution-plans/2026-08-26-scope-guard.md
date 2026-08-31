@@ -72,12 +72,13 @@ engine an exact UTF-8 format. A document may contain either zero or one block;
 empty, duplicated, nested, reversed, or unterminated blocks are invalid. The
 engine reads the complete file and never infers scope from filenames or headings.
 
-The mechanically required routing set is exactly the configured `index_file`,
-`docs/README.md`, and `docs/active-context.md`. `doc-create` stamps a purpose
-appropriate to each generated file. A v3-to-v4 migration wraps an already-valid
-purpose sentence where one exists or asks the operator to approve newly authored
-scope text; it must not preserve an unmarked duplicate sentence. Other documents
-may opt in by adding the same block, but the gate does not require them.
+The mechanically required inline set is the configured `harness_file`, the
+configured `index_file`, `docs/README.md`, and `docs/active-context.md`. Under
+harness v6 the first two are the exact managed `CLAUDE.md` and project-owned
+`AGENTS.md`; each owns its own declaration. The engine never resolves a scope
+from another file, and the gate rejects the obsolete v5 external index-scope
+form. Other documents may opt in with an inline block, but the gate does not
+require them.
 
 ### Reason-visible-before-write is a capability, not an assumption
 
@@ -238,11 +239,11 @@ the other adapters have explicit degraded labels and tests for exactly that mode
 
 ### 1. Implement the common engine
 
-- [ ] Add `shared/scripts/scope_guard.py` with the scope-block parser, canonical
+- [x] Add `shared/scripts/scope_guard.py` with the scope-block parser, canonical
   target model, patch-target parser, challenge state machine, locking, cleanup,
   and runtime-neutral decisions (`ignore`, `deny`, `allow`) carrying scopes and
   capability labels.
-- [ ] Add `shared/scripts/tests/test_scope_guard.py` covering absent/valid/empty/
+- [ ] Complete `shared/scripts/tests/test_scope_guard.py` coverage for absent/valid/empty/
   malformed/duplicate blocks; full-file parsing; Write/Edit targets; multi-target
   patch grammar; absolute/relative paths; `..`; symlinks; scope changes; malformed
   IDs/payloads; parallel first calls; stale locks; TTL cleanup; and state-root
@@ -251,7 +252,7 @@ the other adapters have explicit degraded labels and tests for exactly that mode
   old-to-new scope transitions bound to exact content; stale/replayed transition
   challenges; delete/move attempts; and multi-target patches where only a later
   target alters its marker.
-- [ ] Ensure core output never claims semantic relevance and never logs document
+- [x] Ensure core output never claims semantic relevance and never logs document
   content or reason text outside the minimal per-session record required by the
   protocol.
 
@@ -263,19 +264,19 @@ the session/path was already opened.
 
 ### 2. Build and test the runtime adapters
 
-- [ ] Add `claude/scripts/scope-guard-hook.py` and
+- [ ] Complete `claude/scripts/scope-guard-hook.py` and
   `claude/commands/scope-guard.md`. Register only the proven event set. Cover both
   `Write` and `Edit`, dormant/unregistered state, malformed input, full/degraded
   mode selection, and the decided subagent hand-back behavior.
-- [ ] Add `codex/scripts/scope-guard-hook.py` and
+- [x] Add `codex/scripts/scope-guard-hook.py` and
   `codex/skills/scope-guard/{SKILL.md,WORKFLOW.md}`. Use native hook JSON and
   trust review, map `apply_patch` aliases without pretending Codex sends Claude's
   `file_path`, and surface the degraded capability in status and `systemMessage`.
-- [ ] Add `opencode/plugins/scope-guard.ts` plus
+- [ ] Complete `opencode/plugins/scope-guard.ts` plus
   `opencode/commands/scope-guard.md`, pinned to the selected stable API/version.
   Handle `write`, `edit`, and every path in `apply_patch`; refuse startup with a
   useful version error rather than loading an incompatible beta adapter.
-- [ ] Add adapter fixture tests that feed complete official event shapes and assert
+- [ ] Complete adapter fixture tests that feed official event shapes and assert
   exact runtime output/error schemas. Add explicit bypass tests showing Bash/direct
   filesystem writes are not intercepted, so later docs cannot claim otherwise.
   For Claude `Write`/`Edit`, Codex `apply_patch`, and OpenCode `write`/`edit`/
@@ -290,22 +291,22 @@ adapter emits an `ask` decision or opens a human permission prompt.
 
 ### 3. Wire opt-in installation, activation, and removal
 
-- [ ] Extend `install.sh` help, validation, plan building, copy/symlink modes, and
+- [x] Extend `install.sh` help, validation, plan building, copy/symlink modes, and
   manifest records for `scope-guard` in all selected environments. In interactive
   mode, ask per runtime whether to activate it now, defaulting to no and previewing
   the exact registration. In non-interactive mode require an activation flag that
   is distinct from `--features scope-guard`; `--yes` alone must never activate a
   hook. A declined install places no adapter in an active hook/plugin location.
-- [ ] Implement one shared, idempotent settings-registration helper used by
+- [x] Implement one shared, idempotent settings-registration helper used by
   installer opt-in and the three later activation entrypoints. Identify owned
   entries structurally, preserve all foreign JSON/TOML/plugin configuration, use
   atomic writes and backups, and detect duplicates from interrupted or repeated
   activation.
-- [ ] Extend `uninstall.sh` to unregister owned active entries before artifact
+- [ ] Complete uninstall and registration edge-case coverage: unregister owned active entries before artifact
   removal and report whether restoration is possible. Exercise reinstall,
   `--on-exist` policies, `--dry-run`, backup restore, missing files, broken links,
   duplicate manifest lines, and on/off/unregister cycles.
-- [ ] Add `tests/test_scope_guard_install.sh`; keep
+- [x] Add `tests/test_scope_guard_install.sh`; keep
   `tests/test_codex_install.sh` discovery assertions and existing router install/
   uninstall behavior green. Assert the exact interactive prompt
   `Activate scope guard for <runtime> now (it adds a hook)?`, its default-no
@@ -318,39 +319,38 @@ inside the interactive installer and the later activation command produce the
 same owned registration. `off`/`unregister` and uninstall remove exactly owned
 state while unrelated hooks survive byte-for-byte.
 
-### 4. Extend the documentation harness and migrate to v4
+### 4. Extend the documentation harness and migrate declarations to v6
 
-- [ ] Bump the embedded harness protocol from v3 to v4 in
-  `shared/commands/{doc-create,doc-start,doc-end}.md`, all three matching
-  `codex/skills/*/WORKFLOW.md` files, `shared/skills/doc-critic/SKILL.md`,
-  `shared/scripts/doc-check.py`, and tests. Provide an explicit v3-to-v4 migration;
-  never mutate repositories implicitly at session start/end.
-- [ ] Update `doc-create` fresh templates and migration instructions to add one
-  canonical scope block to the required routing set without duplicating existing
-  purpose prose. Preserve byte-for-byte equality between each shared `doc-*`
-  command and its Codex `WORKFLOW.md` copy, enforced by
-  `tests/test_codex_install.sh`.
-- [ ] Extend `doc-check.py` to require exactly one valid non-empty block on the
-  configured index, `docs/README.md`, and `docs/active-context.md`; validate
-  optional blocks everywhere else; detect duplicates/malformed delimiters; and
-  add focused cases to `shared/scripts/tests/test_doc_check.py`.
-- [ ] Extend `doc-critic` to compare each changed declaration with the document's
-  actual routing role/content. It reports stale, misleading, or over-broad scope
-  as semantic drift; when run in-session it repairs only with transcript-backed
-  knowledge, and when delegated it reports rather than inventing a purpose.
-- [ ] Update `docs/documentation-harness.md`, add `docs/scope-guard.md`, route it
-  from `docs/README.md`, and update `README.md`. On implementation completion,
-  reconsolidate `docs/active-context.md`; do not record the feature as working
-  until the real-client acceptance tests below pass.
+The detailed ownership migration is tracked by the paired
+[harness v6 execution plan](2026-08-30-harness-sidecar.md). This plan retains the
+scope-guard requirements that migration must satisfy:
 
-Acceptance: fresh bootstrap and an explicitly approved real v3 migration both
-produce one source per routing file; the mechanical gate catches format errors;
-the critic catches a syntactically valid but semantically stale declaration; all
-shared/Claude/OpenCode and Codex duplicates are synchronized deliberately.
+- [ ] Set the embedded harness protocol to v6 across the shared commands, Codex
+  mirrors, critic, checker, and tests. Preserve the older explicit migration
+  chain and never mutate repositories implicitly at session start/end.
+- [ ] Make `doc-create` render the exact managed root `CLAUDE.md`, retain all
+  project guidance in root `AGENTS.md`, and give both files their own inline
+  `doc-scope` block. Preserve shared/Codex workflow mirror equality.
+- [ ] Make `doc-check.py` require exactly one valid non-empty inline block on
+  `CLAUDE.md`, `AGENTS.md`, `docs/README.md`, and `docs/active-context.md`; reject
+  every remaining active `doc-index-scope` declaration.
+- [ ] Keep `doc-critic` responsible for comparing each changed declaration with
+  the document's actual routing role/content and for reporting ownership drift
+  between managed `CLAUDE.md` and project-owned `AGENTS.md`.
+- [ ] Align `docs/documentation-harness.md`, `docs/scope-guard.md`, README
+  routing, and `docs/active-context.md` with the same inline-only contract. Do
+  not record the guard as working until the real-client acceptance tests below
+  pass.
+
+Acceptance: fresh bootstrap and an explicitly authorized v5 migration produce
+the exact managed `CLAUDE.md` plus a project-owned `AGENTS.md`, both inline
+scoped; the obsolete sidecar is removed; the mechanical gate catches format and
+ownership errors; the critic checks semantically stale declarations; all shared
+and Codex workflow mirrors are synchronized deliberately.
 
 ### 5. Verify as users actually run it
 
-- [ ] Run Python unit tests, shell syntax checks, all install suites, and the local
+- [x] Run Python unit tests, shell syntax checks, all install suites, and the local
   mechanical gate. These are prerequisites, not proof that the feature works.
 - [ ] Claude Code interactive TUI: install and activate through the shipped
   command, inspect `/hooks`, attempt real `Write` and `Edit` operations against a
@@ -411,6 +411,5 @@ Expected modifications:
   installer/uninstaller behavior changes their existing assertions
 - `docs/documentation-harness.md`, `docs/README.md`, `docs/active-context.md`
 
-The brief is not changed by planning. If Phase 0 disproves its strong visibility
-claim for a runtime, changing that claim is an explicit gated design decision
-before implementation, not an incidental plan edit.
+If Phase 0 disproves the brief's strong visibility claim for a runtime, changing
+that claim is an explicit gated design decision, not an incidental plan edit.

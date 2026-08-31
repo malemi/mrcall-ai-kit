@@ -61,20 +61,6 @@ someone checks, a worker that stops one step short costs a full re-run. The
 check is cheap and it settles whether this is a gap in the protocol or a limit
 of the platform.
 
-## OPEN — the gate never inspects a repository's root-level `AGENTS.md`
-
-**Logged**: 2026-08-24. `index_docs()` in `shared/scripts/doc-check.py` builds
-the document set from exactly three sources: `README.md`, the `index_file`
-named in `docs/.doc-profile`, and everything matching `docs/**/*.md`. A
-root-level `AGENTS.md` matches none of them unless a repository happens to
-have named it as its index, so every check that walks that set skips it —
-dead links and the oversize advisory both. `AGENTS.md` is the agent
-instruction file OpenCode and Codex read, it is prose that links to other
-docs like any index does, and it is exactly the kind of file that keeps a
-pointer to something deleted months ago. Either `index_docs()` should include
-the root agent-instruction files by name, or the profile should gain a field
-naming extra top-level docs to cover.
-
 ## OPEN — two orchestrator entry points that do not carry the same protocol
 
 **Logged**: 2026-08-24. The kit ships the orchestrator twice. `/orchestrator`
@@ -109,3 +95,8 @@ that settled it. A document listed here is never asked about again.
   lines. It is a dated brief: the record of one analysis, argued end to end, and
   its verdict is already stated in its own opening. Splitting an argument leaves
   two halves that each read as incomplete, and nothing here is a log.
+- `docs/execution-plans/2026-08-26-scope-guard.md` — **keep whole**, 416 lines,
+  2026-08-30. It is one active implementation plan whose acceptance dependencies
+  run from runtime capability proof through adapters, installation, harness
+  migration, and real-client verification. It is read by phase; splitting it
+  would hide cross-phase gates and require traversal across multiple plans.

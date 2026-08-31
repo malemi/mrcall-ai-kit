@@ -9,7 +9,8 @@ set -euo pipefail
 #
 # Content is routed by tool-compatibility:
 #   shared/    cross-tool  — the doc-harness (doc-* commands, doc-critic skill)
-#              + doc-check.py (installed once to ~/.config/mrcall-ai-kit/)
+#              + doc-check.py and the managed CLAUDE.md template
+#                (installed once to ~/.config/mrcall-ai-kit/)
 #              + ai-help (installed with doc-harness; introspects whatever is
 #                actually installed rather than a list that goes stale)
 #   claude/    Claude Code-only — worker agents with pinned models, which the
@@ -72,7 +73,7 @@ EOF
   echo "  doc-harness    [cross-tool → Claude Code + Codex + OpenCode]"
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
-  echo "     scripts:    doc-check.py  (-> ~/.config/mrcall-ai-kit/, the gate the commands call)"
+  echo "     scripts:    doc-check.py + CLAUDE.template.md  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents")  [Claude Code only — pinned-model"
   echo "                 workers the doc-* commands delegate to; installed with doc-harness]"
   echo
@@ -252,11 +253,17 @@ add_dir() { # $1=src dir  $2=dst dir  — one entry per top-level item
     PLAN_SRC+=("$entry"); PLAN_DST+=("$dst/$name")
   done
 }
-add_one() { PLAN_SRC+=("$1"); PLAN_DST+=("$2"); }
+add_one() { # $1=source item $2=destination — required sources fail before writes
+  [[ -e "$1" ]] || { echo "Missing install source: $1" >&2; exit 1; }
+  PLAN_SRC+=("$1"); PLAN_DST+=("$2")
+}
 
 if $DO_DOC; then
   # doc-check.py → kit-global, once (the commands call it from here)
   add_one "$SCRIPT_DIR/shared/scripts/doc-check.py" "$KIT_GLOBAL/doc-check.py"
+  # One source for the harness-managed repository CLAUDE.md. doc-create and the
+  # gate both read this installed artifact; project guidance lives in AGENTS.md.
+  add_one "$SCRIPT_DIR/shared/templates/CLAUDE.md" "$KIT_GLOBAL/CLAUDE.template.md"
   # The doc-* commands delegate to the pinned-model workers, so those agents are
   # part of doc-harness rather than an opt-out: without them the delegation dies.
   $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; add_dir "$SCRIPT_DIR/claude/agents" "$CC_DIR/agents"; }

@@ -69,8 +69,12 @@ For every changed document carrying a canonical `doc-scope` block, compare its
 content. A declaration is STALE when it names a purpose the file no longer
 serves, omits a material subject the file now owns, claims authority held by a
 different document, or is so broad that it supplies no useful boundary. The
-configured index, `docs/README.md`, and `docs/active-context.md` always receive
-this semantic check even when only their declarations changed.
+managed `CLAUDE.md`, project-owned `AGENTS.md`, `docs/README.md`, and
+`docs/active-context.md` always receive this semantic check when their
+declarations change. The project index owns its inline scope. Also verify that
+`CLAUDE.md` contains only the canonical harness template and that project
+guidance has not leaked into it; template equality itself remains the
+mechanical gate's job.
 
 When delegated, report a misleading or over-broad declaration and do not invent
 a replacement. When running in-session, repair it only from transcript-backed

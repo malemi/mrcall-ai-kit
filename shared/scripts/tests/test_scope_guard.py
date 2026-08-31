@@ -8,6 +8,7 @@ import tempfile
 import threading
 import unittest
 from pathlib import Path
+from unittest import mock
 
 ENGINE = Path(__file__).parents[1] / "scope_guard.py"
 
@@ -33,8 +34,11 @@ class ScopeGuardTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
         self.state = self.root / "state"
+        self.handoff = self.root / "handoff"
         self.old_state = os.environ.get("SCOPE_GUARD_STATE")
+        self.old_handoff = os.environ.get("SCOPE_GUARD_HANDOFF")
         os.environ["SCOPE_GUARD_STATE"] = str(self.state)
+        os.environ["SCOPE_GUARD_HANDOFF"] = str(self.handoff)
         self.doc = self.root / "active-context.md"
         self.doc.write_text(scoped(), encoding="utf-8")
 
@@ -43,6 +47,10 @@ class ScopeGuardTests(unittest.TestCase):
             os.environ.pop("SCOPE_GUARD_STATE", None)
         else:
             os.environ["SCOPE_GUARD_STATE"] = self.old_state
+        if self.old_handoff is None:
+            os.environ.pop("SCOPE_GUARD_HANDOFF", None)
+        else:
+            os.environ["SCOPE_GUARD_HANDOFF"] = self.old_handoff
         self.temp.cleanup()
 
     def mutation(self, content: str | None = None, action: str = "write"):
@@ -69,6 +77,51 @@ class ScopeGuardTests(unittest.TestCase):
         decision = sg.decide("codex", "s1", self.mutation("changed\n"))
         self.assertEqual(decision.action, "ignore")
 
+    def test_marker_example_in_non_markdown_source_is_silent(self) -> None:
+        source = self.root / "checker.py"
+        source.write_text(
+            '"""\n<!-- doc-scope:start -->\nScope: example only\n'
+            '<!-- doc-scope:end -->\n"""\n',
+            encoding="utf-8",
+        )
+        decision = sg.decide(
+            "codex",
+            "source-example",
+            sg.Mutation(source, "update", source.read_text(encoding="utf-8") + "# edit\n"),
+        )
+        self.assertEqual(decision.action, "ignore")
+
+    def test_claude_and_agents_each_use_their_own_inline_scope(self) -> None:
+        repo = self.root / "repo"
+        repo.mkdir()
+        documents = {
+            "CLAUDE.md": "Scope: Managed documentation-harness entry point only.",
+            "AGENTS.md": "Scope: Thin repository index and project guidance only.",
+        }
+        for number, (name, scope) in enumerate(documents.items(), 1):
+            with self.subTest(name=name):
+                document = repo / name
+                document.write_text(scoped(scope, "Current\n"), encoding="utf-8")
+                mutation = sg.Mutation(document, "update", scoped(scope, "Changed\n"))
+                session = f"inline-{number}"
+                first = sg.decide("codex", session, mutation, turn_id="t1")
+                self.assertEqual(first.action, "deny")
+                self.assertIn(scope.removeprefix("Scope: "), first.message)
+                second = sg.decide("codex", session, mutation, turn_id="t2")
+                self.assertEqual(second.action, "allow")
+
+    def test_legacy_external_index_marker_does_not_mark_a_file(self) -> None:
+        legacy = (
+            "<!-- doc-index-scope:start -->\n"
+            "Index: AGENTS.md\n"
+            "Scope: Legacy external index scope.\n"
+            "<!-- doc-index-scope:end -->\n"
+        )
+        self.doc.write_text(legacy, encoding="utf-8")
+        self.assertEqual(sg.parse_scope(legacy).status, "absent")
+        decision = sg.decide("codex", "legacy-external", self.mutation("changed\n"))
+        self.assertEqual(decision.action, "ignore")
+
     def test_degraded_runtime_denies_once_then_allows_exact_retry(self) -> None:
         proposed = scoped(body="Changed\n")
         first = sg.decide("codex", "s1", self.mutation(proposed), turn_id="t1")
@@ -77,6 +130,18 @@ class ScopeGuardTests(unittest.TestCase):
         second = sg.decide("codex", "s1", self.mutation(proposed), turn_id="t2")
         self.assertEqual(second.action, "allow")
         self.assertEqual(second.capability, "degraded")
+
+    def test_codex_same_turn_retry_opens_after_visible_reason_window(self) -> None:
+        proposed = scoped(body="Changed\n")
+        with mock.patch.object(sg.time, "time", return_value=100.0):
+            first = sg.decide("codex", "same-turn", self.mutation(proposed), turn_id="turn")
+        with mock.patch.object(sg.time, "time", return_value=100.1):
+            too_soon = sg.decide("codex", "same-turn", self.mutation(proposed), turn_id="turn")
+        with mock.patch.object(sg.time, "time", return_value=100.3):
+            retry = sg.decide("codex", "same-turn", self.mutation(proposed), turn_id="turn")
+        self.assertEqual(first.action, "deny")
+        self.assertEqual(too_soon.action, "deny")
+        self.assertEqual(retry.action, "allow")
 
     def test_changed_retry_gets_a_new_challenge(self) -> None:
         first = sg.decide("codex", "s1", self.mutation(scoped(body="One\n")), turn_id="t1")
@@ -120,6 +185,21 @@ class ScopeGuardTests(unittest.TestCase):
         allowed = sg.decide("opencode", "s1", self.mutation("plain\n"))
         self.assertEqual(allowed.action, "allow")
 
+    def test_sandbox_handoff_authorizes_one_exact_unmark_retry(self) -> None:
+        removal = sg.decide("codex", "sandbox", self.mutation("plain\n"))
+        sg.queue_unmark(removal.nonce)
+        allowed = sg.decide("codex", "sandbox", self.mutation("plain\n"))
+        replay = sg.decide("codex", "sandbox", self.mutation("plain\n"))
+        self.assertEqual(allowed.action, "allow")
+        self.assertEqual(replay.action, "deny")
+        self.assertFalse(any(self.handoff.glob("*.unmark")))
+
+    def test_cli_queues_unmark_when_state_is_outside_sandbox(self) -> None:
+        nonce = "abcdefghijklmnop"
+        with mock.patch.object(sg, "authorize_unmark_any", side_effect=PermissionError):
+            self.assertEqual(sg.cli(["scope_guard.py", "unmark", nonce]), 0)
+        self.assertEqual((self.handoff / f"{sg.digest(nonce)}.unmark").read_text(), nonce + "\n")
+
     def test_scope_change_is_bound_to_exact_postimage(self) -> None:
         changed = scoped("Scope: Only durable architecture belongs here.", "New\n")
         first = sg.decide("codex", "s1", self.mutation(changed), turn_id="t1")
@@ -160,7 +240,7 @@ class ScopeGuardTests(unittest.TestCase):
         )
         self.doc.write_text(scoped(body="Body\nold\n"), encoding="utf-8")
         mutations = sg.parse_apply_patch(command, self.root)
-        self.assertEqual([m.path for m in mutations], [self.doc, other])
+        self.assertEqual([m.path for m in mutations], [self.doc.resolve(), other.resolve()])
         self.assertIn("Body\nnew", mutations[0].postimage or "")
         self.assertEqual(mutations[1].postimage, "new\n")
 

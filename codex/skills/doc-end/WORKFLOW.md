@@ -3,7 +3,7 @@ description: End a work session — reconsolidate the docs to reality, verify ag
 allowed-tools: Bash(git *) Bash(python3 *) Bash(cat *) Read Write Edit Glob Grep Skill(doc-critic) Agent
 ---
 
-Consolidate session knowledge — Dream pattern: Orient → Gather → Consolidate → Prune. Ground truth is git plus the session transcript, never half-remembered context. Read `docs/.doc-profile` for mode, index file, and routing.
+Consolidate session knowledge — Dream pattern: Orient → Gather → Consolidate → Prune. Ground truth is git plus the session transcript, never half-remembered context. Read `docs/.doc-profile` for mode, index file, harness file, and routing.
 
 ## Delegation — what this session must do itself, and what it must not
 
@@ -17,11 +17,11 @@ Everything else is delegable when your environment provides a pinned-model worke
 A worker returns `## Done` or `## Blocked`. Anything else, or a `## Done` whose "Verified" line quotes no real command output, is a failure: re-delegate with a corrected prompt or do it yourself. Never report a worker's claim as a verified fact without its evidence.
 
 ## Harness version preflight — run before every other step
-This command implements `harness_version = 4`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
+This command implements `harness_version = 6`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
 
-- Equal to `4` ⇒ continue.
-- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 4). Run doc-create and explicitly choose the docs/ upgrade before consolidating.`
-- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 4, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
+- Equal to `6` ⇒ continue.
+- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 6). Run doc-create and explicitly choose the docs/ upgrade before consolidating.`
+- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 6, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
 - Missing profile ⇒ suggest `doc-create` and stop.
 
 Never edit session docs, add scope declarations, advance the baseline, or run partial consolidation across a mismatch.
@@ -89,7 +89,7 @@ Merge into existing content — no changelogs (git log is the changelog). Living
 
    This step licenses one line in the backlog and nothing else: recording a verdict never edits the oversized document, including when the verdict is `split`. The split itself is ordinary work with an ordinary backlog entry, done deliberately later — not something this phase starts. A document already listed is never asked about again however far past the limit it has since grown, so the steady state of this step is zero work. `docs/projects/**` is out of scope here as everywhere above, and `docs/active-context.md` needs no row — an oversized living context is Phase 3's, not the ledger's.
 2. **Semantic review** — explicitly invoke the installed `doc-critic` skill over every Markdown doc touched across committed, staged, unstaged, and untracked changes. Keep it separate from the mechanical gate. Repair STALE findings and rerun to zero STALE; preserve UNVERIFIABLE findings in output and never call them clean.
-3. Only when the mechanical gate passes, semantic review has zero STALE findings, and no unresolved living-context shape violation remains, set the baseline to current `git rev-parse HEAD` and update its date. A delegated critic reports a shape violation instead of repairing it (it lacks the transcript); that report is blocking, not advisory — it means Phase 3 was skipped or botched, so return to Phase 3, redo it yourself, and re-run the review. Never advance the baseline over a mis-shaped `active-context.md`. It means "last reviewed repository commit", not "commit containing docs edits". A later commit touching only `docs/**` and configured `index_file` is ignored by `/doc-start`, so committing the consolidation creates no false drift. Never use an uncommitted or hypothetical SHA.
+3. Only when the mechanical gate passes, semantic review has zero STALE findings, and no unresolved living-context shape violation remains, set the baseline to current `git rev-parse HEAD` and update its date. A delegated critic reports a shape violation instead of repairing it (it lacks the transcript); that report is blocking, not advisory — it means Phase 3 was skipped or botched, so return to Phase 3, redo it yourself, and re-run the review. Never advance the baseline over a mis-shaped `active-context.md`. It means "last reviewed repository commit", not "commit containing docs edits". A later commit touching only `docs/**`, configured `index_file`, and configured `harness_file` is ignored by `/doc-start`, so committing the consolidation creates no false drift. Never use an uncommitted or hypothetical SHA.
 
 ## Output
 `Session state consolidated. Baseline advanced to <sha>. [docs touched]. [mechanical gate: clean]. [oversized docs: N]. [undated traces: N]. [open sessions: N]. [semantic review: N confirmed, N repaired, N unverifiable]. [work trace: created|updated <slug> | not needed]. [N plan steps completed. N harness gaps logged.]`

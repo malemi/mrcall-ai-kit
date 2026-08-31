@@ -1,98 +1,170 @@
 ---
-description: Bootstrap the doc-harness in this repo — create the docs/ skeleton, the profile, and a thin index.
-allowed-tools: Bash(git *) Bash(ls *) Bash(mkdir *) Bash(cat *) Bash(python3 *) Write Edit
+description: Bootstrap or explicitly migrate this repository's documentation harness.
+allowed-tools: Bash(git *) Bash(ls *) Bash(mkdir *) Bash(cat *) Bash(cp *) Bash(cmp *) Bash(rm *) Bash(python3 *) Write Edit
 ---
 
-Bootstrap this repo's documentation harness. **Idempotent** — create only what is missing; never overwrite existing content. **Never fabricate knowledge** — you create the *mechanism* (skeleton + profile + gate wiring), not invented architecture/convention prose. Everything you write is in **English**.
+Bootstrap this repository's documentation harness. It is idempotent: create only
+missing project content, replace only harness-managed content, and never invent
+architecture, conventions, commands, or ownership. Everything written is in
+English.
 
-## Harness version preflight — run before every other step
-This command implements `harness_version = 4`. If `docs/.doc-profile` exists, read its `harness_version` before inspecting or changing anything else.
+## Harness version and template preflight — before every mutation
 
-- Equal to `4` ⇒ continue normally.
-- Missing or lower than `4` ⇒ stop and report: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 4). Upgrade docs/ explicitly with doc-create, or cancel and leave the repo unchanged.` Do not migrate until the user explicitly chooses the docs upgrade.
-- Greater than `4` ⇒ stop and report: `Harness version mismatch: installed commands are older than the repo docs (commands: 4, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; docs/ must not be downgraded.`
+This command implements `harness_version = 6`. Read all of
+`docs/.doc-profile`, when present, before inspecting project documentation.
 
-When the user explicitly authorizes a docs upgrade, migrate only harness-owned structure and metadata, preserve all repository knowledge, add/update `harness_version = 4` last, run the mechanical gate, and report every changed file. Never perform a downgrade. A missing profile means this is a fresh bootstrap, not a mismatch.
+- Equal to `6`: continue.
+- Missing or lower than `6`: stop unless the user explicitly authorized this
+  docs upgrade. Report: `Harness version mismatch: repo docs are older than the
+  installed commands (docs: <version|legacy>, commands: 6). Upgrade docs/
+  explicitly with doc-create, or cancel and leave the repo unchanged.`
+- Greater than `6`: stop. Report: `Harness version mismatch: installed commands
+  are older than the repo docs (commands: 6, docs: <version>). Upgrade
+  mrcall-ai-kit and reinstall its commands; docs/ must not be downgraded.`
+- No profile means a fresh bootstrap, not a version mismatch.
 
-**Migrating to `harness_version = 4`**:
+Resolve the canonical managed template before changing anything. Installed
+commands use `~/.config/mrcall-ai-kit/CLAUDE.template.md`; a source-tree run may
+use `shared/templates/CLAUDE.md`. If neither exists, stop with no repository
+changes. Read the whole template, require one valid inline `doc-scope` block,
+the exact `@AGENTS.md` import, and the generic work-trace rule. Never reproduce
+or customize its prose: copy it byte-for-byte and verify with `cmp`.
 
-- *From `3`*: add exactly one canonical block to the configured index,
-  `docs/README.md`, and `docs/active-context.md`, choosing concise scope text
-  from each file's actual routing role. Validate any scope block already present
-  instead of adding a second one. Do not add blocks to other documents merely
-  because they exist. Update `harness_version` only after all three declarations
-  pass the gate.
-- *From `1` or `2`, or legacy*: first perform the older migration below, then
-  perform the v3-to-v4 scope migration above. There is no implicit migration in
-  `doc-start` or `doc-end`.
+There is no implicit migration in `doc-start` or `doc-end`.
 
-**Older migrations** — from `1` or `2`, or from a legacy profile predating the key entirely:
+## Explicit migrations
 
-- *From `1` or `2`*: no profile keys change.
-- *From legacy* (no `harness_version` at all): add only the required keys the profile lacks — `harness_version`, `schema_version`, `index_max_lines` — leaving every existing key, comment, and deliberate omission as it stands. Expect a legacy repo to fail gate checks it was never held to: plan `status` fields carrying prose instead of one enumerated value, an index over the thin limit, dead links older than the profile. Report every one. Repair what is harness-owned metadata (a `status` value; a missing profile key). Do NOT invent a file to satisfy a dead link or rewrite prose you were not asked to touch — surface those and let the user decide.
+Run every collision and safety check before the first write. Preserve project
+knowledge verbatim unless a historical harness marker makes a removal
+mechanical. Write `harness_version = 6` last; never downgrade.
 
-In every case the behavioral migration is `docs/active-context.md`: if it violates the living-context shape (any `##` section beyond `State now` / `Unresolved` / `Next`, chronological/dated narrative, or well over the ~120-line target — the append-only-changelog failure mode v1 did not guard against), perform the same repair described in `doc-end.md` Phase 3 and, in full, in the `doc-critic` skill. You are running in-session here, not as a delegate, so that skill's repair branch is yours to perform. Follow its rule about sorting by meaning rather than by heading: current material under a non-canonical heading is folded into the section it belongs to, and only genuinely historical material moves to `docs/active-context-archive.md` (created if absent; dated sections, newest first, verbatim — nothing discarded, only relocated). Report the line-count before/after and the archive's size. A repo already compliant has nothing to migrate here.
+### From `5`
 
-From `3` onward the heading half of that shape is enforced mechanically — `doc-check.py` fails on any `##` section in `docs/active-context.md` outside the canonical three — so a repo that skips this migration step will not pass its own gate. From `4` onward the three routing declarations are also enforced mechanically. That is the point: the earlier versions asked an LLM to notice drift and it went unnoticed for two months in a real repo.
+Version 5 normally has `index_file = CLAUDE.md` and
+`harness_file = .claude/rules/doc-harness.md`. The former is project content;
+the latter is obsolete harness content.
+
+1. Read the complete configured index and sidecar. Require the v5 paths and
+   recognizable canonical sidecar markers; otherwise stop with a precise
+   conflict report.
+2. If root `AGENTS.md` is absent or empty, copy the complete old index payload
+   there. If it is non-empty and byte-identical to the old index, keep it. If it
+   contains different content, stop before changing anything: merging two
+   project instruction sets needs an explicit human reconciliation, never a
+   heuristic merge.
+3. Add exactly one canonical inline `doc-scope` block to `AGENTS.md` if absent,
+   describing its project-owned routing and instruction boundary. Do not remove
+   or shorten project prose to meet the line budget; report an over-limit index.
+4. Replace root `CLAUDE.md` byte-for-byte with the canonical template and remove
+   `.claude/rules/doc-harness.md`. If the scope guard protects the sidecar,
+   perform its explicit unmark protocol first; do not bypass the guard.
+5. Set `index_file = AGENTS.md` and `harness_file = CLAUDE.md`, validate all
+   required routing scopes, then write `harness_version = 6` last.
+
+A repository whose two project instruction files were already deliberately
+reconciled may proceed only after that reconciliation is explicit in the
+current task; that is authorization for the known content decision, not a rule
+that future migrations may guess equivalence.
+
+### From `4` or earlier, including legacy
+
+First preserve the configured index as the project payload. Remove only the
+canonical root `doc-scope` block and exact harness-owned work-trace stanza used
+by pre-v5 versions; their exact markers make this mechanical. Never choose
+repository prose to move or discard. Then apply the v5-to-v6 ownership migration
+above. Add only missing required profile keys, preserve comments and deliberate
+optional-key omissions, and surface legacy gate failures rather than inventing
+content to silence them.
+
+For every older version, also repair `docs/active-context.md` if it violates the
+living-snapshot contract: only `State now`, `Unresolved`, and `Next`, with
+historical narrative moved verbatim to `docs/active-context-archive.md`. Follow
+the in-session repair branch of `doc-critic`, report before/after line counts,
+and discard nothing.
 
 ## Step 1 — Detect current state
-- Is there a `docs/` dir? a `docs/.doc-profile`? an index file (`CLAUDE.md`)?
-- Is this a **meta-repo** (does it check out other independent git repos as sub-dirs) or a **leaf** repo? `ls -d */.git 2>/dev/null` hints at it. Report what you found; do not assume.
 
-## Step 2 — Write the profile (ask only what you cannot detect)
-Create `docs/.doc-profile` (skip if it exists — show it instead):
-```
-harness_version = 4
+- Detect `docs/`, `docs/.doc-profile`, root `CLAUDE.md`, and root `AGENTS.md`.
+- Detect independent Git repositories directly below the root to choose `meta`
+  versus `leaf`; report what was actually found.
+- On fresh bootstrap, an existing `AGENTS.md` is project content: preserve it
+  and add only the required inline scope when absent. An existing `CLAUDE.md`
+  that differs from the template is a collision; stop rather than treating it
+  as disposable project content without explicit migration authorization.
+
+## Step 2 — Create the profile
+
+Create `docs/.doc-profile` when absent; show and preserve it when already
+current. A fresh profile is:
+
+```text
+harness_version = 6
 schema_version = 1
-mode = meta | leaf            # choose exactly one; meta only for independent sub-repos
-index_file = CLAUDE.md
-inventory_ignore =            # (meta only) sub-repo dirs to skip, comma-separated
+mode = meta | leaf
+index_file = AGENTS.md
+harness_file = CLAUDE.md
+inventory_ignore =
 index_max_lines = 200
-# doc_max_lines = 400         # optional; defaults to 400. Advisory only — names docs
-                              # past this, never fails the gate. Write it only to change
-                              # the default or to disable the report with 0.
-# build = <executable smoke command>  # omit this key when unknown
+# doc_max_lines = 400
+# build = <executable smoke command>
 ```
-The profile is machine-readable: one `key = value` per line; comments never carry values. `harness_version` is the compatibility handshake and is required. `schema_version` describes the profile syntax. Required keys for new profiles are `harness_version`, `schema_version`, `mode`, `index_file`, `inventory_ignore`, and `index_max_lines`. `build`, `smoke`, and `doc_max_lines` are optional. A `build`/`smoke` value must be a non-empty executable command; ask for it only if it cannot be detected, omit the key when unknown, and do not invent one. Leave `doc_max_lines` out unless the repo wants a different limit: profiles travel in git while the checker is installed per machine, so writing an optional key that only newer checkers know turns every older machine's gate into a hard failure on an unknown key.
 
-## Step 3 — Create the docs/ skeleton (only the missing pieces)
-- `docs/active-context.md` — with frontmatter `doc_baseline_commit: <git rev-parse HEAD>` and `doc_baseline_date: <today>`, one canonical scope block, and only `State now`, `Unresolved`, and `Next` sections. It is current state, not a changelog; target at most 120 lines and route durable knowledge elsewhere before pruning history.
-- `docs/README.md` — a THIN pointer with one canonical scope block: "index of transversal docs; the repo inventory / roles / ownership live only in the index file." No repo table.
-- `docs/execution-plans/` — dir with a `.gitkeep`.
-- `docs/briefs/` — dir with a `.gitkeep`.
-- `docs/sessions/` — add a `docs/sessions/` line to `.gitignore` (create the
-  file if it does not exist; append the line if it does and does not already
-  have it). Do not create the directory or a placeholder file in it — this is
-  the opt-in model router's per-session shared memory, one `<session-id>.md`
-  file per routed session, and the directory comes into existence only when
-  the router's hook or a delegated worker first writes to it. `/doc-end`
-  promotes what matters into `active-context.md`; the file itself stays
-  behind.
-- Every plan begins with YAML frontmatter containing exactly one lifecycle value: `status: planned | active | blocked | completed | superseded`. Never encode authoritative status in headings, emoji, prose, or checkboxes.
-- Briefs and plans are the repo's **work traces**, each named `YYYY-MM-DD-<slug>.md` with one shared slug per workstream: the brief holds the what/why (no status frontmatter), the plan holds the lifecycle. Orchestrated or multi-session work creates both before execution starts; the index carries this rule as a one-line pointer (Step 4). The gate reports undated trace filenames as an advisory.
-- Stubs (empty-but-titled), only if the repo will use them: `docs/known-issues-and-solutions.md`, `docs/quality-grades.md`, `docs/harness-backlog.md`. Do NOT stub `ARCHITECTURE.md` / `CONVENTIONS.md` / `system-rules.md` — a fabricated architecture doc is worse than none; write those when the knowledge exists.
+The file is machine-readable `key = value` data. Required keys are
+`harness_version`, `schema_version`, `mode`, `index_file`, `harness_file`,
+`inventory_ignore`, and `index_max_lines`. In v6 the two paths are fixed by the
+ownership contract: `AGENTS.md` is project-owned and `CLAUDE.md` is
+harness-managed. `build`, `smoke`, and `doc_max_lines` are optional; omit values
+that cannot be detected and never invent commands.
 
-## Step 4 — Ensure the index is thin and single-source
-- If `CLAUDE.md` is missing, create a thin one: a short intro, one canonical scope block, and pointers to `docs/`. For a **meta** repo, add a `## Services` table (one row per sub-repo you actually detected — name, path, stack, role; do not invent repos). For a **leaf** repo, no Services table is needed.
-- If `CLAUDE.md` already exists but has grown into prose, FLAG it (don't silently rewrite) — the harness wants a thin index.
-- Whether the index is created or found, ensure it carries the one-line work-trace rule; add it if missing (this is harness-owned structure, not prose): `Work traces: orchestrated or multi-session work starts by creating docs/briefs/YYYY-MM-DD-<slug>.md (what/why) + docs/execution-plans/YYYY-MM-DD-<slug>.md (status frontmatter) before execution.` The index is the only file guaranteed to be in context at the moment such work begins — no `doc-*` command runs then — so this line is what makes the rule fire in harness repos and nowhere else.
+## Step 3 — Create only missing structure
 
-The canonical declaration printed into each fresh routing file is exactly:
+- `CLAUDE.md`: copy the canonical template byte-for-byte.
+- `AGENTS.md`: preserve an existing project file. If missing, create a thin
+  project index with a short introduction, one canonical inline scope, and
+  pointers to `docs/`. In a detected meta-repo add a `## Services` table using
+  only repositories actually present; leaf repositories need no table.
+- `docs/active-context.md`: baseline frontmatter, one inline scope, and only
+  `State now`, `Unresolved`, and `Next`; it is a current snapshot, not a log.
+- `docs/README.md`: thin transversal-doc router with one inline scope. Repository
+  inventory and ownership live only in the project-owned `AGENTS.md`.
+- `docs/execution-plans/` and `docs/briefs/`, with `.gitkeep` when a directory
+  would otherwise be empty.
+- Add `docs/sessions/` to `.gitignore`; do not create that runtime directory.
+- Optional empty-but-titled stubs only when useful:
+  `docs/known-issues-and-solutions.md`, `docs/quality-grades.md`, and
+  `docs/harness-backlog.md`. Never fabricate architecture or conventions docs.
+
+Every required routing file has exactly one canonical declaration:
+
 ```markdown
 <!-- doc-scope:start -->
-Scope: <concise, non-empty statement of this document's purpose and boundary,
-optionally continued on following lines>
+Scope: <concise, non-empty purpose and boundary, optionally continued>
 <!-- doc-scope:end -->
 ```
-Print all three declarations during fresh bootstrap; tailor the text to the
-configured index, docs router, and volatile snapshot respectively. The
-delimiters are exact and each routing file has exactly one block.
 
-## Step 5 — Verify the gate, then hand off
-- Run the gate against this repo:
-  !`python3 "$HOME/.config/mrcall-ai-kit/doc-check.py" --repo . 2>&1 || true`
-- Fix anything it reports (dead links, inventory drift), then re-run until clean.
-- **Git hooks are out of scope** (repo-local plumbing, not shipped by the kit). If the user wants a pre-commit block, tell them the optional one-liner: create `.githooks/pre-commit` that runs the gate, then `git config core.hooksPath .githooks`.
+Project prose belongs in `AGENTS.md` or durable docs, never in managed
+`CLAUDE.md`. The 200-line thin-index limit applies to `AGENTS.md` only.
+
+Every execution plan has YAML frontmatter with exactly one lifecycle value:
+`status: planned | active | blocked | completed | superseded`. Orchestrated or
+multi-session work starts with a matching dated brief and plan pair before
+execution: `docs/briefs/YYYY-MM-DD-<slug>.md` and
+`docs/execution-plans/YYYY-MM-DD-<slug>.md`.
+
+## Step 4 — Verify and hand off
+
+Compare repository `CLAUDE.md` to the resolved template byte-for-byte. Run:
+
+`python3 "$HOME/.config/mrcall-ai-kit/doc-check.py" --repo .`
+
+For a source-tree verification, run `shared/scripts/doc-check.py` with
+`MRCALL_DOC_HARNESS_TEMPLATE` pointing at the source template. Fix
+harness-owned violations, dead links, and detected inventory drift; do not
+rewrite project prose merely to silence an advisory. Re-run to a clean gate.
+
+Git hooks are out of scope. If requested, describe the optional pre-commit hook
+that calls the gate; do not install it implicitly.
 
 ## Output
-`Doc-harness bootstrapped in <repo> (<mode> mode). Created: [files]. Profile: docs/.doc-profile. Gate: clean. Next: /doc-start to begin sessions.`
+
+`Doc-harness bootstrapped in <repo> (<mode> mode, harness v6). Created: [files]. Migrated: [files or none]. Profile: docs/.doc-profile. Gate: clean. Next: doc-start.`

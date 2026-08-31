@@ -39,7 +39,9 @@ echo "scope guard copy/symlink dormant install: PASS"
 # empty answer defaults to no.
 test_home="$TEST_ROOT/interactive-default"
 mkdir -p "$test_home"
-out="$(printf '\n\n\n' | script -qfec "HOME='$test_home' '$KIT_DIR/install.sh' --environment all --features scope-guard --mode copy --on-exist skip --yes" /dev/null)"
+out="$(printf '\n\n\n' | HOME="$test_home" python3 "$KIT_DIR/tests/pty_run.py" \
+  "$KIT_DIR/install.sh" --environment all --features scope-guard \
+  --mode copy --on-exist skip --yes)"
 for runtime in claude codex opencode; do
   [[ "$out" == *"Activate scope guard for $runtime now (it adds a hook)?"* ]]
 done
@@ -60,7 +62,9 @@ echo "scope guard dry-run previews activation without writes: PASS"
 # same helper. Merely passing --yes above did not.
 test_home="$TEST_ROOT/interactive-yes"
 mkdir -p "$test_home"
-printf 'y\n' | script -qfec "HOME='$test_home' '$KIT_DIR/install.sh' --environment claude --features scope-guard --mode copy --on-exist skip --yes" /dev/null >/dev/null
+printf 'y\n' | HOME="$test_home" python3 "$KIT_DIR/tests/pty_run.py" \
+  "$KIT_DIR/install.sh" --environment claude --features scope-guard \
+  --mode copy --on-exist skip --yes >/dev/null
 grep -q 'mrcall-ai-kit/scope-guard/claude/scope-guard.py' "$test_home/.claude/settings.json"
 
 test_home="$TEST_ROOT/active"

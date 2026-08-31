@@ -13,6 +13,7 @@ import os
 import re
 import secrets
 import shutil
+import stat
 import sys
 import time
 from contextlib import contextmanager
@@ -26,6 +27,7 @@ SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
 REASON_LINE = re.compile(r"(?:^|\n)Scope reason ([A-Za-z0-9_-]{16,64}):\s*(\S[^\n]*)")
 STATE_MAX_AGE_S = 30 * 24 * 60 * 60
 LOCK_STALE_S = 30
+DEGRADED_RETRY_DELAY_S = 0.2
 
 
 @dataclass(frozen=True)
@@ -100,6 +102,65 @@ def state_root() -> Path:
     if override:
         return Path(override)
     return Path.home() / ".config" / "mrcall-ai-kit" / "scope-guard" / "state"
+
+
+def handoff_root() -> Path:
+    override = os.environ.get("SCOPE_GUARD_HANDOFF")
+    if override:
+        return Path(override)
+    user = os.getuid() if hasattr(os, "getuid") else 0
+    return Path("/tmp") / f"mrcall-ai-kit-scope-guard-{user}"
+
+
+def _handoff_path(nonce: str) -> Path:
+    if not re.fullmatch(r"[A-Za-z0-9_-]{16,64}", nonce):
+        raise ScopeGuardError("invalid unmark nonce")
+    root = handoff_root()
+    if root.is_symlink():
+        raise ScopeGuardError("scope-guard handoff directory must not be a symlink")
+    root.mkdir(mode=0o700, parents=True, exist_ok=True)
+    if root.is_symlink() or not root.is_dir():
+        raise ScopeGuardError("scope-guard handoff path is not a safe directory")
+    metadata = root.stat()
+    if hasattr(os, "getuid") and metadata.st_uid != os.getuid():
+        raise ScopeGuardError("scope-guard handoff directory has a foreign owner")
+    if stat.S_IMODE(metadata.st_mode) != 0o700:
+        root.chmod(0o700)
+    return root / f"{digest(nonce)}.unmark"
+
+
+def queue_unmark(nonce: str) -> None:
+    """Queue an agent-authorized unmark where a sandboxed CLI can write it."""
+    request = _handoff_path(nonce)
+    tmp = request.with_name(f".{request.name}.{os.getpid()}.{secrets.token_hex(4)}.tmp")
+    try:
+        descriptor = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+            stream.write(nonce + "\n")
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(tmp, request)
+    finally:
+        try:
+            tmp.unlink()
+        except FileNotFoundError:
+            pass
+
+
+def consume_unmark(nonce: str) -> bool:
+    """Consume one exact sandbox handoff; invalid or stale requests never open."""
+    request = _handoff_path(nonce)
+    try:
+        if request.is_symlink() or not request.is_file():
+            return False
+        fresh = time.time() - request.stat().st_mtime <= 300
+        exact = request.read_text(encoding="utf-8") == nonce + "\n"
+        request.unlink()
+        return fresh and exact
+    except FileNotFoundError:
+        return False
+    except (OSError, UnicodeDecodeError):
+        return False
 
 
 def _session_dir(runtime: str, session_id: str) -> Path:
@@ -244,6 +305,11 @@ def _new_challenge(
         "nonce": nonce,
         "attempts": 1,
         "challenge_turn": turn_id,
+        # Codex currently reports one turn id for every tool call in an
+        # assistant turn, including a retry after visible commentary. A short
+        # wall-clock boundary distinguishes that deliberate retry from
+        # concurrent first calls without pretending Codex can attest text.
+        "retry_after": time.time() + DEGRADED_RETRY_DELAY_S,
     }
     _write_record(record, value)
     extra = ""
@@ -271,6 +337,12 @@ def decide(
     """Evaluate one mutation. Adapters combine multi-target decisions deny-first."""
     cleanup()
     path = mutation.path.resolve(strict=False)
+    # Scope declarations are a Markdown protocol. Source files may legitimately
+    # embed the canonical marker text in constants, fixtures, or documentation;
+    # treating those examples as live declarations makes the guard protect its
+    # own implementation and checker. Never parse a non-Markdown file as scope.
+    if path.suffix.lower() != ".md":
+        return Decision("ignore")
     record = _record_path(runtime, session_id, path)
     try:
         preimage = path.read_text(encoding="utf-8")
@@ -279,7 +351,6 @@ def decide(
     except (OSError, UnicodeDecodeError) as exc:
         return Decision("deny", f"Scope guard could not read `{path}`: {exc}")
     current = parse_scope(preimage)
-
     with _locked(record):
         state = _read_record(record)
         if current.status == "absent":
@@ -331,15 +402,22 @@ def decide(
                     context=current.text,
                 )
             if state_matches and state.get("phase") == "unmark":
+                nonce = str(state.get("nonce", ""))
+                if consume_unmark(nonce):
+                    try:
+                        record.unlink()
+                    except FileNotFoundError:
+                        pass
+                    return Decision("allow", context=current.text, capability=capability)
                 state["attempts"] = int(state.get("attempts", 1)) + 1
                 _write_record(record, state)
                 return Decision(
                     "deny",
-                    f"Removing the scope marker requires `scope-guard unmark {state.get('nonce')}`. "
+                    f"Removing the scope marker requires `scope-guard unmark {nonce}`. "
                     "This is an agent decision; do not ask the operator for permission.",
                     context=current.text,
                     capability=capability,
-                    nonce=str(state.get("nonce", "")),
+                    nonce=nonce,
                 )
             return _new_challenge(
                 record,
@@ -365,9 +443,13 @@ def decide(
         if state_matches and state.get("proposed_scope_digest") == proposed_scope_digest:
             phase = str(state.get("phase", ""))
             later_turn = bool(turn_id) and state.get("challenge_turn") != turn_id
+            retry_after = state.get("retry_after", 0)
+            delayed_retry = (
+                isinstance(retry_after, (int, float)) and time.time() >= retry_after
+            )
             if phase == "attested" or (
                 not full_attestation
-                and later_turn
+                and (later_turn or delayed_retry)
                 and phase in {"open-challenge", "scope-change"}
             ):
                 _write_record(
@@ -563,9 +645,17 @@ def parse_apply_patch(command: str, cwd: str | Path) -> list[Mutation]:
 
 def cli(argv: list[str]) -> int:
     if len(argv) == 3 and argv[1] == "unmark":
-        ok = authorize_unmark_any(argv[2])
-        print("Scope unmark authorized for one exact retry." if ok else "No matching unmark challenge.")
-        return 0 if ok else 1
+        try:
+            ok = authorize_unmark_any(argv[2])
+        except (OSError, ScopeGuardError):
+            queue_unmark(argv[2])
+            print("Scope unmark queued for one exact retry.")
+            return 0
+        if ok:
+            print("Scope unmark authorized for one exact retry.")
+            return 0
+        print("No matching unmark challenge.")
+        return 1
     if len(argv) >= 5 and argv[1] == "unmark":
         ok = authorize_unmark(argv[2], argv[3], argv[4])
         print("Scope unmark authorized for one exact retry." if ok else "No matching unmark challenge.")
