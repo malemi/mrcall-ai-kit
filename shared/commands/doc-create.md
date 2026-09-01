@@ -10,16 +10,16 @@ English.
 
 ## Harness version and template preflight — before every mutation
 
-This command implements `harness_version = 6`. Read all of
+This command implements `harness_version = 7`. Read all of
 `docs/.doc-profile`, when present, before inspecting project documentation.
 
-- Equal to `6`: continue.
-- Missing or lower than `6`: stop unless the user explicitly authorized this
+- Equal to `7`: continue.
+- Missing or lower than `7`: stop unless the user explicitly authorized this
   docs upgrade. Report: `Harness version mismatch: repo docs are older than the
-  installed commands (docs: <version|legacy>, commands: 6). Upgrade docs/
+  installed commands (docs: <version|legacy>, commands: 7). Upgrade docs/
   explicitly with doc-create, or cancel and leave the repo unchanged.`
-- Greater than `6`: stop. Report: `Harness version mismatch: installed commands
-  are older than the repo docs (commands: 6, docs: <version>). Upgrade
+- Greater than `7`: stop. Report: `Harness version mismatch: installed commands
+  are older than the repo docs (commands: 7, docs: <version>). Upgrade
   mrcall-ai-kit and reinstall its commands; docs/ must not be downgraded.`
 - No profile means a fresh bootstrap, not a version mismatch.
 
@@ -36,7 +36,17 @@ There is no implicit migration in `doc-start` or `doc-end`.
 
 Run every collision and safety check before the first write. Preserve project
 knowledge verbatim unless a historical harness marker makes a removal
-mechanical. Write `harness_version = 6` last; never downgrade.
+mechanical. Write `harness_version = 7` last; never downgrade.
+
+### From `6`
+
+Require the configured ownership paths (`index_file = AGENTS.md`,
+`harness_file = CLAUDE.md`) and the exact v6 managed `CLAUDE.md` shape: the
+documentation-harness title, `@AGENTS.md`, one canonical inline scope, and the
+work-trace rule, with no project prose. Replace only `CLAUDE.md` byte-for-byte
+with the v7 template, validate all required routing scopes, then write
+`harness_version = 7` last. A differing file is a collision; stop rather than
+discarding content whose ownership is unclear.
 
 ### From `5`
 
@@ -59,7 +69,7 @@ the latter is obsolete harness content.
    `.claude/rules/doc-harness.md`. If the scope guard protects the sidecar,
    perform its explicit unmark protocol first; do not bypass the guard.
 5. Set `index_file = AGENTS.md` and `harness_file = CLAUDE.md`, validate all
-   required routing scopes, then write `harness_version = 6` last.
+   required routing scopes, then write `harness_version = 7` last.
 
 A repository whose two project instruction files were already deliberately
 reconciled may proceed only after that reconciliation is explicit in the
@@ -71,7 +81,7 @@ that future migrations may guess equivalence.
 First preserve the configured index as the project payload. Remove only the
 canonical root `doc-scope` block and exact harness-owned work-trace stanza used
 by pre-v5 versions; their exact markers make this mechanical. Never choose
-repository prose to move or discard. Then apply the v5-to-v6 ownership migration
+repository prose to move or discard. Then apply the v5 ownership migration
 above. Add only missing required profile keys, preserve comments and deliberate
 optional-key omissions, and surface legacy gate failures rather than inventing
 content to silence them.
@@ -98,7 +108,7 @@ Create `docs/.doc-profile` when absent; show and preserve it when already
 current. A fresh profile is:
 
 ```text
-harness_version = 6
+harness_version = 7
 schema_version = 1
 mode = meta | leaf
 index_file = AGENTS.md
@@ -167,4 +177,4 @@ that calls the gate; do not install it implicitly.
 
 ## Output
 
-`Doc-harness bootstrapped in <repo> (<mode> mode, harness v6). Created: [files]. Migrated: [files or none]. Profile: docs/.doc-profile. Gate: clean. Next: doc-start.`
+`Doc-harness bootstrapped in <repo> (<mode> mode, harness v7). Created: [files]. Migrated: [files or none]. Profile: docs/.doc-profile. Gate: clean. Next: doc-start.`

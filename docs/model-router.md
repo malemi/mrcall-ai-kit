@@ -18,14 +18,17 @@ the hook in `~/.claude/settings.json` (if not already registered) and creates
 the flag; `/router off` removes only the flag, leaving registration in place;
 `/router unregister` removes both.
 
-The intended shape: the session model is a cheap classifier (Haiku) that
-answers trivial prompts itself and delegates everything else to a pinned-model
-worker (`worker-sonnet` / `worker-opus` / `worker-fable`) via the native
-subagent primitive. Because a subagent starts with a fresh context, delegation
-without continuity loses whatever the previous worker understood — so a routed
-session gets a shared-memory file, `docs/sessions/<session-id>.md`, the same
-kind of object as `docs/active-context.md`: a living snapshot, never a log,
-same anti-drift discipline, same repo, readable with `cat`.
+The intended shape: the session model is a cheap engineering lead (Haiku) that
+answers trivial prompts and performs narrow local work itself. It delegates
+only bounded substantive work when the value of a fresh specialist context is
+greater than prompting, waiting, and review: `worker-sonnet` for execution,
+`worker-opus` for hard judgment, and `worker-fable` for explicitly requested or
+genuinely frontier-hard work. Because a subagent starts with a fresh context,
+delegation without continuity loses whatever the previous worker understood —
+so a routed session gets a shared-memory file,
+`docs/sessions/<session-id>.md`, the same kind of object as
+`docs/active-context.md`: a living snapshot, never a log, same anti-drift
+discipline, same repo, readable with `cat`.
 
 **Where it lives**: the repository the session started in, decided once and
 then fixed for the rest of the session. The hook's payload carries the shell's
@@ -120,7 +123,7 @@ stating rather than glossing: nothing watches the window, so rotation happens
 when the operator remembers, and the moment it is most needed is the moment
 nobody is watching for it. A late rotation still beats a silent compaction.
 
-## Worker reports, and the caller's reading budget
+## Worker reports and proportional execution
 
 A worker exists to keep work out of the delegating session's context. A worker
 that returns a diff, a file listing or a stack trace hands that context straight
@@ -141,8 +144,11 @@ brevity. It is the counterweight to the budget: a short report that quietly
 omits what was not checked is worse than a long one that admits it.
 
 **On the caller's side**: relay the worker's verdict and its evidence path in
-your own words, and never paste the report verbatim. This rule travels in the
-router's injected directive, because it binds the caller and not the worker.
+your own words, and never paste the report verbatim. The caller owns routine
+technical decisions, failure recovery, integration, and the final synthesis;
+worker output is evidence, not something to forward to the operator. This rule
+travels in the router's injected directive because it binds the caller and not
+the worker.
 
 **Enforcement is asymmetric, and the asymmetry is deliberate.** On OpenCode,
 `post_task_gate.py` already runs after every `task()` return and already parses
@@ -153,10 +159,9 @@ a `SubagentStop` hook, and this kit does not install hooks on its users. There
 the budget is prose in the agent definition and depends on the worker honouring
 it.
 
-**The caller's own reading budget** is about a hundred lines per request:
-orient, then delegate. It rides in the router directive, because `doc-start` and
-`doc-end` are not where general work happens. It is a budget and not a
-prohibition — "the dispatcher never reads source code" is wrong often enough to
-be discredited on its first day, since reading twenty lines is routinely cheaper
-than briefing a worker to read them. Nothing measures adherence: the meter was
-to have lived inside the rejected read guard, and it has no other home.
+**The caller's execution budget** is the task's consequence. Narrow,
+reversible work stays local when delegation would cost as much as doing it; its
+investigation and verification stay focused. Broader or riskier work earns
+fresh worker context and broader evidence. Nothing imposes a line, duration, or
+test-count quota: the routing invariant is that coordination must have positive
+expected value, not that delegation must happen.

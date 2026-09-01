@@ -56,7 +56,7 @@ class DocCheckTests(unittest.TestCase):
             "# Docs\n\n" + SCOPE, encoding="utf-8"
         )
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n"
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n"
             "inventory_ignore =\n",
             encoding="utf-8",
         )
@@ -88,14 +88,14 @@ class DocCheckTests(unittest.TestCase):
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
-        self.assertIn("harness v6", result.stdout)
+        self.assertIn("harness v7", result.stdout)
 
     def test_all_commands_embed_the_checker_harness_version(self) -> None:
         checker_source = CHECKER.read_text(encoding="utf-8")
-        self.assertIn("HARNESS_VERSION = 6", checker_source)
+        self.assertIn("HARNESS_VERSION = 7", checker_source)
         for name in ("doc-create.md", "doc-start.md", "doc-end.md"):
             command = (COMMANDS / name).read_text(encoding="utf-8")
-            self.assertIn("implements `harness_version = 6`", command, name)
+            self.assertIn("implements `harness_version = 7`", command, name)
 
     def test_doc_create_carries_managed_template_and_explicit_v5_migration(self) -> None:
         create = flowed(COMMANDS / "doc-create.md")
@@ -269,7 +269,7 @@ class DocCheckTests(unittest.TestCase):
 
     def test_profile_schema_rejects_unknown_invalid_and_empty_values(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = other\nindex_file = missing.md\nharness_file = CLAUDE.md\n"
+            "harness_version = 7\nmode = other\nindex_file = missing.md\nharness_file = CLAUDE.md\n"
             "build =\nunknown = yes\nindex_max_lines = no\n",
             encoding="utf-8",
         )
@@ -283,7 +283,7 @@ class DocCheckTests(unittest.TestCase):
     def test_index_file_must_be_markdown(self) -> None:
         (self.root / "INDEX.txt").write_text("index\n", encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = INDEX.txt\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 7\nmode = leaf\nindex_file = INDEX.txt\nharness_file = CLAUDE.md\n", encoding="utf-8"
         )
         self.assertIn("must be a Markdown (`.md`) file", self.check().stdout)
 
@@ -291,12 +291,12 @@ class DocCheckTests(unittest.TestCase):
         profile = self.root / "docs" / ".doc-profile"
         self.assertEqual(self.check().returncode, 0)  # schema_version is independent and optional
         profile.write_text(
-            "harness_version = 6\nschema_version = 1\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
+            "harness_version = 7\nschema_version = 1\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
             encoding="utf-8",
         )
         self.assertEqual(self.check().returncode, 0)
         profile.write_text(
-            "harness_version = 6\nschema_version = 2\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
+            "harness_version = 7\nschema_version = 2\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
             encoding="utf-8",
         )
         self.assertIn("`schema_version` must be `1`", self.check().stdout)
@@ -304,12 +304,12 @@ class DocCheckTests(unittest.TestCase):
     def test_harness_file_is_required_and_distinct_from_index(self) -> None:
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\n",
             encoding="utf-8",
         )
         self.assertIn("missing required `harness_file`", self.check().stdout)
         profile.write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\n"
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\n"
             "harness_file = AGENTS.md\n",
             encoding="utf-8",
         )
@@ -319,7 +319,7 @@ class DocCheckTests(unittest.TestCase):
         (self.root / "PROJECT.md").write_text("# Project\n\n" + SCOPE, encoding="utf-8")
         (self.root / "HARNESS.md").write_text(harness_rules(), encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = PROJECT.md\n"
+            "harness_version = 7\nmode = leaf\nindex_file = PROJECT.md\n"
             "harness_file = HARNESS.md\n",
             encoding="utf-8",
         )
@@ -330,9 +330,9 @@ class DocCheckTests(unittest.TestCase):
     def test_thin_index_limit_is_configurable_and_zero_disables_it(self) -> None:
         (self.root / "AGENTS.md").write_text(SCOPE, encoding="utf-8")
         profile = self.root / "docs" / ".doc-profile"
-        profile.write_text("harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 2\n", encoding="utf-8")
+        profile.write_text("harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 2\n", encoding="utf-8")
         self.assertIn("[THIN INDEX]", self.check().stdout)
-        profile.write_text("harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 0\n", encoding="utf-8")
+        profile.write_text("harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 0\n", encoding="utf-8")
         self.assertEqual(self.check().returncode, 0)
 
     def test_missing_harness_version_requires_docs_migration(self) -> None:
@@ -353,20 +353,20 @@ class DocCheckTests(unittest.TestCase):
 
     def test_newer_harness_version_requires_command_upgrade(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("newer than installed version 6", result.stdout)
+        self.assertIn("newer than installed version 7", result.stdout)
         self.assertIn("upgrade the installed", result.stdout)
 
     def test_older_harness_version_requires_docs_upgrade(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 3\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("docs harness version 3 is older than installed version 6", result.stdout)
+        self.assertIn("docs harness version 6 is older than installed version 7", result.stdout)
         self.assertIn("migrate docs/", result.stdout)
 
     def test_execution_plan_requires_enumerated_status(self) -> None:
@@ -501,7 +501,7 @@ class DocCheckTests(unittest.TestCase):
         (project / "small.md").write_text("filler\n" * 50, encoding="utf-8")
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -511,7 +511,7 @@ class DocCheckTests(unittest.TestCase):
         )
         self.assertNotIn("small.md", result.stdout)
         profile.write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 0\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 0\n",
             encoding="utf-8",
         )
         self.assertNotIn("advisory", self.check().stdout)
@@ -538,7 +538,7 @@ class DocCheckTests(unittest.TestCase):
 
     def test_invalid_doc_max_lines_is_a_profile_error(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = abc\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = abc\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -554,7 +554,7 @@ class DocCheckTests(unittest.TestCase):
         doc = self.root / "docs" / "edge.md"
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         doc.write_text("filler\n" * 100, encoding="utf-8")
@@ -573,7 +573,7 @@ class DocCheckTests(unittest.TestCase):
         )
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         self.assertIn("feed.md: 102 lines", self.check().stdout)
@@ -590,7 +590,7 @@ class DocCheckTests(unittest.TestCase):
         docs = self.root / "docs"
         (docs / "long.md").write_text("filler\n" * 150, encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -622,7 +622,7 @@ class DocCheckTests(unittest.TestCase):
         """
         (self.root / "docs" / "crlf.md").write_bytes(b"filler\r\n" * 150)
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -641,7 +641,7 @@ class DocCheckTests(unittest.TestCase):
         """
         (self.root / "AGENTS.md").write_text(SCOPE, encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 2\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 2\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -705,7 +705,7 @@ class DocCheckTests(unittest.TestCase):
         (docs / "alpha.md").write_text("filler\n" * 200, encoding="utf-8")
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         listed = [
@@ -725,7 +725,7 @@ class DocCheckTests(unittest.TestCase):
         """
         (self.root / "docs" / "any.md").write_text("filler\n" * 5, encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = -1\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = -1\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -885,7 +885,7 @@ class DocCheckTests(unittest.TestCase):
         own, which is the case the fallback to `AGENTS.md` must not swallow.
         """
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = meta\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ninventory_ignore =\n",
+            "harness_version = 7\nmode = meta\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ninventory_ignore =\n",
             encoding="utf-8",
         )
         (self.root / "AGENTS.md").write_text(
@@ -925,7 +925,7 @@ class DocCheckTests(unittest.TestCase):
         """A leaf repo has no sub-repos, so the check has nothing to say."""
         self._meta_with_sub_repo("# Sub\n\n## Docs\n")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ninventory_ignore =\n",
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ninventory_ignore =\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -936,7 +936,7 @@ class DocCheckTests(unittest.TestCase):
         """A sub-repo with its own profile is judged on the index it declares."""
         self._meta_with_sub_repo(
             "# Sub\n\n## Docs\n",
-            profile="harness_version = 6\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
+            profile="harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
         )
         result = self.check()
         self.assertIn("sub/AGENTS.md: no orientation head", result.stdout)

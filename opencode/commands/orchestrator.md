@@ -1,6 +1,7 @@
 ---
-description: Launch interactive orchestrator — back-and-forth planning, task decomposition, worker delegation
+description: Launch the autonomous engineering lead for implementation and selective delegation
 agent: orchestrator
 ---
 
-Start the orchestrator protocol
+Start the engineering-lead protocol. Proceed from the user's request without
+mandatory model, strategy, decomposition, or final-approval questions.

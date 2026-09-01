@@ -1,7 +1,7 @@
 # Scope Guard
 
 This document defines the inline scope declaration introduced by documentation
-harness v4, its v6 ownership model, and the contract for optional runtime
+harness v4, its v6-and-later ownership model, and the contract for optional runtime
 enforcement. Implementation is in progress. No runtime adapter is considered
 working until it passes the installed-client acceptance flow described in the
 execution plan.
@@ -18,7 +18,7 @@ the text may continue on following lines.
 ```
 
 The delimiters must occupy their own lines exactly. The content is non-empty
-text beginning `Scope:` and may continue on following lines. Harness v6 requires
+text beginning `Scope:` and may continue on following lines. Harness v6 and later require
 one block in each mechanically required routing document:
 
 - the configured `harness_file`, the exact managed root `CLAUDE.md`;
@@ -138,11 +138,14 @@ enforcement.
 
 ## Harness migration
 
-Migration to v6 is explicit through `doc-create`. A v5 migration preserves the
+Migration across harness versions is explicit through `doc-create`. The v7
+transition refreshes the exact managed `CLAUDE.md` template with the
+engineering-lead contract and writes `harness_version = 7` last. A v5-to-v6
+migration preserves the
 complete project-owned index payload in root `AGENTS.md`, replaces root
 `CLAUDE.md` with the exact managed template, removes the obsolete harness
 sidecar, gives both configured files their own inline declaration, swaps the
-profile paths, and writes `harness_version = 6` last. It stops on a conflicting
+profile paths, and writes the target harness version last. It stops on a conflicting
 non-empty `AGENTS.md`; it never merges repository prose heuristically or trims
 the index to make the gate pass. Older repositories follow the explicit
 migration chain before this v5-to-v6 transition.

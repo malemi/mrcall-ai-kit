@@ -1,117 +1,56 @@
-# Orchestrator Architecture
+# Orchestration architecture
 
-Design document for the interactive orchestration system. For runtime protocol, see `SKILL.md`.
+The OpenCode orchestration feature provides an autonomous primary engineering
+lead plus optional workers and a risk-proportional reviewer.
 
-## Core Principle
+## Entry points
 
-The orchestrator is a **skill** that transforms any agent into an interactive project manager. It asks questions, delegates to workers, and verifies — without writing code directly.
+- `agents/orchestrator.md`: default orchestration primary.
+- `agents/build.md`: implementation-oriented primary using the same operating
+  contract.
+- `agents/plan.md`: read-only planning mode with proportionate depth.
+- `commands/orchestrator.md`: launches the primary without approval ceremony.
+- `skills/orchestrator/SKILL.md`: reusable orchestration policy.
+- `agents/worker-*.md`: leaf executors with bounded scope and proportionate
+  verification.
+- `agents/reviewer.md`: optional review for consequential changes or evidence
+  gaps, not a mandatory phase.
+- `llms.md`: model metadata read only when selecting a worker.
 
-## System Components
+## Control flow
 
-```
-~/.config/opencode/
-├── skills/orchestrator/
-│   ├── SKILL.md              # Runtime protocol (what to do)
-│   ├── ARCHITECTURE.md       # This file (why it's designed this way)
-│   ├── memory.md             # Runtime state, created on first startup
-│   └── scripts/
-│       ├── watchdog.py       # Watchdog daemon (timeout/budget enforcement)
-│       ├── watchdog-cli      # CLI for task registration/check/deregister
-│       ├── watchdog_client.py# Python client library
-│       └── post_task_gate.py # Post-task verification gate
-├── llms.md                   # LLM metadata
-├── agents/
-│   ├── orchestrator.md       # Primary agent — inlines its own protocol
-│   ├── build.md              # Default dev agent
-│   ├── reviewer.md           # Code reviewer (subagent)
-│   └── worker-*.md           # One per LLM (subagents)
-└── opencode.json             # Config
-```
-
-## Three Levels of Memory
-
-| Level | File | Scope | Updated by |
-|-------|------|-------|------------|
-| Global | `skills/orchestrator/memory.md` | Cross-session, cross-project | Orchestrator at shutdown |
-| Repository | `<project>/docs/` | Project rules, conventions | Developers |
-| Plan | `<project>/docs/execution-plans/YYYY-MM-DD-<slug>.md` (+ paired `docs/briefs/YYYY-MM-DD-<slug>.md`) | Per-workstream lifecycle + task status | Orchestrator during execution |
-
-The global file is runtime state, not part of the install. The kit ships no
-`memory.md`, so the startup sequence in `SKILL.md` creates a seeded one when it
-is missing. `.gitignore` keeps it untracked, which matters in symlink-mode
-installs: there `~/.config/opencode/skills/orchestrator` points at the kit
-checkout, so the orchestrator's writes land inside the repository.
-
-## LLM Selection Strategy
-
-| Factor | Weight | Example |
-|--------|--------|---------|
-| Task complexity | High | Multi-file refactor → Qwen 397B |
-| Required quality | High | Production code → Sonnet or Qwen |
-| Speed need | Medium | Quick fix → Mistral Small or DeepSeek Flash |
-| Cost sensitivity | Medium | Batching → DeepSeek Free or MiMo |
-| Context window | Low | Large files → Qwen 397B (262K, ext 1M) |
-
-## Parallel Execution
-
-OpenCode handles concurrency internally. Multiple `task` calls in one message → parallel. One at a time → sequential.
-
-**Parallelize** when tasks are independent (different files, no dependencies).
-**Serialize** when B depends on A's output.
-
-## Error Handling (Circuit Breaker)
-
-### Watchdog enforcement
-
-The watchdog daemon monitors all workers via SSE events and SQLite polling.
-When a worker exceeds its timeout or budget, the watchdog kills it automatically
-via `POST /session/{id}/abort`.
-
-**Orchestrator protocol for every `task()` delegation:**
-1. `watchdog-cli register <task_id> <timeout_s> <budget_usd>`
-2. `task(...)` — worker starts
-3. `watchdog-cli check` — if kills logged, worker was terminated → retry with different model
-4. `watchdog-cli deregister <task_id>` — on completion
-
-### Retry policy
-
-- Max 2 attempts per task
-- NEVER retry with the same prompt
-- After 2 failures, STOP and ask user
-- Track failures in `memory.md` to avoid repeating
-
-## Worker Output Contract
-
-All workers MUST return one of these formats:
-
-```
-## Done
-- Changed: <files>
-- What: <1-2 sentence summary>
-- Verified: <command + result>
+```text
+request
+  -> inspect repository guidance and affected surface
+  -> choose direct work or positive-value delegation
+  -> implement and integrate
+  -> verify in proportion to risk
+  -> report outcome
 ```
 
-```
-## Blocked
-- Reason: <why>
-- What I tried: <steps>
-- Suggestion: <what orchestrator should do>
-```
+Questions, delegation, reviewer use, and broad test suites are conditional
+branches. They are not lifecycle gates.
 
-The orchestrator parses these headers to determine next steps. Workers that return neither → treated as failure.
+## Delegation invariant
 
-## How to Add a New LLM
+Coordination must have positive expected value. The lead keeps narrow,
+reversible work. It delegates bounded substantive branches when parallelism,
+specialist capability, or context isolation outweighs prompt construction,
+waiting, and review.
 
-1. Add entry to `~/.config/opencode/llms.md`
-2. Create `~/.config/opencode/agents/worker-<name>.md` following the template in existing workers
-3. Restart session to register
+Workers are leaf nodes. Their task prompt defines owned scope and non-goals.
+They do not widen the task into repository audits or speculative refactors.
 
-Do not create a short alias file (e.g. `sonnet.md`). If a short alias exists for the same model, delete it.
+## Verification invariant
 
-## Security Considerations
+The changed behavior receives the smallest real check that can establish it.
+Evidence expands with blast radius. Worker verification is reused unless the
+lead needs integration coverage or has a concrete reason to doubt it; reviewer
+verification closes evidence gaps rather than replaying a fixed checklist.
 
-- Workers have `bash: allow` — they can run arbitrary shell commands. Only delegate to trusted LLMs.
-- `external_directory` permission gates structured tool calls (read/edit/glob/list) but does NOT sandbox shell commands. A worker with `bash: allow` can access arbitrary paths via shell argv. Treat `bash: allow` as full trust in the model.
-- The delegation targets the kit ships are the `worker-*` agents and `reviewer`, all with explicit `task: deny` to prevent recursive delegation.
-- Orchestrator has `edit: allow` — nothing in the permission system stops it writing code, so the restriction to trivial post-review fixes rests entirely on the Edit Policy in `SKILL.md`.
-- Reviewer has `edit: deny` — read-only, reports findings.
+## Human interaction invariant
+
+The user is the CTO, not an approval service for routine engineering decisions.
+The lead escalates product ambiguity, material risk, irreversible action, or
+missing authority. It owns implementation choices, recoverable failures, and
+worker coordination.

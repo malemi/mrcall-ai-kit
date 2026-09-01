@@ -13,10 +13,13 @@ cross-tool contract.
 
 ## Delegation boundary
 
-Both session start and consolidation may delegate to pinned-model workers where
-the environment provides them — `worker-sonnet` for mechanical execution, `worker-opus` for
-independent verification — through whatever subagent primitive the tool
-exposes (`Agent` in Claude Code, `task` in OpenCode). Workers declare their own
+Both session start and consolidation may delegate bounded, substantive work to
+pinned-model workers where the environment provides them — `worker-sonnet` for
+mechanical execution, `worker-opus` for independent verification — through
+whatever subagent primitive the tool exposes (`Agent` in Claude Code, `task` in
+OpenCode). Delegation is conditional: parallelism, specialist capability, or
+context isolation must be worth more than prompting, waiting, and review.
+Narrow local work stays with the primary agent. Workers declare their own
 model, so the tier follows the task rather than the delegating session; a
 subagent that declares none inherits the parent's and therefore saves context
 only.
@@ -47,8 +50,9 @@ the command output it claims to have produced.
   repository instructions, inventory, roles, conventions, commands, and links
   to durable knowledge. Its 200-line budget is entirely project content.
 - Root `CLAUDE.md` is the configured harness-managed entry point. It is an exact
-  copy of the installed versioned template: generic protocol, inline scope, and
-  `@AGENTS.md`. Repositories never customize it.
+  copy of the installed versioned template: generic protocol, engineering-lead
+  operating contract, inline scope, and `@AGENTS.md`. Repositories never
+  customize it.
 - `docs/README.md` routes readers without duplicating the index.
 - Durable documents describe verified, long-lived facts.
 - `docs/active-context.md` is a volatile snapshot of current state, unresolved
@@ -59,9 +63,9 @@ the command output it claims to have produced.
   the decision, the approach — one dated file each. They carry no lifecycle
   metadata; state lives only in the paired execution plan.
 
-## Managed entry point and document scopes (harness v6)
+## Managed entry point and document scopes (harness v7)
 
-Harness v6 gives every routing document a small, machine-readable statement of
+Harness v7 retains the v6 machine-readable statement of
 purpose and boundary:
 
 ```markdown
@@ -108,7 +112,8 @@ configured managed entry point. It checks:
 - the configured index and meta-repository inventory ownership;
 - canonical inline scope syntax and required routing-file presence;
 - exact equality between configured `harness_file` and the installed template,
-  fixed v6 ownership paths, and absence of the obsolete v5 sidecar;
+  fixed ownership paths introduced in v6, and absence of the obsolete v5
+  sidecar;
 - baseline format and ancestry when a baseline is present;
 - the living context's section headings: `docs/active-context.md` carries only
   `State now`, `Unresolved`, and `Next`. This is the objective half of the shape
@@ -194,9 +199,9 @@ result.
 - `schema_version`: `1` in every newly created profile; a missing value is
   accepted only for backward compatibility with legacy profiles;
 - `mode`: `leaf` or `meta`;
-- `index_file`: root `AGENTS.md` in harness v6, the project-owned Markdown
+- `index_file`: root `AGENTS.md` since harness v6, the project-owned Markdown
   index;
-- `harness_file`: root `CLAUDE.md` in harness v6, the managed Markdown entry
+- `harness_file`: root `CLAUDE.md` since harness v6, the managed Markdown entry
   point, distinct from `index_file`;
 - `inventory_ignore`: optional comma-separated top-level directory names for
   meta-repository inventory checks;
@@ -234,7 +239,9 @@ changing repository documentation.
 
 An authorized docs migration changes only harness-owned metadata and structure,
 preserves repository knowledge, writes the new version last, and must finish
-with a clean mechanical gate. The explicit v5-to-v6 migration preserves the
+with a clean mechanical gate. The v6-to-v7 migration replaces only the exact
+managed `CLAUDE.md` template and advances the profile after the new
+engineering-lead contract is present. The explicit v5-to-v6 migration preserves the
 complete old project index in root `AGENTS.md`, replaces root `CLAUDE.md` with
 the canonical template, removes the obsolete sidecar, swaps the profile paths,
 and stops before mutation on a conflicting non-empty `AGENTS.md`. An explicitly
@@ -269,6 +276,13 @@ and follows its `@AGENTS.md` import; Codex and OpenCode read root `AGENTS.md`
 natively. `doc-start` explicitly loads both configured files unless the current
 session confirms their exact content is already present, so workflow behavior
 does not depend on guessing runtime injection.
+
+This does not claim a universal Codex primary profile. The kit deliberately
+does not overwrite Codex's user-owned global `~/.codex/AGENTS.md`; outside a
+workflow that reads managed `CLAUDE.md`, ordinary Codex behavior follows the
+operator's global and project `AGENTS.md` chain. OpenCode orchestration has its
+own installed primary profiles, while Claude receives the contract directly
+from managed `CLAUDE.md` and, when enabled, the router directive.
 
 Enforcement is layered like the living-context shape: `doc-end` creates a
 missing pair retroactively in-session (it holds the transcript that says what

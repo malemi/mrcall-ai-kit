@@ -1,4 +1,4 @@
-harness_version = 6
+harness_version = 7
 schema_version = 1
 mode = leaf
 index_file = AGENTS.md

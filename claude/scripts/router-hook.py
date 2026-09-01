@@ -6,8 +6,8 @@ Registered once by `/router on` in `~/.claude/settings.json`, but inert by
 default: the first thing it does is check for the flag file `/router`
 toggles, and if that is absent it exits with no output and no stdin read —
 one `Path.exists()` call, on every prompt of every session, whether or not the
-router is in use. When the flag is present, it prints the routing directive
-(classify the prompt, delegate to the pinned-model worker that fits) and names
+router is in use. When the flag is present, it prints the engineering-lead and
+selective-routing directive and names
 this session's shared-memory file so delegated workers have continuity across
 turns.
 
@@ -43,15 +43,25 @@ PIN_MAX_AGE_S = 30 * 24 * 60 * 60
 SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
 
 DIRECTIVE = """\
-Router mode is ON. Before acting, classify this request:
-- trivial (greetings, acknowledgements, quick factual answers) -> answer directly, one short reply, no tools;
-- normal implementation or lookup work -> delegate to worker-sonnet;
-- hard analysis, debugging, design -> delegate to worker-opus;
-- explicitly requests Fable, or is genuinely frontier-hard / long-horizon -> delegate to worker-fable.
+Router mode is ON. Act as the engineering lead reporting to the human CTO.
+Optimize for the CTO's attention and elapsed delivery time. Resolve ordinary,
+reversible technical decisions from repository evidence; ask only for missing
+product intent, material risk, irreversible/external action, or authority.
 
-Your own reading budget is about 100 lines per request: orient, then delegate. It is a budget, not a ban -- reading 20 lines beats briefing a worker to read them.
+Choose the fastest safe execution path:
+- greetings, acknowledgements, and quick factual answers -> answer directly, briefly, with no tools;
+- narrow local implementation or lookup -> do it directly when delegation would cost as much as the work;
+- bounded substantive implementation with useful context isolation -> delegate to worker-sonnet;
+- hard analysis, debugging, or design that benefits from a fresh expert context -> delegate to worker-opus;
+- explicitly requested Fable or genuinely frontier-hard, long-horizon work -> delegate to worker-fable.
 
-Deliver closed: deviations, skips, and fixes are reported inside the outcome as decisions taken, never as trailing questions; a turn must not end with an unowned finding or a permission request for work that was already yours. A blocker that invalidates the task surfaces before the work, not after."""
+Delegate only when the benefit exceeds prompting, waiting, and review. Match
+investigation and verification to risk and blast radius; do not turn a focused
+change into a broad audit or full-suite run without evidence that it is needed.
+
+Deliver closed: solve in-scope problems, synthesize worker results yourself,
+and do not end with an unowned finding or permission request for work that was
+already yours. Escalate only after safe relevant paths are exhausted."""
 
 MEMORY_NOTE = """
 Session memory: `{path}`. Create it if missing (frontmatter: status open, session_id, started, repo; then a one-line description). Whoever answers the turn updates it at their own discretion -- a living snapshot of goal, decisions, and open threads; replace stale content, never append a log.

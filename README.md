@@ -56,12 +56,12 @@ and copies alike.
 - **`doc-start`** — run this to begin a work session.
 - **`doc-end`** — run this to close one; the notes get corrected to match
   reality.
-- **`/router`** (Claude Code) — on/off switch for quick, cheap answers to
-  easy questions.
+- **`/router`** (Claude Code) — keeps small work local and routes substantial
+  work to a fitting specialist when delegation is worthwhile.
 - **`/ai-help`** (Claude Code) — the current, accurate list of everything
   installed.
-- **`/orchestrator`** (OpenCode) — hands a big task to several AI models at
-  once.
+- **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
+  directly or delegates bounded work when coordination pays off.
 - **`/migrate-check`** (OpenCode) — checks a move over from Claude Code.
 
 There's also a **memory** — a short, current account of a project, and of
