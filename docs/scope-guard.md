@@ -64,6 +64,14 @@ level. The proposed postimage is validated before an allowed mutation so a
 normal supported tool cannot silently remove, duplicate, truncate, or corrupt
 the block.
 
+Claude Code's official `MessageDisplay` event carries assistant text in `delta`
+batches with `message_id`, `index`, and `final`. Interactive runs may deliver
+multiple batches; Agent SDK and `claude -p` runs deliver one final batch with
+the complete message. The Claude adapter stores batches in owned per-session
+state, rejects malformed or conflicting streams, and attests only a complete
+contiguous message after `final`. It never parses the private transcript. This
+also keeps a nonce and its reason valid when they cross batch boundaries.
+
 The Codex adapter cannot rely on successive tool calls receiving distinct turn
 identifiers. In degraded mode the engine therefore admits an identical retry
 after a 200 ms boundary. Calls that arrive concurrently inside that boundary
@@ -97,13 +105,19 @@ installed user-facing client.
 
 | Runtime | Intended intercepted tools | Current status | Required proof before release |
 |---|---|---|---|
-| Claude Code | Native `Write` and `Edit` pre-tool events | Unverified | Install/activate, first denial, context delivery, retry ordering, scope transition, resume, and subagent write |
+| Claude Code | Native `Write` and `Edit` pre-tool events | Partially verified: v2.1.252 main-session `Edit` under `-p` | Interactive and `Write` coverage, scope transition, resume, and subagent write |
 | Codex | Native `apply_patch` pre-tool events, including every target in a multi-file patch | Unverified | Trust/activation, single and multi-file patches, system-message visibility, resume, code-mode call, and subagent write |
 | OpenCode | `write`, `edit`, and `apply_patch` plugin events | Unverified | Compatible plugin version, error/context visibility, all mutation tools, resume, and subagent write |
 
 Exact runtime versions and observed capability labels are recorded here only
 after those tests run. Until then, this matrix deliberately makes no claim that
 an adapter works.
+
+The recorded Claude `-p` run used the installed active hook against a disposable
+scoped `active-context.md`. The first `Edit` was denied with the declared scope
+and nonce, Claude emitted the required reason in visible assistant text, and the
+one exact retry succeeded. This observation establishes the main-session `Edit`
+path only and does not promote the remaining matrix cells.
 
 ## State and safety boundary
 
@@ -138,10 +152,10 @@ enforcement.
 
 ## Harness migration
 
-Migration across harness versions is explicit through `doc-create`. The v7
-transition refreshes the exact managed `CLAUDE.md` template with the
-engineering-lead contract and writes `harness_version = 7` last. A v5-to-v6
-migration preserves the
+Migration across harness versions is explicit through `doc-create`. The v8
+transition refreshes the exact managed `CLAUDE.md` template with the reviewed
+delivery flow and writes `harness_version = 8` last. The v7 transition
+introduced the engineering-lead contract. A v5-to-v6 migration preserves the
 complete project-owned index payload in root `AGENTS.md`, replaces root
 `CLAUDE.md` with the exact managed template, removes the obsolete harness
 sidecar, gives both configured files their own inline declaration, swaps the

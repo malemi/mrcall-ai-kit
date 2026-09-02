@@ -90,10 +90,27 @@ def handle(payload: object) -> dict[str, object]:
         core.close_session("claude", session)
         return {}
     if event == "MessageDisplay":
-        # Only complete assistant messages from the main display event attest.
+        # Only assistant text from the official display event attests. Current
+        # Claude Code streams arbitrary deltas; the core assembles the complete
+        # indexed message before matching a reason. Keep the complete-message
+        # fallback for clients using the older event shape.
         if payload.get("role") not in (None, "assistant"):
             return {}
-        core.attest("claude", session, _text(payload.get("message", payload.get("content", ""))))
+        if isinstance(payload.get("delta"), str):
+            message_id = payload.get("message_id")
+            index = payload.get("index")
+            final = payload.get("final")
+            if not isinstance(message_id, str):
+                raise core.ScopeGuardError("MessageDisplay payload has no message_id")
+            core.attest_message_delta(
+                "claude", session, message_id, index, final, payload["delta"]
+            )
+        else:
+            core.attest(
+                "claude",
+                session,
+                _text(payload.get("message", payload.get("content", ""))),
+            )
         return {}
     if event != "PreToolUse":
         return {}

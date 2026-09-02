@@ -85,19 +85,47 @@ class AdapterFixtures(unittest.TestCase):
 
         retry = self.claude(path, proposed, turn_id="turn-2")
         self.assertEqual("deny", retry["hookSpecificOutput"]["permissionDecision"])
-        displayed = self.call(
+        fragments = (
+            f"Scope reason {nonce[:8]}",
+            f"{nonce[8:]}: the body update remains ",
+            "inside the declared scope",
+        )
+        for index, delta in enumerate(fragments):
+            displayed = self.call(
+                CLAUDE,
+                {
+                    "hook_event_name": "MessageDisplay",
+                    "session_id": "claude-session",
+                    "message_id": "message-2",
+                    "index": index,
+                    "final": index == len(fragments) - 1,
+                    "delta": delta,
+                },
+            )
+            self.assertEqual({}, displayed)
+        allowed = self.claude(path, proposed, turn_id="turn-3")
+        self.assertEqual("allow", allowed["hookSpecificOutput"]["permissionDecision"])
+
+    def test_claude_incomplete_display_stream_does_not_attest(self) -> None:
+        path = self.root / "routing.md"
+        path.write_text(scoped(), encoding="utf-8")
+        proposed = scoped(body="new")
+        first = self.claude(path, proposed)
+        reason = first["hookSpecificOutput"]["permissionDecisionReason"]
+        nonce = re.search(r"Scope reason ([A-Za-z0-9_-]+):", reason).group(1)
+        self.call(
             CLAUDE,
             {
                 "hook_event_name": "MessageDisplay",
                 "session_id": "claude-session",
-                "message_id": "message-2",
-                "role": "assistant",
-                "message": f"Scope reason {nonce}: the body update remains inside the declared scope",
+                "message_id": "message-gap",
+                "index": 1,
+                "final": True,
+                "delta": f"Scope reason {nonce}: visible but missing index zero",
             },
         )
-        self.assertEqual({}, displayed)
-        allowed = self.claude(path, proposed, turn_id="turn-3")
-        self.assertEqual("allow", allowed["hookSpecificOutput"]["permissionDecision"])
+        retry = self.claude(path, proposed, turn_id="turn-2")
+        self.assertEqual("deny", retry["hookSpecificOutput"]["permissionDecision"])
 
     def test_claude_edit_reconstructs_postimage_and_denies_malformed_marker(self) -> None:
         path = self.root / "routing.md"

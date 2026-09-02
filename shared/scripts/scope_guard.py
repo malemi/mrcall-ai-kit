@@ -508,6 +508,71 @@ def attest(runtime: str, session_id: str, text: str) -> int:
     return opened
 
 
+def attest_message_delta(
+    runtime: str,
+    session_id: str,
+    message_id: str,
+    index: int,
+    final: bool,
+    delta: str,
+) -> int:
+    """Accumulate an official display stream and attest only its whole message.
+
+    Claude Code's MessageDisplay event is incremental: arbitrary text fragments
+    arrive with a zero-based index and a final marker. Hook commands run in
+    separate processes, so the accumulator lives under the owned session state
+    rather than in adapter memory. Missing, conflicting, or malformed fragments
+    fail closed and never become an attestation.
+    """
+    if not SAFE_ID.fullmatch(message_id):
+        raise ScopeGuardError("invalid display message id")
+    if isinstance(index, bool) or not isinstance(index, int) or not 0 <= index <= 100_000:
+        raise ScopeGuardError("invalid display message index")
+    if not isinstance(final, bool) or not isinstance(delta, str):
+        raise ScopeGuardError("invalid display message fragment")
+
+    session = _ensure_safe_session(runtime, session_id)
+    messages = session / ".messages"
+    if messages.is_symlink():
+        raise ScopeGuardError("scope-guard message state directory must not be a symlink")
+    messages.mkdir(exist_ok=True)
+    if messages.is_symlink() or not messages.is_dir():
+        raise ScopeGuardError("scope-guard message state path is not a safe directory")
+    record = messages / f"{digest(message_id)}.json"
+
+    complete = ""
+    with _locked(record):
+        state = _read_record(record)
+        if state and state.get("message_id") != message_id:
+            raise ScopeGuardError("display message state collision")
+        fragments = state.get("fragments", {})
+        if not isinstance(fragments, dict) or any(
+            not isinstance(key, str) or not isinstance(value, str)
+            for key, value in fragments.items()
+        ):
+            raise ScopeGuardError("invalid display message state")
+        key = str(index)
+        if key in fragments and fragments[key] != delta:
+            raise ScopeGuardError("conflicting display message fragment")
+        fragments[key] = delta
+
+        if final:
+            expected = {str(position) for position in range(index + 1)}
+            if set(fragments) == expected:
+                complete = "".join(fragments[str(position)] for position in range(index + 1))
+            try:
+                record.unlink()
+            except FileNotFoundError:
+                pass
+        else:
+            _write_record(
+                record,
+                {"message_id": message_id, "fragments": fragments},
+            )
+
+    return attest(runtime, session_id, complete) if complete else 0
+
+
 def authorize_unmark(runtime: str, session_id: str, nonce: str) -> bool:
     session = _session_dir(runtime, session_id)
     if not session.is_dir() or session.is_symlink():

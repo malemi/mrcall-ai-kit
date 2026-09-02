@@ -6,9 +6,9 @@ Deferred doc-harness / orchestration improvements.
 
 **Logged**: 2026-08-24. `opencode/agents/reviewer.md` pins
 `model: opencode/claude-sonnet-5`, but no table in `llms.md` records that
-non-worker model choice. The reviewer is now optional and risk-driven rather
-than a mandatory phase, but its pinned model should still be visible in the
-metadata source when that table is next revised.
+non-worker model choice. The reviewer is absent from the strict fast path but
+mandatory at every substantial-work lifecycle gate. Its pinned model should
+still be visible in the metadata source when that table is next revised.
 
 ## OPEN — a delegation cannot be resumed, and nobody has checked whether it could be
 

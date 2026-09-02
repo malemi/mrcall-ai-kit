@@ -17,11 +17,11 @@ Everything else is delegable when your environment provides a pinned-model worke
 A worker returns `## Done` or `## Blocked`. Anything else, or a `## Done` whose "Verified" line quotes no real command output, is a failure: re-delegate with a corrected prompt or do it yourself. Never report a worker's claim as a verified fact without its evidence.
 
 ## Harness version preflight — run before every other step
-This command implements `harness_version = 7`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
+This command implements `harness_version = 8`. Read `docs/.doc-profile` and compare its `harness_version` before checking whether consolidation is needed.
 
-- Equal to `7` ⇒ continue.
-- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 7). Run doc-create and explicitly choose the docs/ upgrade before consolidating.`
-- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 7, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
+- Equal to `8` ⇒ continue.
+- Missing/lower ⇒ stop: `Harness version mismatch: repo docs are older than the installed commands (docs: <version|legacy>, commands: 8). Run doc-create and explicitly choose the docs/ upgrade before consolidating.`
+- Greater ⇒ stop: `Harness version mismatch: installed commands are older than the repo docs (commands: 8, docs: <version>). Upgrade mrcall-ai-kit and reinstall its commands; do not downgrade docs/.`
 - Missing profile ⇒ suggest `doc-create` and stop.
 
 Never edit session docs, add scope declarations, advance the baseline, or run partial consolidation across a mismatch.

@@ -92,7 +92,7 @@ from pathlib import Path
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # An inline code span: a run of backticks, its content, the same run again.
 INLINE_CODE = re.compile(r"(`+)[^`]*?\1")
-HARNESS_VERSION = 7
+HARNESS_VERSION = 8
 # Bytes per token: a stated convention for English prose, NOT a tokenizer result.
 # It carries none of the argument — every size comparison is a ratio between two
 # numbers produced by this divisor, so a wrong divisor cancels out.
@@ -217,16 +217,16 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
                     )
                 elif "harness_file" not in seen:
                     errors.append(
-                        "docs/.doc-profile: missing required `harness_file` for harness v7"
+                        "docs/.doc-profile: missing required `harness_file` for harness v8"
                     )
                 else:
                     if values["index_file"] != "AGENTS.md":
                         errors.append(
-                            "docs/.doc-profile: harness v7 requires `index_file = AGENTS.md`"
+                            "docs/.doc-profile: harness v8 requires `index_file = AGENTS.md`"
                         )
                     if values["harness_file"] != "CLAUDE.md":
                         errors.append(
-                            "docs/.doc-profile: harness v7 requires `harness_file = CLAUDE.md`"
+                            "docs/.doc-profile: harness v8 requires `harness_file = CLAUDE.md`"
                         )
     return values, errors, profile_exists
 
@@ -329,7 +329,7 @@ def check_doc_scopes(root: Path, index_file: str, harness_file: str) -> list[str
     The managed harness entry point, project-owned index, docs router, and living
     snapshot require exactly one block. Other indexed Markdown may omit it, but
     a partial, duplicate, or malformed declaration is never treated as absent.
-    Harness v7 has no external index-scope form.
+    Harness v8 has no external index-scope form.
     """
     required = {
         Path(harness_file).as_posix(),
@@ -363,7 +363,7 @@ def check_doc_scopes(root: Path, index_file: str, harness_file: str) -> list[str
         for number, line in legacy_external:
             errors.append(
                 f"{rel}:{number + 1}: obsolete external index-scope delimiter "
-                f"`{line.strip()}`; harness v7 requires inline scope"
+                f"`{line.strip()}`; harness v8 requires inline scope"
             )
 
         if not starts and not ends and not marker_like:

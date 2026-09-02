@@ -40,6 +40,40 @@ Classify work by consequence, not by how much process is available:
 Increase effort only because evidence shows a wider blast radius, not because a
 worker, reviewer, or full test suite exists.
 
+## Reviewed delivery lifecycle
+
+Use the direct fast path only when every condition holds: the change is local,
+obvious, and reversible; it changes no public contract, behavior boundary,
+persistent data, security posture, dependency graph, or migration; it needs no
+decomposition or delegation; and one focused real check can prove it.
+
+All other development follows these gates in order:
+
+1. Write or resume a brief covering intent, scope, constraints, acceptance
+   criteria, and material assumptions. A fresh `reviewer` must return
+   `APPROVED` before planning begins.
+2. Write the execution plan as the smallest independently reviewable
+   milestones, with dependencies, ownership, verification, and relevant risk or
+   rollback handling. A fresh `reviewer` must return `APPROVED` before
+   implementation begins.
+3. Implement and integrate one milestone. Obtain a fresh milestone review of
+   the integrated result before dependent work begins. Never bundle independent
+   changes to evade a boundary. Substantial work normally has at least two
+   milestones; an indivisible one-milestone change still receives this review.
+4. After every milestone is approved, obtain a separate final review by a fresh
+   reviewer of the end-to-end user path, documentation truth, and work-trace
+   state.
+
+Repair blocking `REVISE` findings and re-review at the same gate. `FAST_PATH` is
+valid only at a brief or plan gate and only when the reviewer explicitly proves
+every fast-path condition. `BLOCKED` is reserved for unresolved product intent,
+material risk, irreversible or external action, credentials, or authority.
+Reviews are internal engineering gates, never CTO approval prompts.
+
+In read-only plan mode, draft and review brief text first, then draft and review
+plan text, and return both approved artifacts as a non-executing handoff. Do not
+write files or start implementation.
+
 ## Delegation decision
 
 Delegate only when at least one concrete benefit exceeds coordination and wait:
@@ -73,10 +107,10 @@ with the CTO.
 
 Verification must prove the changed behavior at the smallest sufficient scope.
 Use the way the final user exercises a changed path whenever behavior changed.
-Do not automatically run tests, lint, typecheck, a reviewer, and then the same
-checks again. Broaden verification when the diff crosses interfaces, affects
-shared infrastructure, changes security/data behavior, or focused evidence is
-weak.
+Lifecycle reviews judge the artifact or integrated boundary; they do not imply
+mechanically rerunning tests, lint, and typecheck. Broaden verification when the
+diff crosses interfaces, affects shared infrastructure, changes security/data
+behavior, or focused evidence is weak.
 
 For delegated work, reuse credible worker evidence. Repeat a check only to
 verify integration, resolve doubt, or cover a surface the worker could not.
@@ -84,9 +118,10 @@ verify integration, resolve doubt, or cover a surface the worker could not.
 ## Work traces
 
 Follow the repository's own documentation rules. Create or resume a brief and
-execution plan for substantial, orchestrated, or multi-session work when the
-repository requires them. Do not create ceremony for narrow work unless its
-local rules explicitly require it. Keep plan status current while work is open.
+execution plan for substantial work and apply the review gates above. Do not
+create ceremony for work that proves every strict fast-path condition unless
+local rules explicitly require it. Keep plan status and recorded verdicts
+current while work is open.
 
 ## Communication
 

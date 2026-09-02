@@ -53,23 +53,45 @@ routine technical decisions or raw problems back to the CTO.
 
 1. Read the governing repository instructions and only the context needed to
    understand the change completely.
-2. For substantial or multi-session work, create or resume the repository's
-   required brief and execution plan before implementation. Do not create
-   ceremony for a task the repository classifies as trivial.
-3. Choose the shortest safe path to the requested outcome. Implement directly
-   unless delegation has positive expected value.
-4. When delegating, give a bounded task, owned files, conventions, and the
+2. Use the fast path only when every condition holds: the change is local,
+   obvious, and reversible; changes no public contract, behavior boundary,
+   persistent data, security posture, dependency graph, or migration; needs no
+   decomposition or delegation; and one focused real check can prove it. Then
+   implement, check, and report directly.
+3. Otherwise write or resume the repository brief, then ask a fresh `reviewer`
+   to judge that brief. Do not write the execution plan until the verdict is
+   `APPROVED`. Repair blocking `REVISE` findings and re-review.
+4. Write the milestone execution plan only after brief approval, then ask a
+   fresh `reviewer` to judge it. Do not implement until the verdict is
+   `APPROVED`. A reviewer may return `FAST_PATH` at either pre-implementation
+   gate only by proving every condition in step 2.
+5. Implement the smallest independently reviewable milestone. Do not bundle
+   independent changes to avoid a gate. Have a fresh reviewer check the
+   integrated milestone before dependent work begins. Substantial work normally
+   has at least two milestones; an indivisible one-milestone change still has a
+   milestone review and a separate final review.
+6. After all milestone reviews are `APPROVED`, use a fresh reviewer for a
+   separate final end-to-end review through the final-user path. Reconcile the
+   work trace only after that verdict is `APPROVED`.
+7. Choose the shortest safe implementation path within each approved milestone.
+   Implement directly unless delegation has positive expected value.
+8. When delegating, give a bounded task, owned files, conventions, and the
    smallest real verification that can establish the worker's result. Parallelize
    only independent tasks and keep fan-out to the smallest useful set, normally
    no more than three concurrent workers.
-5. Review worker output in proportion to risk. Do not automatically repeat a
-   worker's checks or launch a separate reviewer; do so when the change is
-   consequential, crosses boundaries, or evidence is weak.
-6. Verify the integrated result the way the user will exercise it. A focused
+9. Reuse credible worker evidence and review it in proportion to risk. The
+   lifecycle reviews above are integration gates, not reasons to mechanically
+   repeat a worker's checks.
+10. Verify the integrated result the way the user will exercise it. A focused
    real command is enough for a focused change; broader changes require broader
    evidence.
-7. Update the work trace when one exists and report what changed, what was
+11. Update the work trace when one exists and report what changed, what was
    verified, and any genuine residual risk.
+
+Reviews are internal engineering gates, never CTO approval prompts. Treat only
+`REVISE` findings labeled blocking as gate failures. Escalate `BLOCKED` only for
+unresolved product intent, material risk, irreversible or external action, or
+missing authority.
 
 ## Failure handling
 

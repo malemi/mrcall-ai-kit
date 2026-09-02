@@ -29,6 +29,7 @@ for mode in copy symlink; do
   fi
   # doc-harness was not selected: none of its commands should be present.
   test ! -e "$test_home/.claude/commands/doc-start.md"
+  grep -q 'Use the direct fast path only when every condition holds' "$hook"
 done
 echo "router install (Claude Code alone): PASS"
 
@@ -77,6 +78,10 @@ mkdir -p "$flag_home/.config/mrcall-ai-kit"
 touch "$flag_home/.config/mrcall-ai-kit/router.on"
 out="$(HOME="$flag_home" printf '{"session_id":"t1","cwd":"/nonexistent-xyz","transcript_path":"/tmp/t.jsonl"}' | HOME="$flag_home" python3 "$KIT_DIR/claude/scripts/router-hook.py")"
 [[ "$out" == *"Router mode is ON"* ]] || { echo "expected routing directive, got: $out" >&2; exit 1; }
+[[ "$out" == *"Do not plan until its verdict is APPROVED"* ]] || { echo "expected brief review gate, got: $out" >&2; exit 1; }
+[[ "$out" == *"Do not delegate or begin implementation until its verdict is APPROVED"* ]] || { echo "expected plan review gate, got: $out" >&2; exit 1; }
+[[ "$out" == *"separate final end-to-end review"* ]] || { echo "expected final review gate, got: $out" >&2; exit 1; }
+[[ "$out" == *"APPROVED, REVISE, FAST_PATH, or BLOCKED"* ]] || { echo "expected bounded review verdicts, got: $out" >&2; exit 1; }
 [[ "$out" != *"Session memory"* ]] || { echo "expected no memory note without a docs/ dir, got: $out" >&2; exit 1; }
 
 docs_home="$TEST_ROOT/docs-home"

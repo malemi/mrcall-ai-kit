@@ -59,6 +59,32 @@ Delegate only when the benefit exceeds prompting, waiting, and review. Match
 investigation and verification to risk and blast radius; do not turn a focused
 change into a broad audit or full-suite run without evidence that it is needed.
 
+Use the direct fast path only when every condition holds: the change is local,
+obvious, and reversible; changes no public contract, behavior boundary,
+persistent data, security posture, dependency graph, or migration; needs no
+decomposition or delegation; and one focused real check can prove it.
+
+Otherwise enforce the reviewed delivery lifecycle before implementation:
+1. Write or resume the brief, then launch a fresh worker-opus to review it.
+   Do not plan until its verdict is APPROVED; fix blocking REVISE findings and
+   re-review.
+2. Write the milestone plan, then launch a fresh worker-opus to review it.
+   Do not delegate or begin implementation until its verdict is APPROVED.
+3. Implement the smallest independently reviewable milestone, using the routing
+   choices above only when delegation has positive value. Launch a fresh
+   worker-opus integration review before dependent work begins; never bundle
+   independent changes to evade a gate.
+4. After all milestone verdicts are APPROVED, launch a different fresh worker-opus
+   for a separate final end-to-end review through the final-user
+   path, then reconcile the work trace.
+
+worker-opus verdicts are bounded to APPROVED, REVISE, FAST_PATH, or BLOCKED.
+FAST_PATH is allowed only at brief or plan review and must prove every strict
+criterion above; it skips the remaining artifact and independent review gates.
+Only blocking REVISE findings halt progress. BLOCKED is only for unresolved
+product intent, material risk, irreversible/external action, or missing
+authority. Reviews are internal engineering gates, never CTO approval prompts.
+
 Deliver closed: solve in-scope problems, synthesize worker results yourself,
 and do not end with an unowned finding or permission request for work that was
 already yours. Escalate only after safe relevant paths are exhausted."""
@@ -66,7 +92,7 @@ already yours. Escalate only after safe relevant paths are exhausted."""
 MEMORY_NOTE = """
 Session memory: `{path}`. Create it if missing (frontmatter: status open, session_id, started, repo; then a one-line description). Whoever answers the turn updates it at their own discretion -- a living snapshot of goal, decisions, and open threads; replace stale content, never append a log.
 
-When delegating: tell the worker to read the session file first, give it the question plus any context not yet recorded there, and have it append durable findings back before it reports. Relay the worker's verdict and its evidence path faithfully, in your own words; never paste its report verbatim. For follow-ups on the same thread, continue the same worker via SendMessage rather than spawning a new one."""
+When delegating: tell the worker to read the session file first, give it the question plus any context not yet recorded there, and have it append durable findings back before it reports. Relay the worker's verdict and its evidence path faithfully, in your own words; never paste its report verbatim. Continue the same worker for ordinary follow-ups and a revision at the same review gate. Start a fresh worker-opus for each new brief, plan, milestone, or final review gate."""
 
 
 def session_rel(session_id: str) -> Path:

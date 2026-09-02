@@ -13,8 +13,8 @@ lead plus optional workers and a risk-proportional reviewer.
 - `skills/orchestrator/SKILL.md`: reusable orchestration policy.
 - `agents/worker-*.md`: leaf executors with bounded scope and proportionate
   verification.
-- `agents/reviewer.md`: optional review for consequential changes or evidence
-  gaps, not a mandatory phase.
+- `agents/reviewer.md`: mandatory internal artifact and integration gate for
+  substantial work; optional for the strict direct fast path.
 - `llms.md`: model metadata read only when selecting a worker.
 
 ## Control flow
@@ -22,14 +22,20 @@ lead plus optional workers and a risk-proportional reviewer.
 ```text
 request
   -> inspect repository guidance and affected surface
-  -> choose direct work or positive-value delegation
-  -> implement and integrate
-  -> verify in proportion to risk
+  -> prove strict fast path? -> implement + focused real check
+  -> otherwise brief -> fresh review -> APPROVED
+  -> plan -> fresh review -> APPROVED
+  -> milestone -> integration review -> APPROVED (repeat)
+  -> separate final end-to-end review -> APPROVED
   -> report outcome
 ```
 
-Questions, delegation, reviewer use, and broad test suites are conditional
-branches. They are not lifecycle gates.
+Questions, delegation, and broad test suites remain conditional branches.
+Artifact, milestone, and final reviews are lifecycle gates for substantial work
+and are never CTO approval prompts.
+
+Plan mode is read-only: it reviews drafted brief text before drafting plan text,
+then returns both approved artifacts without writing them or implementing.
 
 ## Delegation invariant
 

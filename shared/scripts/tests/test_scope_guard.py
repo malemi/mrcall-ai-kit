@@ -162,6 +162,32 @@ class ScopeGuardTests(unittest.TestCase):
         self.assertEqual(allowed.action, "allow")
         self.assertEqual(allowed.capability, "full")
 
+    def test_full_runtime_accumulates_official_display_deltas(self) -> None:
+        proposed = scoped(body="Changed\n")
+        first = sg.decide("claude", "stream", self.mutation(proposed), full_attestation=True)
+        nonce = first.nonce
+        self.assertEqual(
+            sg.attest_message_delta(
+                "claude", "stream", "message-1", 0, False, f"Scope reason {nonce[:7]}"
+            ),
+            0,
+        )
+        self.assertEqual(
+            sg.attest_message_delta(
+                "claude",
+                "stream",
+                "message-1",
+                1,
+                True,
+                f"{nonce[7:]}: this updates current repository state.",
+            ),
+            1,
+        )
+        allowed = sg.decide(
+            "claude", "stream", self.mutation(proposed), full_attestation=True
+        )
+        self.assertEqual(allowed.action, "allow")
+
     def test_open_path_still_rejects_marker_removal_and_malformation(self) -> None:
         proposed = scoped(body="Changed\n")
         sg.decide("codex", "s1", self.mutation(proposed), turn_id="t1")

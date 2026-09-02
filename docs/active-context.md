@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 4b3b263f78906da910a343fa122ec5da0926b552
-doc_baseline_date: 2026-09-01
+doc_baseline_commit: 3bf0173453327f7c9c3cf7579367e31f59b736da
+doc_baseline_date: 2026-09-02
 ---
 
 # Active Context
@@ -14,53 +14,58 @@ of appending session history; Git and completed briefs retain that history.
 
 ## State now
 
-Documentation harness v7 makes root `CLAUDE.md` a 28-line managed template that
-imports project-owned `AGENTS.md` and gives the user-facing agent an autonomous
-engineering-lead contract. Routine reversible decisions stay with the agent;
-delegation requires positive coordination value; investigation and verification
-scale with risk and blast radius. Repository instructions, orientation, and the
-thin-index budget remain entirely in `AGENTS.md`.
+Documentation harness v8 makes root `CLAUDE.md` a managed template below 200
+lines that imports project-owned `AGENTS.md`. It retains the autonomous
+engineering-lead contract and adds two delivery lanes: a strict direct fast path
+for local, obvious, reversible work with one focused real check, and independent
+brief, plan, milestone, and final review gates for all substantial development.
+Repository instructions, orientation, and the thin-index budget remain entirely
+in `AGENTS.md`.
 
-OpenCode's orchestrator, build lead, planner, optional reviewer, command, and
-orchestrator skill follow the same contract. Mandatory model, strategy,
-decomposition, and final-approval questions are gone; primary agents can edit
-directly, reviewer use is conditional, repeated verification is rejected, and
-parallel fan-out normally stops at three workers. All nineteen Claude/OpenCode
-worker profiles carry a bounded-scope and proportional-verification contract.
-The Claude router keeps narrow local work with its primary model and delegates
-only when a fresh specialist context is worth prompting, waiting, and review.
+OpenCode's orchestrator, build lead, read-only planner, reviewer, command, and
+orchestrator skill carry the same lifecycle. Build and plan may invoke the
+reviewer; plan reviews brief text before drafting plan text and never writes or
+implements. The Claude router emits the same gates when enabled, and the Opus
+judgment worker reviews all four artifact kinds read-only. Direct implementation,
+positive-value delegation, bounded fan-out, and proportionate verification
+remain intact.
 
-The profile test exercises the router hook output and copy/symlink installs.
-The verified client baseline is Claude Code 2.0.24 executing and checking a
-focused one-line change directly through the v7 template in about fifteen
-seconds, with no worker or broad suite. The checker Python suite,
-installer/mirror shell suites, and repository v7 gate pass.
+Static profile and installation tests cover every shipped entry point. Real
+Claude Code 2.1.252 traces verify both lanes through installed artifacts: a
+one-word local correction completed in about ten seconds with no subagent or
+work trace, while a public CLI change ordered brief approval before plan
+creation, plan approval before code, then separate milestone and final Opus
+reviews. The final CLI behavior and v8 documentation gate passed.
 
 The optional scope guard remains under the
-[`scope-guard execution plan`](execution-plans/2026-08-26-scope-guard.md). Its
-runtime adapters are still unverified and are not described as working.
+[`scope-guard execution plan`](execution-plans/2026-08-26-scope-guard.md).
+Claude Code's current `MessageDisplay` event carries indexed `delta` batches;
+the adapter now assembles them through `final` before attesting. A real
+main-session `Edit` in non-interactive mode verified one denial, a visible nonce
+reason, and one successful retry. Other runtime and Claude interaction modes
+remain unverified.
 
 ## Unresolved
 
-- Scope-guard capability levels, event ordering, subagent behavior, and bypasses
-  still require real-client verification in all three runtimes.
+- Scope-guard capability levels beyond Claude Code's main-session `-p` `Edit`,
+  including interactive mode, `Write`, resume, subagents, and other runtimes,
+  still require real-client verification.
 - A routed session can still skip creation of its instructed session-memory
   file; the existing directive is not deterministic enforcement.
-- With the shell's `ANTHROPIC_API_KEY` set, non-interactive Claude prompts time
-  out. Subscription auth succeeded in the primary session but an independent
-  critic environment reported `Not logged in`; `claude doctor` separately
-  reports HTTP 401 for remote managed settings. Authentication availability is
-  environment-specific. The OpenCode executable is unavailable, so the new
-  orchestration behavior has install-level but no real-client proof.
+- The shell's `ANTHROPIC_API_KEY` takes precedence over the working Claude
+  subscription login and leaves non-interactive requests at zero API tokens;
+  removing that variable for the process restores normal client execution.
+  The OpenCode executable is unavailable, so its new orchestration behavior has
+  install-level but no real-client proof.
 - Codex has no kit-installed global primary profile. Its doc workflows load the
   managed harness contract explicitly, while general sessions remain governed
   by Codex's user-owned global and project `AGENTS.md` chain.
 
 ## Next
 
-- Repair or remove the stale Claude API-key configuration and normalize
-  subscription login across execution environments. Install OpenCode before
-  claiming the new orchestration path has been exercised in the client.
+- Remove the stale Claude API-key configuration at its owning shell-config
+  source and install OpenCode before claiming its orchestration path has been
+  exercised in the client.
 - Complete the remaining scope-guard implementation plan, then run the installed
   clients through the same activation and write flows operators use.
 - Record measured capability levels and limitations in

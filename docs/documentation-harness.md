@@ -51,8 +51,8 @@ the command output it claims to have produced.
   to durable knowledge. Its 200-line budget is entirely project content.
 - Root `CLAUDE.md` is the configured harness-managed entry point. It is an exact
   copy of the installed versioned template: generic protocol, engineering-lead
-  operating contract, inline scope, and `@AGENTS.md`. Repositories never
-  customize it.
+  operating contract, reviewed delivery flow, inline scope, and `@AGENTS.md`.
+  Repositories never customize it.
 - `docs/README.md` routes readers without duplicating the index.
 - Durable documents describe verified, long-lived facts.
 - `docs/active-context.md` is a volatile snapshot of current state, unresolved
@@ -63,9 +63,9 @@ the command output it claims to have produced.
   the decision, the approach — one dated file each. They carry no lifecycle
   metadata; state lives only in the paired execution plan.
 
-## Managed entry point and document scopes (harness v7)
+## Managed entry point and document scopes (harness v8)
 
-Harness v7 retains the v6 machine-readable statement of
+Harness v8 retains the v6 machine-readable statement of
 purpose and boundary:
 
 ```markdown
@@ -239,9 +239,10 @@ changing repository documentation.
 
 An authorized docs migration changes only harness-owned metadata and structure,
 preserves repository knowledge, writes the new version last, and must finish
-with a clean mechanical gate. The v6-to-v7 migration replaces only the exact
-managed `CLAUDE.md` template and advances the profile after the new
-engineering-lead contract is present. The explicit v5-to-v6 migration preserves the
+with a clean mechanical gate. The v7-to-v8 migration replaces only the exact
+managed `CLAUDE.md` template and advances the profile after the reviewed
+delivery flow is present. The v6-to-v7 migration similarly introduced the
+engineering-lead contract. The explicit v5-to-v6 migration preserves the
 complete old project index in root `AGENTS.md`, replaces root `CLAUDE.md` with
 the canonical template, removes the obsolete sidecar, swaps the profile paths,
 and stops before mutation on a conflicting non-empty `AGENTS.md`. An explicitly
@@ -289,6 +290,30 @@ missing pair retroactively in-session (it holds the transcript that says what
 the work was and why); a delegated critic reports the absence instead of
 inventing content; the mechanical gate reports undated trace filenames as an
 advisory, never a failure.
+
+## Reviewed delivery lifecycle
+
+The managed primary-agent contract divides implementation into two lanes. The
+fast path is available only for a local, obvious, reversible change that alters
+no public contract, behavior boundary, persistent data, security posture,
+dependency graph, or migration, needs neither decomposition nor delegation,
+and can be established by one focused real check.
+
+Every other development request is substantial. Its brief is written and
+independently reviewed before planning begins; its milestone plan is written
+and independently reviewed before implementation begins. A `REVISE` verdict
+blocks the next stage until its blocking findings are repaired and re-reviewed.
+`FAST_PATH` is valid at brief or plan review only when the reviewer demonstrates
+every fast-path criterion. `BLOCKED` is reserved for a product decision,
+material risk, irreversible or external action, or missing authority that needs
+the CTO.
+
+Implementation proceeds through the smallest independently reviewable
+milestones. Each milestone review must pass before dependent work starts, and
+a separate final review exercises the integrated result through the final-user
+path. A runtime without fresh subagents performs an explicit separate review
+pass and reports that limitation instead of silently omitting review. These are
+internal engineering gates, not CTO approval checkpoints.
 
 ## Session memory, rotation, and worker reports
 
