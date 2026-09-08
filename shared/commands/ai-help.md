@@ -1,70 +1,42 @@
 ---
-description: List everything mrcall-ai-kit actually has installed right now — commands, skills, and agents, with their descriptions — instead of a static list that goes stale.
-allowed-tools: Bash(ls *) Bash(cat *) Bash(test *) Bash(grep *) Read Glob
+description: List what mrcall-ai-kit has installed for the runtime you are in right now — commands, skills and agents, read from disk. Pass `all` to include the other runtimes.
+allowed-tools: Bash(bash *)
 ---
 
-Report what is installed, by looking at the filesystem — never from memory of
-what the kit "usually" ships, since that drifts the moment a piece is added or
-removed. Read the `description` (and, for agents, `model`) out of each file's
-YAML frontmatter; do not paraphrase it.
+Print the block below verbatim and stop. Do not re-read any file, do not
+re-describe an entry, do not add a summary, a recommendation, or a closing line.
+The listing is already formatted; relaying it is the whole job, and anything you
+add is a description of the inventory rather than the inventory.
 
-## Detect which environments are present
+Argument: `$ARGUMENTS` — empty for this runtime only, `all` for every runtime
+installed on this machine.
 
-!`test -d ~/.claude && echo "Claude Code: ~/.claude"`
-!`test -d ~/.config/opencode && echo "OpenCode: ~/.config/opencode"`
-!`test -d ~/.agents/skills && echo "Codex: ~/.agents/skills"`
+!`bash -s -- "$ARGUMENTS" <<'INV'
+d(){ awk -F'description: ' '/^description:/{print $2; exit}' "$1" | sed 's/[.!?] .*/./; s/^\(.\{110\}\).*/\1…/'; }
+here="Codex"; [ -n "${CLAUDECODE:-}" ] && here="Claude Code"; [ -n "${OPENCODE:-}${OPENCODE_BIN_PATH:-}" ] && here="OpenCode"
+[ "$1" = all ] && here=all
+show(){ [ "$here" = all ] || [ "$here" = "$1" ]; }
+tbl(){ printf '\n**%s**\n\n| name | what it is |\n|---|---|\n' "$1"; }
+for e in "Claude Code|$HOME/.claude" "OpenCode|$HOME/.config/opencode"; do
+  n=${e%%|*}; p=${e#*|}; show "$n" || continue
+  if compgen -G "$p/commands/*.md" >/dev/null; then tbl "$n — commands (type /<name>)"
+    for f in "$p"/commands/*.md; do printf '| %s | %s |\n' "$(basename "$f" .md)" "$(d "$f")"; done; fi
+  if compgen -G "$p/skills/*/SKILL.md" >/dev/null; then tbl "$n — skills (model-invoked)"
+    for f in "$p"/skills/*/SKILL.md; do printf '| %s | %s |\n' "$(basename "$(dirname "$f")")" "$(d "$f")"; done; fi
+  if compgen -G "$p/agents/*.md" >/dev/null; then printf '\n**%s — agents**\n\n| name | model | what it is |\n|---|---|---|\n' "$n"
+    for f in "$p"/agents/*.md; do printf '| %s | `%s` | %s |\n' "$(basename "$f" .md)" "$(awk -F"model: " "/^model:/{print \$2; exit}" "$f")" "$(d "$f")"; done; fi
+done
+if show Codex && compgen -G "$HOME/.agents/skills/*/SKILL.md" >/dev/null; then tbl "Codex — skills (ask by name or by the trigger in its description)"
+  for f in "$HOME"/.agents/skills/*/SKILL.md; do printf '| %s | %s |\n' "$(basename "$(dirname "$f")")" "$(d "$f")"; done; fi
+printf '\nrouter: '; [ -f "$HOME/.config/mrcall-ai-kit/router.on" ] && printf 'flag ON' || printf 'flag off'
+grep -q router-hook "$HOME/.claude/settings.json" 2>/dev/null && printf ', hook registered\n' || printf ', hook not registered\n'
+[ "$here" = all ] || printf '\nShowing %s only. `/ai-help all` for every runtime.\n' "$here"
+INV`
 
-Only report on environments that exist. If none do, say the kit does not
-appear to be installed and point to `./install.sh` in the mrcall-ai-kit repo.
+Descriptions are truncated to one line on purpose: this is an index, and an
+entry that needs more than a line is asking to be opened, not summarised here.
+Where an entry declares its own trigger, that trigger is in its own description
+— open the entry rather than restating it here.
 
-## For each present environment, enumerate
-
-- **Commands** (`<env>/commands/*.md`, Claude Code and OpenCode only — Codex
-  has no commands dir): for each file, read its frontmatter `description`.
-- **Skills**: Claude Code and OpenCode at `<env>/skills/*/SKILL.md`; Codex at
-  `<env>/*/SKILL.md` — its env root (`~/.agents/skills`) already IS the skills
-  directory, with no nested `skills/` subfolder. For each skill directory,
-  read its `SKILL.md` frontmatter `description`.
-- **Agents** (`<env>/agents/*.md`, Claude Code and OpenCode only): for each
-  file, read `description` and `model`.
-
-## How each category is called
-
-A name without its calling form is half an inventory, and the forms differ per
-environment. State this once, above the tables, for the environments present:
-
-- Claude Code and OpenCode commands are typed by the operator: `/<name>`.
-- Codex has no commands directory. Everything there is a skill, which the model
-  loads when the operator asks for it — by name, or by whatever trigger the
-  skill's own `description` declares.
-- Skills are model-invoked by definition. Claude Code additionally offers its
-  typed commands to the model the same way, and OpenCode reads
-  `~/.agents/skills` as well, so on those runtimes a name can also fire without
-  the operator typing anything.
-
-Where an entry's `description` names its own trigger, quote that trigger — it is
-the calling form, and it is the one thing the operator cannot guess from a name.
-
-This is calling convention, not a tutorial: nothing about what any individual
-entry does.
-
-## Router state (Claude Code only)
-
-!`test -f ~/.config/mrcall-ai-kit/router.on && echo "router flag: ON" || echo "router flag: off"`
-!`test -f ~/.claude/settings.json && grep -q router-hook ~/.claude/settings.json 2>/dev/null && echo "router hook: registered" || echo "router hook: not registered"`
-
-Report both lines as-is; if the router command/agents aren't installed at
-all, skip this section rather than explaining what the router is.
-
-## Output shape
-
-One compact table per category (Commands / Skills / Agents), each row
-`name — description`, grouped by environment when more than one is present.
-Close with the router state lines (if applicable) and, only if this session
-is running inside the mrcall-ai-kit repo itself, a pointer to
-`docs/documentation-harness.md` for the full contract — otherwise omit that
-line rather than guessing a path.
-
-Keep it a reference listing, not a tutorial: no walkthroughs of how to use
-each thing, one line per item is enough. Someone asking "what do I have" wants
-the inventory, not the manual.
+If the block above is empty, the kit is not installed for this runtime; point at
+`./install.sh` in the mrcall-ai-kit repo and say nothing else.
