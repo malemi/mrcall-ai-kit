@@ -34,16 +34,19 @@ A name without its calling form is half an inventory, and the forms differ per
 environment. State this once, above the tables, for the environments present:
 
 - Claude Code and OpenCode commands are typed by the operator: `/<name>`.
-- Codex has no commands directory. Everything there is a skill, which the
-  operator asks for by name in an ordinary message — "use the nr skill" — and
-  the model then loads.
+- Codex has no commands directory. Everything there is a skill, which the model
+  loads when the operator asks for it — by name, or by whatever trigger the
+  skill's own `description` declares.
 - Skills are model-invoked by definition. Claude Code additionally offers its
   typed commands to the model the same way, and OpenCode reads
   `~/.agents/skills` as well, so on those runtimes a name can also fire without
   the operator typing anything.
 
-This is calling convention, not a tutorial: three lines, no examples beyond the
-one above, and nothing about what any individual entry does.
+Where an entry's `description` names its own trigger, quote that trigger — it is
+the calling form, and it is the one thing the operator cannot guess from a name.
+
+This is calling convention, not a tutorial: nothing about what any individual
+entry does.
 
 ## Router state (Claude Code only)
 
