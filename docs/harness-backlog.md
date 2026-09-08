@@ -21,6 +21,18 @@ someone checks, a worker that stops one step short costs a full re-run. The
 check is cheap and it settles whether this is a gap in the protocol or a limit
 of the platform.
 
+## OPEN — scope-guard installs its Claude command to a destination twice
+
+**Logged**: 2026-09-08. `install.sh:293` sweeps `claude/commands/` wholesale
+under the router feature, and `:303` adds `claude/commands/scope-guard.md`
+explicitly under the scope-guard feature. Selecting both with `--on-exist
+backup` therefore installs the file, then moves it to `.bak` on the second pass
+and installs it again, leaving one stray backup and two manifest entries for one
+destination. Present at `HEAD` and unrelated to the feature that surfaced it;
+the `shortcuts` feature avoids the same shape by keeping its sources outside
+every swept directory. The fix is the `$DO_DOC ||` guard pattern already used
+for `worker-fable` at `:296`, or moving the source out of the sweep.
+
 ## Oversized docs — reviewed
 
 One line per document the gate's oversized advisory has named, with the verdict

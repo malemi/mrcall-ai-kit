@@ -29,7 +29,9 @@ for mode in copy symlink; do
   fi
   # doc-harness was not selected: none of its commands should be present.
   test ! -e "$test_home/.claude/commands/doc-start.md"
-  grep -q 'Use the direct fast path only when every condition holds' "$hook"
+  # The installed file is really this hook, not another router artifact that
+  # merely names the flag: MEMORY_NOTE is what only this file carries.
+  grep -q 'MEMORY_NOTE' "$hook" || { echo "installed file is not the router hook" >&2; exit 1; }
 done
 echo "router install (Claude Code alone): PASS"
 
@@ -76,23 +78,24 @@ out="$(HOME="$dormant_home" printf '{}' | HOME="$dormant_home" python3 "$KIT_DIR
 flag_home="$TEST_ROOT/flag-home"
 mkdir -p "$flag_home/.config/mrcall-ai-kit"
 touch "$flag_home/.config/mrcall-ai-kit/router.on"
-out="$(HOME="$flag_home" printf '{"session_id":"t1","cwd":"/nonexistent-xyz","transcript_path":"/tmp/t.jsonl"}' | HOME="$flag_home" python3 "$KIT_DIR/claude/scripts/router-hook.py")"
-[[ "$out" == *"Router mode is ON"* ]] || { echo "expected routing directive, got: $out" >&2; exit 1; }
-[[ "$out" == *"Do not plan until its verdict is APPROVED"* ]] || { echo "expected brief review gate, got: $out" >&2; exit 1; }
-[[ "$out" == *"Do not delegate or begin implementation until its verdict is APPROVED"* ]] || { echo "expected plan review gate, got: $out" >&2; exit 1; }
-[[ "$out" == *"separate final end-to-end review"* ]] || { echo "expected final review gate, got: $out" >&2; exit 1; }
-[[ "$out" == *"APPROVED, REVISE, FAST_PATH, or BLOCKED"* ]] || { echo "expected bounded review verdicts, got: $out" >&2; exit 1; }
-[[ "$out" != *"Session memory"* ]] || { echo "expected no memory note without a docs/ dir, got: $out" >&2; exit 1; }
+out="$(HOME="$flag_home" printf '{"session_id":"t1","cwd":"/nonexistent-xyz","transcript_path":"/tmp/t.jsonl"}' | HOME="$flag_home" python3 "$KIT_DIR/claude/scripts/router-hook.py"; printf .)"
+# The flag is on but no docs/ tree is in reach, so the hook has no path to name
+# and prints nothing at all -- not even a blank line, which would reach the model
+# as context that says nothing. The standing contract lives in the managed
+# CLAUDE.md and in each worker agent's description, not in this output.
+# The trailing dot is the sentinel: `$( )` strips trailing newlines, so without
+# it a single blank line would be indistinguishable from no output.
+[[ "$out" == "." ]] || { echo "expected no output without a docs/ dir, got: $out" >&2; exit 1; }
 
 docs_home="$TEST_ROOT/docs-home"
 mkdir -p "$docs_home/.config/mrcall-ai-kit" "$docs_home/repo/docs"
 touch "$docs_home/.config/mrcall-ai-kit/router.on"
 out="$(HOME="$docs_home" bash -c "printf '{\"session_id\":\"t1\",\"cwd\":\"$docs_home/repo\",\"transcript_path\":\"/tmp/t.jsonl\"}' | python3 '$KIT_DIR/claude/scripts/router-hook.py'")"
 [[ "$out" == *"Session memory"* ]] || { echo "expected memory note with a docs/ dir, got: $out" >&2; exit 1; }
-[[ "$out" == *"docs/sessions/t1.md"* ]] || { echo "expected the session file path in the directive, got: $out" >&2; exit 1; }
-echo "router-hook.py dormancy + injection: PASS"
+[[ "$out" == *"docs/sessions/t1.md"* ]] || { echo "expected the session file path in the memory note, got: $out" >&2; exit 1; }
+echo "router-hook.py dormancy + memory note: PASS"
 
-# One routed turn: <home> <payload> -> the directive the hook prints.
+# One routed turn: <home> <payload> -> the memory note the hook prints.
 hook_run() { printf '%s' "$2" | HOME="$1" python3 "$KIT_DIR/claude/scripts/router-hook.py"; }
 
 # ── the session path is pinned: a cd mid-session must not move it ──────────

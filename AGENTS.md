@@ -79,12 +79,14 @@ overview lives in [`README.md`](README.md).
 
 ### Layout
 
-- `shared/` — source workflows, `doc-check.py` gate, `CLAUDE.md` template, and
-  `doc-critic` skill.
+- `shared/` — source workflows, `doc-check.py` gate, `CLAUDE.md` template,
+  `doc-critic` skill, and `shortcuts/` (the `nr` and `av` instruction overrides
+  an operator pulls on demand).
 - `claude/` — Claude Code-only: pinned-model worker agents the doc workflows
   delegate to, plus the opt-in model router (`commands/router.md`,
   `scripts/router-hook.py`).
-- `codex/` — Codex-native skill entry points for the shared doc workflows.
+- `codex/` — Codex-native skill entry points for the shared doc workflows and
+  for the shortcuts, which Codex has no operator-typed command form for.
 - `opencode/` — OpenCode-only: orchestration, worker agents, watchdog, and
   migration tooling.
 - `install.sh` / `uninstall.sh` — global installer / uninstaller.

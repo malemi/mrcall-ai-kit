@@ -56,13 +56,37 @@ and copies alike.
 - **`doc-start`** — run this to begin a work session.
 - **`doc-end`** — run this to close one; the notes get corrected to match
   reality.
-- **`/router`** (Claude Code) — keeps small work local and routes substantial
-  work to a fitting specialist when delegation is worthwhile.
+- **`nr`** — answer one question right now: no tools, no subagents, no work
+  trace, no review gates, for that turn only.
+- **`av`** — restate the engineering-lead stance on demand.
+- **`/router`** (Claude Code) — opt-in hook; once on, it prints this session's
+  shared-memory path, and nothing else, on each prompt of a session that has a
+  `docs/` tree in reach, so the session and any worker it delegates to read and
+  update the same living log. Toggle with on/off/status/sweep/unregister.
 - **`/ai-help`** (Claude Code) — the current, accurate list of everything
   installed.
 - **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
   directly or delegates bounded work when coordination pays off.
 - **`/migrate-check`** (OpenCode) — checks a move over from Claude Code.
+
+`nr` and `av` are typed slash commands on Claude Code and OpenCode (`/nr`,
+`/av`). On Codex they ship as model-invoked skills instead, because Codex
+0.150.1 has no operator-typed prompt directory: the operator asks for `nr` or
+`av` by name and Codex decides whether to run it.
+
+Typing the command is not always the only way either one can fire. Claude Code
+offers every installed command to the model as something it may invoke on its
+own judgement, using the command's own description, so on Claude Code both are
+reachable without the operator typing anything. On Codex that is the only way
+they work at all. OpenCode does not expose a typed command to the model — but it
+does read `~/.agents/skills/`, the directory the Codex install writes to, so an
+operator who installed for Codex as well as OpenCode gets the model-invocable
+form there too.
+
+Both descriptions therefore instruct the model to run them only on an explicit
+by-name request. That instruction is the guarantee, and an instruction is weaker
+than a mechanism: nothing prevents a model from suspending its own tools and
+checks except its willingness to follow that line.
 
 There's also a **memory** — a short, current account of a project, and of
 each session, that keeps itself up to date — and **agents**: AI helpers

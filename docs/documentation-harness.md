@@ -282,8 +282,8 @@ This does not claim a universal Codex primary profile. The kit deliberately
 does not overwrite Codex's user-owned global `~/.codex/AGENTS.md`; outside a
 workflow that reads managed `CLAUDE.md`, ordinary Codex behavior follows the
 operator's global and project `AGENTS.md` chain. OpenCode orchestration has its
-own installed primary profiles, while Claude receives the contract directly
-from managed `CLAUDE.md` and, when enabled, the router directive.
+own installed primary profiles, while Claude receives the contract from managed
+`CLAUDE.md` and from each worker agent's `description`.
 
 Enforcement is layered like the living-context shape: `doc-end` creates a
 missing pair retroactively in-session (it holds the transcript that says what

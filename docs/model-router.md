@@ -23,9 +23,11 @@ answers trivial prompts and performs narrow local work itself. It delegates
 only bounded substantive work when the value of a fresh specialist context is
 greater than prompting, waiting, and review: `worker-sonnet` for execution,
 `worker-opus` for hard judgment, and `worker-fable` for explicitly requested or
-genuinely frontier-hard work. Because a subagent starts with a fresh context,
-delegation without continuity loses whatever the previous worker understood —
-so a routed session gets a shared-memory file,
+genuinely frontier-hard work. That contract reaches the session from the managed
+`CLAUDE.md` and from each worker agent's own `description`, both of which a
+session already holds; the hook does not restate it. Because a subagent starts
+with a fresh context, delegation without continuity loses whatever the previous
+worker understood — so a routed session gets a shared-memory file,
 `docs/sessions/<session-id>.md`, the same kind of object as
 `docs/active-context.md`: a living snapshot, never a log, same anti-drift
 discipline, same repo, readable with `cat`.
@@ -51,7 +53,7 @@ names a path, it never creates one.
 **Who writes it, and when**: whoever answers the turn, at their own
 discretion — not the classifying model. The model that did the work is the
 only one that knows what was worth recording; a trivial turn correctly writes
-nothing. The write protocol travels in the hook's injected directive and in
+nothing. The write protocol travels in the hook's injected note and in
 delegation prompts, so no worker definition changes for this.
 
 **Lifecycle**: a session file's frontmatter `status` is `open` until `/doc-end`
@@ -147,8 +149,8 @@ omits what was not checked is worse than a long one that admits it.
 your own words, and never paste the report verbatim. The caller owns routine
 technical decisions, failure recovery, integration, and the final synthesis;
 worker output is evidence, not something to forward to the operator. This rule
-travels in the router's injected directive because it binds the caller and not
-the worker.
+binds the caller rather than the worker, so it lives in the managed `CLAUDE.md`
+the caller already holds, not in a worker definition.
 
 **Enforcement is asymmetric, and the asymmetry is deliberate.** On OpenCode,
 `post_task_gate.py` already runs after every `task()` return and already parses

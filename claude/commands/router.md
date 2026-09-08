@@ -65,9 +65,10 @@ registered".
 3. `mkdir -p ~/.config/mrcall-ai-kit && touch ~/.config/mrcall-ai-kit/router.on`.
 4. Print `Router: on.` — then, only when this run added the registration,
    `Restart the session.` on its own line, because until then the router does
-   nothing. Then one line: it works only on a Haiku session (`/model haiku`,
-   or launch with `claude --model claude-haiku-4-5`) — on any other model it
-   is a no-op. That is the whole output: three lines at most, usually one.
+   nothing. Then one line: it is designed around a Haiku session (`/model
+   haiku`, or launch with `claude --model claude-haiku-4-5`) delegating to
+   pinned workers, though the hook itself runs on any model. That is the whole
+   output: three lines at most, usually one.
 
 ## `off`
 

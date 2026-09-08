@@ -6,10 +6,15 @@ Registered once by `/router on` in `~/.claude/settings.json`, but inert by
 default: the first thing it does is check for the flag file `/router`
 toggles, and if that is absent it exits with no output and no stdin read —
 one `Path.exists()` call, on every prompt of every session, whether or not the
-router is in use. When the flag is present, it prints the engineering-lead and
-selective-routing directive and names
-this session's shared-memory file so delegated workers have continuity across
-turns.
+router is in use. When the flag is present, it prints exactly one thing: the
+path of this session's shared-memory file, so delegated workers have continuity
+across turns.
+
+That path is the only thing this hook knows and no static file can carry. The
+standing engineering-lead contract — the delivery lanes, the routing choices,
+the review gates — lives in the managed `CLAUDE.md` a repository installs and in
+the `description` field of each worker agent, both of which a session already
+holds, so this hook does not restate them.
 
 That file's directory is resolved once per session and then pinned, because the
 payload's `cwd` is the shell's working directory and one `cd` into a sub-repo
@@ -19,7 +24,8 @@ file while the real snapshot sits in another repository. The pin is a one-line
 record under `~/.config/mrcall-ai-kit/sessions/`; it is written on the first
 routed turn of a session and read on every turn after that, so the path is
 decided by where the session began and not by where it currently is. A session
-with no docs/ tree in reach at all gets the routing directive by itself.
+with no docs/ tree in reach at all gets no output at all — an empty line would
+otherwise reach the model as context that says nothing.
 
 Plain stdout on exit 0 is treated by Claude Code as additional context for the
 model — no JSON envelope needed for that. This script never calls another
@@ -39,60 +45,12 @@ FLAG = KIT_STATE / "router.on"
 PIN_DIR = KIT_STATE / "sessions"
 PIN_MAX_AGE_S = 30 * 24 * 60 * 60
 # A session id is a UUID; anything that is not a plain filename-safe token is
-# refused, because it is interpolated into both a path and the printed directive.
+# refused, because it is interpolated into both a path and the printed note.
 SAFE_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
 
-DIRECTIVE = """\
-Router mode is ON. Act as the engineering lead reporting to the human CTO.
-Optimize for the CTO's attention and elapsed delivery time. Resolve ordinary,
-reversible technical decisions from repository evidence; ask only for missing
-product intent, material risk, irreversible/external action, or authority.
+MEMORY_NOTE = """Session memory: `{path}`. Create it if missing (frontmatter: status open, session_id, started, repo; then a one-line description). Whoever answers the turn updates it at their own discretion -- a living snapshot of goal, decisions, and open threads; replace stale content, never append a log.
 
-Choose the fastest safe execution path:
-- greetings, acknowledgements, and quick factual answers -> answer directly, briefly, with no tools;
-- narrow local implementation or lookup -> do it directly when delegation would cost as much as the work;
-- bounded substantive implementation with useful context isolation -> delegate to worker-sonnet;
-- hard analysis, debugging, or design that benefits from a fresh expert context -> delegate to worker-opus;
-- explicitly requested Fable or genuinely frontier-hard, long-horizon work -> delegate to worker-fable.
-
-Delegate only when the benefit exceeds prompting, waiting, and review. Match
-investigation and verification to risk and blast radius; do not turn a focused
-change into a broad audit or full-suite run without evidence that it is needed.
-
-Use the direct fast path only when every condition holds: the change is local,
-obvious, and reversible; changes no public contract, behavior boundary,
-persistent data, security posture, dependency graph, or migration; needs no
-decomposition or delegation; and one focused real check can prove it.
-
-Otherwise enforce the reviewed delivery lifecycle before implementation:
-1. Write or resume the brief, then launch a fresh worker-opus to review it.
-   Do not plan until its verdict is APPROVED; fix blocking REVISE findings and
-   re-review.
-2. Write the milestone plan, then launch a fresh worker-opus to review it.
-   Do not delegate or begin implementation until its verdict is APPROVED.
-3. Implement the smallest independently reviewable milestone, using the routing
-   choices above only when delegation has positive value. Launch a fresh
-   worker-opus integration review before dependent work begins; never bundle
-   independent changes to evade a gate.
-4. After all milestone verdicts are APPROVED, launch a different fresh worker-opus
-   for a separate final end-to-end review through the final-user
-   path, then reconcile the work trace.
-
-worker-opus verdicts are bounded to APPROVED, REVISE, FAST_PATH, or BLOCKED.
-FAST_PATH is allowed only at brief or plan review and must prove every strict
-criterion above; it skips the remaining artifact and independent review gates.
-Only blocking REVISE findings halt progress. BLOCKED is only for unresolved
-product intent, material risk, irreversible/external action, or missing
-authority. Reviews are internal engineering gates, never CTO approval prompts.
-
-Deliver closed: solve in-scope problems, synthesize worker results yourself,
-and do not end with an unowned finding or permission request for work that was
-already yours. Escalate only after safe relevant paths are exhausted."""
-
-MEMORY_NOTE = """
-Session memory: `{path}`. Create it if missing (frontmatter: status open, session_id, started, repo; then a one-line description). Whoever answers the turn updates it at their own discretion -- a living snapshot of goal, decisions, and open threads; replace stale content, never append a log.
-
-When delegating: tell the worker to read the session file first, give it the question plus any context not yet recorded there, and have it append durable findings back before it reports. Relay the worker's verdict and its evidence path faithfully, in your own words; never paste its report verbatim. Continue the same worker for ordinary follow-ups and a revision at the same review gate. Start a fresh worker-opus for each new brief, plan, milestone, or final review gate."""
+When delegating: tell the worker to read this file first, give it the question plus any context not yet recorded there, and have it append durable findings back before it reports."""
 
 
 def session_rel(session_id: str) -> Path:
@@ -116,7 +74,7 @@ def write_pin(session_id: str, base: Path) -> None:
     """Record the pin, and drop records older than a session can plausibly live.
 
     A pin that cannot be stored is not an error worth breaking a prompt over:
-    the directive is still correct for this turn, and the next turn re-resolves.
+    the note is still correct for this turn, and the next turn re-resolves.
     """
     try:
         PIN_DIR.mkdir(parents=True, exist_ok=True)
@@ -205,15 +163,15 @@ def main() -> int:
     if not cwd.is_absolute():
         cwd = Path.cwd() / cwd
 
-    directive = DIRECTIVE
-    if isinstance(session_id, str) and SAFE_ID.fullmatch(session_id):
-        base, decided_now = resolve_base(session_id, cwd, payload.get("transcript_path"))
-        if base is not None:
-            if decided_now:
-                write_pin(session_id, base)
-            directive += "\n" + MEMORY_NOTE.format(path=base / session_rel(session_id))
+    if not (isinstance(session_id, str) and SAFE_ID.fullmatch(session_id)):
+        return 0
+    base, decided_now = resolve_base(session_id, cwd, payload.get("transcript_path"))
+    if base is None:
+        return 0  # no path to name, so nothing to say: not even a blank line
 
-    print(directive)
+    if decided_now:
+        write_pin(session_id, base)
+    print(MEMORY_NOTE.format(path=base / session_rel(session_id)))
     return 0
 
 

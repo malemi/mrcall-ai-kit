@@ -25,10 +25,23 @@ in `AGENTS.md`.
 OpenCode's orchestrator, build lead, read-only planner, reviewer, command, and
 orchestrator skill carry the same lifecycle. Build and plan may invoke the
 reviewer; plan reviews brief text before drafting plan text and never writes or
-implements. The Claude router emits the same gates when enabled, and the Opus
-judgment worker reviews all four artifact kinds read-only. Direct implementation,
-positive-value delegation, bounded fan-out, and proportionate verification
-remain intact.
+implements. The Opus judgment worker reviews all four artifact kinds read-only.
+Direct implementation, positive-value delegation, bounded fan-out, and
+proportionate verification remain intact.
+
+Standing instructions are pulled, not pushed. The router hook prints one thing —
+this session's shared-memory path — and prints nothing at all when no `docs/`
+tree is in reach; the contract itself reaches a session through managed
+`CLAUDE.md` and each worker agent's `description`. Two installed shortcuts pull
+an instruction on demand: `nr` answers one question with no tool, subagent, work
+trace or review gate, refusing to guess and refusing an action request, and `av`
+restates the engineering-lead stance. Both are typed commands on Claude Code and
+OpenCode and model-invoked skills on Codex, which has no operator-typed prompt
+directory. Claude Code also offers its typed commands to the model itself, and
+OpenCode reads the Codex skills directory, so on a Codex-inclusive install every
+runtime can reach them without the operator typing anything. Each description
+therefore carries a run-only-when-asked instruction — an instruction, not a
+mechanism.
 
 Static profile and installation tests cover every shipped entry point. Real
 Claude Code 2.1.252 traces verify both lanes through installed artifacts: a
@@ -51,12 +64,18 @@ remain unverified.
   including interactive mode, `Write`, resume, subagents, and other runtimes,
   still require real-client verification.
 - A routed session can still skip creation of its instructed session-memory
-  file; the existing directive is not deterministic enforcement.
+  file; the injected note is not deterministic enforcement.
+- Nothing prevents a model from invoking `nr` on its own judgement and thereby
+  suspending its own tools and checks, wherever the model-invocable form is
+  installed. The guard is the description's run-only-when-asked instruction.
+- OpenCode's orchestration behavior has install-level but no real-client proof;
+  the shortcuts are verified there, the orchestrator agents are not.
 - The shell's `ANTHROPIC_API_KEY` takes precedence over the working Claude
   subscription login and leaves non-interactive requests at zero API tokens;
   removing that variable for the process restores normal client execution.
-  The OpenCode executable is unavailable, so its new orchestration behavior has
-  install-level but no real-client proof.
+- `install.sh` installs `claude/commands/scope-guard.md` to one destination
+  twice when the router and scope-guard features are selected together; see
+  [`harness-backlog.md`](harness-backlog.md).
 - Codex has no kit-installed global primary profile. Its doc workflows load the
   managed harness contract explicitly, while general sessions remain governed
   by Codex's user-owned global and project `AGENTS.md` chain.
@@ -64,8 +83,8 @@ remain unverified.
 ## Next
 
 - Remove the stale Claude API-key configuration at its owning shell-config
-  source and install OpenCode before claiming its orchestration path has been
-  exercised in the client.
+  source, so non-interactive client runs stop needing the variable cleared for
+  the process.
 - Complete the remaining scope-guard implementation plan, then run the installed
   clients through the same activation and write flows operators use.
 - Record measured capability levels and limitations in

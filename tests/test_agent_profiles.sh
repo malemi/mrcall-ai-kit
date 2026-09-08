@@ -31,7 +31,8 @@ grep -q "CTO" "$skill"
 grep -q "CTO" "$template"
 grep -q 'Never delegate a trivial local edit' "$primary"
 grep -q 'Do not delegate a trivial local edit' "$skill"
-grep -q 'never delegate a trivial local edit' "$template"
+grep -q 'never delegate a trivial local edit' "$template" \
+  || fail "template lost the trivial-delegation guard"
 
 for banned in \
   'FIRST action must be to call the `question` tool' \
@@ -80,25 +81,37 @@ echo "OpenCode primaries and reviewer enforce the reviewed delivery lifecycle: P
 router_home="$TEST_ROOT/router-home"
 mkdir -p "$router_home/.config/mrcall-ai-kit"
 touch "$router_home/.config/mrcall-ai-kit/router.on"
-directive="$(printf '{"session_id":"tiny","cwd":"/nonexistent","transcript_path":"/tmp/tiny.jsonl"}' \
-  | HOME="$router_home" python3 "$KIT_DIR/claude/scripts/router-hook.py")"
-[[ "$directive" == *"narrow local implementation or lookup -> do it directly"* ]] \
-  || fail "router does not keep narrow work local"
-[[ "$directive" == *"Delegate only when the benefit exceeds prompting, waiting, and review"* ]] \
-  || fail "router lacks positive-value delegation gate"
-[[ "$directive" != *"normal implementation or lookup work -> delegate"* ]] \
-  || fail "router still delegates normal work by default"
-[[ "$directive" == *"Use the direct fast path only when every condition holds"* ]] \
-  || fail "router lacks strict fast-path criteria"
-[[ "$directive" == *"Do not plan until its verdict is APPROVED"* ]] \
-  || fail "router can plan before brief approval"
-[[ "$directive" == *"Do not delegate or begin implementation until its verdict is APPROVED"* ]] \
-  || fail "router can implement before plan approval"
-[[ "$directive" == *"separate final end-to-end review"* ]] \
-  || fail "router lacks separate final review"
-[[ "$directive" == *"APPROVED, REVISE, FAST_PATH, or BLOCKED"* ]] \
-  || fail "router lacks bounded review verdicts"
-echo "router's real hook output keeps narrow work local: PASS"
+# The sentinel is load-bearing: `$( )` strips trailing newlines, so a hook that
+# fell through to a bare `print()` would emit one blank line and still look
+# empty here. Appending a dot makes the difference visible.
+hook_out="$(printf '{"session_id":"tiny","cwd":"/nonexistent","transcript_path":"/tmp/tiny.jsonl"}' \
+  | HOME="$router_home" python3 "$KIT_DIR/claude/scripts/router-hook.py"; printf .)"
+[[ "$hook_out" == "." ]] \
+  || fail "router reprints standing instructions the session already holds"
+echo "router's real hook output carries no standing directive: PASS"
+
+# Those guarantees are not gone: their carrier is the managed template, which
+# every managed repository installs as its own CLAUDE.md and every session
+# therefore already holds. Each assertion below fails if the rule leaves it.
+grep -q 'Implement directly when fastest' "$template" \
+  || fail "template does not keep narrow work local"
+grep -q 'coordination, waiting, and review' "$template" \
+  || fail "template lacks positive-value delegation gate"
+grep -q 'Use the fast path only when every' "$template" \
+  || fail "template lacks strict fast-path criteria"
+grep -q 'Do not plan until it returns' "$template" \
+  || fail "template can plan before brief approval"
+grep -q 'Do not delegate or implement until it' "$template" \
+  || fail "template can delegate or implement before plan approval"
+grep -q 'separate final end-to-end review' "$template" \
+  || fail "template lacks separate final review"
+grep -q 'A review returns exactly one of' "$template" \
+  || fail "template lacks bounded review verdicts"
+# The eighth guarantee — that nothing tells the session to delegate ordinary
+# work by default — is asserted positively at the top of this file, where the
+# template must still say `never delegate a trivial local edit`. Asserting the
+# absence of the hook's old phrasing here would be a test that cannot fail.
+echo "the managed template carries what the router stopped reprinting: PASS"
 
 for mode in copy symlink; do
   test_home="$TEST_ROOT/$mode-home"

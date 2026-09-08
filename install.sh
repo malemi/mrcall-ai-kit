@@ -23,7 +23,7 @@ set -euo pipefail
 #
 # Flags (any provided value skips its prompt):
 #   --environment claude|codex|opencode|all|both
-#   --features    doc-harness,orchestration,workers,migrate,router,scope-guard (or: all)
+#   --features    doc-harness,orchestration,workers,migrate,router,scope-guard,shortcuts (or: all)
 #   --activate-scope-guard claude|codex|opencode|all (explicit hook opt-in)
 #   --mode        symlink|copy
 #   --on-exist    skip|overwrite|backup
@@ -59,8 +59,8 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
                     [--activate-scope-guard RUNTIMES|all]
                     [--yes] [--dry-run] [--help]
 
-  --features: doc-harness, orchestration, workers, migrate, router, scope-guard
-              (comma list, or: all)
+  --features: doc-harness, orchestration, workers, migrate, router, scope-guard,
+              shortcuts (comma list, or: all)
   --activate-scope-guard: explicitly register scope-guard hooks/plugins for a
               comma-separated subset of claude,codex,opencode (or: all).
               --yes and --features scope-guard alone leave it dormant.
@@ -76,6 +76,14 @@ EOF
   echo "     scripts:    doc-check.py + CLAUDE.template.md  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents")  [Claude Code only — pinned-model"
   echo "                 workers the doc-* commands delegate to; installed with doc-harness]"
+  echo
+  echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
+  echo "     commands:   nr, av  (-> ~/.claude/commands/, ~/.config/opencode/commands/)"
+  echo "     nr:         answer one question now — no tools, subagents, work trace, or review gates, for that turn"
+  echo "     av:         restate the engineering-lead stance on demand"
+  echo "     Codex:      nr, av install as model-invoked skills (-> ~/.agents/skills/), not typed commands —"
+  echo "                 Codex has no operator-typed prompt directory; each still runs only when the"
+  echo "                 operator explicitly asks for it by name, which is a weaker guarantee than a typed command"
   echo
   echo "  orchestration  [OpenCode only]"
   echo "     command:    orchestrator     agents: build, plan, reviewer, orchestrator     skill: orchestrator"
@@ -172,7 +180,7 @@ $WANT_CC || $WANT_CODEX || $WANT_OC || { echo "Nothing selected. Exiting." >&2; 
 
 # ── Resolve features (offer OC-only content only if OpenCode is selected) ───
 want_feature() { [[ ",$FEATURES," == *",$1,"* || "$FEATURES" == all ]]; }
-DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false ; DO_SCOPE=false
+DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false ; DO_SCOPE=false ; DO_SHORTCUTS=false
 if [[ -n "$FEATURES" ]]; then
   want_feature doc-harness  && DO_DOC=true
   want_feature orchestration && DO_ORCH=true
@@ -180,6 +188,7 @@ if [[ -n "$FEATURES" ]]; then
   want_feature migrate       && DO_MIGRATE=true
   want_feature router       && DO_ROUTER=true
   want_feature scope-guard  && DO_SCOPE=true
+  want_feature shortcuts    && DO_SHORTCUTS=true
 else
   need_tty_or_flag "--features"
   ask_yn "Install doc-harness (doc-create/start/end + doc-check + doc-critic)? [GLOBAL, cross-tool]" y && DO_DOC=true
@@ -192,6 +201,7 @@ else
     ask_yn "Install the opt-in model router (Haiku session as classifier + pinned workers)? [Claude Code only, dormant until /router on]" n && DO_ROUTER=true
   fi
   ask_yn "Install scope guard (dormant unless activated separately)? [GLOBAL, cross-tool]" n && DO_SCOPE=true
+  ask_yn "Install shortcuts (nr, av — on-demand instruction overrides; typed commands on Claude Code/OpenCode, a model-invoked skill on Codex)? [GLOBAL, cross-tool]" n && DO_SHORTCUTS=true
 fi
 # OC-only features are meaningless without OpenCode selected.
 if ! $WANT_OC && { $DO_ORCH || $DO_WORKERS || $DO_MIGRATE; }; then
@@ -322,6 +332,26 @@ if $WANT_OC; then
     add_one "$SCRIPT_DIR/opencode/skills/migrate-from-cc" "$OC_DIR/skills/migrate-from-cc"
   fi
 fi
+if $DO_SHORTCUTS; then
+  # On-demand instruction overrides (nr, av). Sources live in shared/shortcuts/,
+  # kept out of the shared/commands/ sweep above (doc-harness, :279,288) so this
+  # explicit add can never collide with it under --on-exist backup.
+  if $WANT_CC; then
+    add_one "$SCRIPT_DIR/shared/shortcuts/nr.md" "$CC_DIR/commands/nr.md"
+    add_one "$SCRIPT_DIR/shared/shortcuts/av.md" "$CC_DIR/commands/av.md"
+  fi
+  if $WANT_OC; then
+    add_one "$SCRIPT_DIR/shared/shortcuts/nr.md" "$OC_DIR/commands/nr.md"
+    add_one "$SCRIPT_DIR/shared/shortcuts/av.md" "$OC_DIR/commands/av.md"
+  fi
+  if $WANT_CODEX; then
+    # Codex discovers a symlinked skill directory, but not a real directory
+    # containing symlinked SKILL.md files. Install atomically, same as
+    # doc-harness's Codex skills above.
+    add_one "$SCRIPT_DIR/codex/skills/nr" "$CODEX_SKILLS_DIR/nr"
+    add_one "$SCRIPT_DIR/codex/skills/av" "$CODEX_SKILLS_DIR/av"
+  fi
+fi
 [[ ${#PLAN_SRC[@]} -gt 0 ]] || { echo "Nothing to install. Exiting." >&2; exit 1; }
 
 # ── Preview ────────────────────────────────────────────────────────────────
@@ -398,4 +428,5 @@ if $DO_SCOPE; then
   if $WANT_CODEX && ! $ACTIVATE_CODEX; then echo "  Codex scope guard installed but dormant: invoke the scope-guard skill to activate."; fi
   if $WANT_OC && ! $ACTIVATE_OC; then echo "  OpenCode scope guard installed but dormant: run /scope-guard on to activate."; fi
 fi
+$DO_SHORTCUTS && echo "  Shortcuts installed: /nr and /av on Claude Code/OpenCode; on Codex, ask for the nr or av skill by name."
 $DRY_RUN || echo "  Install log: $MANIFEST  (run ./uninstall.sh to undo exactly these)."
