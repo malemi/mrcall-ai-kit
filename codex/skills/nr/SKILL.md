@@ -1,6 +1,6 @@
 ---
 name: nr
-description: Answer one question right now, with no tools, no subagents, no work trace, and no review gates for that turn — suspends the harness machinery for a single turn, never the gates that govern doing work. Invoke ONLY when the operator explicitly asks for this skill by name (e.g. says "nr"); never self-trigger on a plain question or infer this from context.
+description: Answer one question right now, with no tools, no subagents, no work trace, and no review gates for that turn — suspends the harness machinery for a single turn, never the gates that govern doing work. Invoke ONLY when the operator's message opens with the literal token `$nr`, or explicitly asks for this skill by name; the question is the rest of that message. Never self-trigger on a plain question or infer this from context.
 ---
 
 # nr — answer now, machinery suspended for this turn

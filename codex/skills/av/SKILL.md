@@ -1,6 +1,6 @@
 ---
 name: av
-description: Restate the engineering-lead stance — decide and finish rather than routing problems upward. Use when a session has drifted into asking instead of deciding. Invoke ONLY when the operator explicitly asks for this skill by name (e.g. says "av"); never self-trigger.
+description: Restate the engineering-lead stance — decide and finish rather than routing problems upward. Use when a session has drifted into asking instead of deciding. Invoke ONLY when the operator's message opens with the literal token `$av`, or explicitly asks for this skill by name; any task is the rest of that message. Never self-trigger.
 ---
 
 # av — restate the engineering-lead stance

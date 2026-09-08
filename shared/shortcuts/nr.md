@@ -1,5 +1,5 @@
 ---
-description: Answer one question now — no tools, no subagents, no work trace, no review gates. Suspends the harness machinery for a single turn, never the gates that govern doing work. Run ONLY when the operator asks for it by name; never self-trigger on a plain question or infer it from context.
+description: Answer one question now — no tools, no subagents, no work trace, no review gates. Suspends the harness machinery for a single turn, never the gates that govern doing work. Run ONLY when the operator's message opens with the literal token `$nr`, or asks for it by name; the question is the rest of that message. Never self-trigger on a plain question or infer it from context.
 ---
 
 Answer the question below from what you already know, in this turn, and stop.

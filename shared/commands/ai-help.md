@@ -28,6 +28,23 @@ appear to be installed and point to `./install.sh` in the mrcall-ai-kit repo.
 - **Agents** (`<env>/agents/*.md`, Claude Code and OpenCode only): for each
   file, read `description` and `model`.
 
+## How each category is called
+
+A name without its calling form is half an inventory, and the forms differ per
+environment. State this once, above the tables, for the environments present:
+
+- Claude Code and OpenCode commands are typed by the operator: `/<name>`.
+- Codex has no commands directory. Everything there is a skill, which the
+  operator asks for by name in an ordinary message — "use the nr skill" — and
+  the model then loads.
+- Skills are model-invoked by definition. Claude Code additionally offers its
+  typed commands to the model the same way, and OpenCode reads
+  `~/.agents/skills` as well, so on those runtimes a name can also fire without
+  the operator typing anything.
+
+This is calling convention, not a tutorial: three lines, no examples beyond the
+one above, and nothing about what any individual entry does.
+
 ## Router state (Claude Code only)
 
 !`test -f ~/.config/mrcall-ai-kit/router.on && echo "router flag: ON" || echo "router flag: off"`
