@@ -274,6 +274,10 @@ if $DO_DOC; then
   # One source for the harness-managed repository CLAUDE.md. doc-create and the
   # gate both read this installed artifact; project guidance lives in AGENTS.md.
   add_one "$SCRIPT_DIR/shared/templates/CLAUDE.md" "$KIT_GLOBAL/CLAUDE.template.md"
+  # ai-help emits its own listing from here rather than inline in the command:
+  # Claude Code delimits an injected shell block with backticks, and the script
+  # needs backticks of its own to format a model column.
+  add_one "$SCRIPT_DIR/shared/scripts/ai-help.sh" "$KIT_GLOBAL/ai-help.sh"
   # The doc-* commands delegate to the pinned-model workers, so those agents are
   # part of doc-harness rather than an opt-out: without them the delegation dies.
   $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; add_dir "$SCRIPT_DIR/claude/agents" "$CC_DIR/agents"; }

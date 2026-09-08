@@ -27,6 +27,8 @@ for mode in copy symlink; do
   manifest="$test_home/.config/mrcall-ai-kit/installed.tsv"
   test -f "$template"
   test -f "$checker"
+  # /ai-help calls this from the kit-global home; without it the command is dead.
+  test -f "$test_home/.config/mrcall-ai-kit/ai-help.sh"
   cmp "$KIT_DIR/shared/templates/CLAUDE.md" "$template"
   count="$(awk -F '\t' -v dest="$template" \
     '$3 == dest { count++ } END { print count + 0 }' "$manifest")"
