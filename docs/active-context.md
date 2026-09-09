@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 3bf0173453327f7c9c3cf7579367e31f59b736da
-doc_baseline_date: 2026-09-02
+doc_baseline_commit: d84a4107e9a25ef5eca1755e5199cad0dfb3b51b
+doc_baseline_date: 2026-09-09
 ---
 
 # Active Context
@@ -29,26 +29,35 @@ implements. The Opus judgment worker reviews all four artifact kinds read-only.
 Direct implementation, positive-value delegation, bounded fan-out, and
 proportionate verification remain intact.
 
-Standing instructions are pulled, not pushed. The router hook prints one thing —
-this session's shared-memory path — and prints nothing at all when no `docs/`
-tree is in reach; the contract itself reaches a session through managed
-`CLAUDE.md` and each worker agent's `description`. Two installed shortcuts pull
-an instruction on demand: `nr` answers one question with no tool, subagent, work
-trace or review gate, refusing to guess and refusing an action request, and `av`
-restates the engineering-lead stance. Both are typed commands on Claude Code and
+Standing instructions are pulled, not pushed. The router hook prints only this
+session's shared-memory path and the protocol for using that file, and prints
+nothing at all when no `docs/` tree is in reach; the contract itself reaches a
+session through the managed `CLAUDE.md` and each worker agent's `description`.
+Two installed shortcuts pull an instruction on demand: `nr` answers one question
+with no tool, subagent, work trace or review gate, refusing to guess and
+refusing an action request, and `av` restates the engineering-lead stance. Both are typed commands on Claude Code and
 OpenCode and model-invoked skills on Codex, which has no operator-typed prompt
 directory. Claude Code also offers its typed commands to the model itself, and
 OpenCode reads the Codex skills directory, so on a Codex-inclusive install every
 runtime can reach them without the operator typing anything. Each description
 therefore carries a run-only-when-asked instruction — an instruction, not a
-mechanism.
+mechanism — and declares `$nr` or `$av` at the head of a message as its trigger,
+which on Codex is the only form there is. Both were exercised in all three real
+clients, including the refusal paths and the bare no-argument case.
 
-Static profile and installation tests cover every shipped entry point. Real
-Claude Code 2.1.252 traces verify both lanes through installed artifacts: a
-one-word local correction completed in about ten seconds with no subagent or
-work trace, while a public CLI change ordered brief approval before plan
-creation, plan approval before code, then separate milestone and final Opus
-reviews. The final CLI behavior and v8 documentation gate passed.
+`/ai-help` reads the filesystem and shows the runtime it is running in, with
+`all` for every runtime installed. Its listing comes from
+`shared/scripts/ai-help.sh`, installed beside `doc-check.py` in the kit-global
+home: Claude Code delimits an injected shell block with backticks, so a script
+that formats a model column cannot live inline in the command. Descriptions are
+one line: the cost of that command is the model re-emitting them, not the disk.
+
+Static profile and installation tests cover every shipped entry point, and both
+delivery lanes are verified through installed artifacts in a real Claude Code
+client: a one-word local correction completes in about ten seconds with no
+subagent or work trace, while a public CLI change is held at brief approval
+before planning, at plan approval before code, then at separate milestone and
+final reviews.
 
 The optional scope guard remains under the
 [`scope-guard execution plan`](execution-plans/2026-08-26-scope-guard.md).

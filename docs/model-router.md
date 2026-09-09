@@ -1,10 +1,9 @@
 # The model router: session memory, rotation, and worker reports
 
-The opt-in model router and everything that hangs off it. Split out of
-[`documentation-harness.md`](documentation-harness.md) on 2026-08-25, when that
-document crossed its own size advisory: the doc-harness contract and the
-delegation machinery are two subjects, and only one of them is loaded by a
-session that just wants to know what `/doc-start` does.
+The opt-in model router and everything that hangs off it. The doc-harness
+contract lives in [`documentation-harness.md`](documentation-harness.md): they
+are two subjects, and a session that only wants to know what `/doc-start` does
+should not have to load this one.
 
 ## Session memory (opt-in model router, Claude Code only)
 
@@ -117,13 +116,10 @@ it is the same work session, and in any case the gate accepts exactly `open` or
 does **not** run `/doc-start`. Running it would re-read the durable layer the
 predecessor already paid for and re-establish a baseline that never moved.
 
-**Rotation is manual, in every environment** — decided 2026-08-25. An automatic
-trigger was designed (transcript size as an upper-bound proxy for the window,
-about fifteen lines inside the router hook) and not built, because this kit
-does not grow hook logic its users did not ask for. The consequence is worth
-stating rather than glossing: nothing watches the window, so rotation happens
-when the operator remembers, and the moment it is most needed is the moment
-nobody is watching for it. A late rotation still beats a silent compaction.
+**Rotation is manual, in every environment.** Nothing watches the context
+window: rotation happens when the operator remembers, and the moment it is most
+needed is the moment nobody is watching for it. A late rotation still beats a
+silent compaction.
 
 ## Worker reports and proportional execution
 

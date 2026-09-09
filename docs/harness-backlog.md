@@ -23,15 +23,15 @@ of the platform.
 
 ## OPEN — scope-guard installs its Claude command to a destination twice
 
-**Logged**: 2026-09-08. `install.sh:293` sweeps `claude/commands/` wholesale
-under the router feature, and `:303` adds `claude/commands/scope-guard.md`
+**Logged**: 2026-09-08. `install.sh:297` sweeps `claude/commands/` wholesale
+under the router feature, and `:307` adds `claude/commands/scope-guard.md`
 explicitly under the scope-guard feature. Selecting both with `--on-exist
 backup` therefore installs the file, then moves it to `.bak` on the second pass
 and installs it again, leaving one stray backup and two manifest entries for one
 destination. Present at `HEAD` and unrelated to the feature that surfaced it;
 the `shortcuts` feature avoids the same shape by keeping its sources outside
 every swept directory. The fix is the `$DO_DOC ||` guard pattern already used
-for `worker-fable` at `:296`, or moving the source out of the sweep.
+for `worker-fable` at `:300`, or moving the source out of the sweep.
 
 ## Oversized docs — reviewed
 

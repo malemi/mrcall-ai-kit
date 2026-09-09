@@ -338,7 +338,7 @@ if $WANT_OC; then
 fi
 if $DO_SHORTCUTS; then
   # On-demand instruction overrides (nr, av). Sources live in shared/shortcuts/,
-  # kept out of the shared/commands/ sweep above (doc-harness, :279,288) so this
+  # kept out of the shared/commands/ sweep above (doc-harness, :283,292) so this
   # explicit add can never collide with it under --on-exist backup.
   if $WANT_CC; then
     add_one "$SCRIPT_DIR/shared/shortcuts/nr.md" "$CC_DIR/commands/nr.md"

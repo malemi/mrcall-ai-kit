@@ -93,7 +93,7 @@ test ! -e "$non_shortcuts_home/.agents/skills/av"
 echo "shortcuts excluded from doc-harness sweep: PASS"
 
 # Regression: combining doc-harness (which sweeps shared/commands/ wholesale
-# into Claude Code at install.sh:279 and OpenCode at :288) with shortcuts must
+# into Claude Code at install.sh:283 and OpenCode at :292) with shortcuts must
 # never produce a duplicate destination for nr/av — a duplicate would make
 # --on-exist backup move the file the first pass just installed to .bak.
 combo_home="$TEST_ROOT/combo-home"

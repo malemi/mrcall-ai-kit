@@ -6,9 +6,9 @@ Registered once by `/router on` in `~/.claude/settings.json`, but inert by
 default: the first thing it does is check for the flag file `/router`
 toggles, and if that is absent it exits with no output and no stdin read —
 one `Path.exists()` call, on every prompt of every session, whether or not the
-router is in use. When the flag is present, it prints exactly one thing: the
-path of this session's shared-memory file, so delegated workers have continuity
-across turns.
+router is in use. When the flag is present, it prints one thing: this session's
+shared-memory file, with the protocol for keeping it, so delegated workers have
+continuity across turns.
 
 That path is the only thing this hook knows and no static file can carry. The
 standing engineering-lead contract — the delivery lanes, the routing choices,

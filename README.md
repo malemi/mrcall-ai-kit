@@ -59,10 +59,11 @@ and copies alike.
 - **`nr`** — answer one question right now: no tools, no subagents, no work
   trace, no review gates, for that turn only.
 - **`av`** — restate the engineering-lead stance on demand.
-- **`/router`** (Claude Code) — opt-in hook; once on, it prints this session's
-  shared-memory path, and nothing else, on each prompt of a session that has a
-  `docs/` tree in reach, so the session and any worker it delegates to read and
-  update the same living log. Toggle with on/off/status/sweep/unregister.
+- **`/router`** (Claude Code) — opt-in hook; once on, it names this session's
+  shared-memory file, and how a delegated worker should use it, on each prompt
+  of a session that has a `docs/` tree in reach — so the session and any worker
+  it delegates to keep the same living snapshot. Toggle with
+  on/off/status/sweep/unregister.
 - **`/ai-help`** (Claude Code) — the current, accurate list of everything
   installed.
 - **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
@@ -78,8 +79,8 @@ Typing the command is not always the only way either one can fire. Claude Code
 offers every installed command to the model as something it may invoke on its
 own judgement, using the command's own description, so on Claude Code both are
 reachable without the operator typing anything. On Codex that is the only way
-they work at all. OpenCode does not expose a typed command to the model — but it
-does read `~/.agents/skills/`, the directory the Codex install writes to, so an
+they work at all. OpenCode 1.17.18 does not expose a typed command to the model
+— but it reads `~/.agents/skills/`, the directory the Codex install writes to, so an
 operator who installed for Codex as well as OpenCode gets the model-invocable
 form there too.
 
