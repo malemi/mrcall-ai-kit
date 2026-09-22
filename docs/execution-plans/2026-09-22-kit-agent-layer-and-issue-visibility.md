@@ -1,5 +1,5 @@
 ---
-status: planned
+status: active
 ---
 
 # Making the kit better: the agent layer, and issues you can see
@@ -15,7 +15,8 @@ and the conversation that followed it. That investigation's own follow-ups live 
 `hb/docs/execution-plans/2026-09-22-post-investigation-followups.md`; this plan is
 the kit half and does not repeat them.
 
-Nothing here is implemented yet except item 0. No commit has been made.
+Item 0 and item 2 are shipped, in commit `05dce52`. Item 1 is designed and
+unbuilt; item 4 is decided and unbuilt.
 
 ## 0 — Done: worker-sonnet aligned with its siblings
 
@@ -31,57 +32,268 @@ the check, run it.** Naming a check you did not run is evidence you knew how, an
 something a command away. That rule exists because the failure it describes happened
 twice in one session, in the delegating session rather than in a worker.
 
-## 1 — The agent layer: rules to roles, model to the caller
+## 1 — The agent layer: rules to roles, the model out of the name
 
-The problem, in numbers at today's tree. There are nineteen agent definitions:
-three under `claude/agents/` named after models, and sixteen under
-`opencode/agents/` also named after models, against four named after jobs (`build`,
-`plan`, `reviewer`, `orchestrator`). The sixteen total 1627 lines. In a
-representative one, `opencode/agents/worker-qwen-coder.md` at 107 lines, about five
-lines are model-specific — the description, the provider string, the temperature —
-and the remaining hundred are generic rules for the job of writing code.
+### What is there, counted
 
-They have already drifted, which is the point rather than a detail. The Claude
-workers require "never fabricate a confirmation" and "the code wins over the doc";
-the OpenCode coder has neither. The `Verified:` slot reads three different ways
-across the kit. This is the kit breaking the rule cs-kernel's charter states for
-clones: a capability shared by two or more consumers lives in one place and is never
-copied.
+23 agent definitions, 2281 lines: 3 under `claude/agents/`, 20 under
+`opencode/agents/`. Of those 2281 lines, **89 are model- or provider-specific
+and 2192 are generic rules for a job** — 3.9%. `opencode/agents/orchestrator.md`
+names no vendor anywhere in its 106 lines outside frontmatter.
 
-What to build instead:
+The 89 is a judgement applied by one reader with a disclosed method, not a
+measurement: it counts the `description` and `model` lines, `temperature` where
+present, model-named headings, and a handful of capability sentences. Roughly
+half of it is the two frontmatter fields. A plain grep for vendor names gives
+70-71 instead. The conclusion does not turn on the exact figure — at any of
+these counts the generic share is above 96% — but the number should not be
+quoted as though it were counted by a script, the way the 836 above is.
 
-- **Roles are the identity.** An agent is a job — writing code, verifying a claim,
-  planning, reviewing — and its rules live there, written once.
-- **The model is a parameter.** Claude Code's documented precedence confirms a
-  per-invocation `model` overrides the definition's frontmatter, and `inherit` is a
-  valid value, so a default can stay in the definition while the orchestrator
-  chooses per task. Adding a model must cost zero new files.
-- **The catalogue is fetched, not stored.** Prices and availability change daily, so
-  the orchestrator asks what is available and what it costs at delegation time. The
-  kit already has a precedent for dynamic selection in
-  `opencode/agents/worker-auto.md`.
-- **Shared rules go in a skill.** Claude Code's `skills:` frontmatter field preloads
-  a skill's full content into a subagent at startup, which is an include in all but
-  name, and skills are the one artifact type all three runtimes accept. Includes
-  proper do not exist: the documentation states no include mechanism for agent
-  definitions.
+By job rather than by name, one job dominates: **17 of the 23 files are
+"write code / execute mechanically"**. Planning has one file, dedicated
+reviewing one, orchestrating two. Two are genuinely ambiguous and should be
+decided rather than forced: `claude/agents/worker-opus.md` mixes judgment with
+a conditional reviewing duty, and `claude/agents/worker-fable.md` is scoped by
+model difficulty rather than by job at all.
 
-Unverified, and it decides how much of this generalises: whether OpenCode and Codex
-preload a referenced skill the way Claude Code does. Codex's only install
-destination is a skills bucket and its skills are invoked on demand by name, which
-is weaker than preloading. Settled by each runtime's documentation, not by this
-repository's files.
+### The drift is systematic, not incidental
 
-The coupling to handle carefully: the model router selects a model **by naming a
-worker** (`docs/model-router.md`). When workers stop being named after models, the
-router's mechanism changes shape. That is a redesign, not a rename, and it is the
-reason this item is one job rather than four.
+Three whole blocks — `## Proportional execution` (14 lines), `## Report budget`
+(15) and `## Delivery contract` (15) — are copied into all 19 worker files.
+**That is 836 of the 2281 lines, 37% of the agent layer, written nineteen
+times.** Hashing each block per file gives one hash for the first two across
+all 19, and for the third 18 identical plus `claude/agents/worker-sonnet.md`,
+which adds a paragraph:
 
-Blast radius, counted: twenty-two files mention the worker names, of which about ten
-are live — `install.sh`, `shared/commands/doc-start.md` and `doc-end.md`, their two
-Codex mirrors, `tests/test_router_install.sh`, `tests/test_agent_profiles.sh`,
-`llms.md`, `docs/model-router.md`, `docs/documentation-harness.md`. The rest are
-briefs and execution plans that record what was true then and must not be rewritten.
+```
+for blk in "## Proportional execution" "## Report budget" "## Delivery contract"; do
+  for f in claude/agents/worker-*.md opencode/agents/worker-*.md; do
+    awk -v b="$blk" 'index($0,b)==1{on=1;next} on&&/^## /{exit} on{print}' "$f" | md5sum
+  done | sort | uniq -c
+done
+```
+
+All three are **absent from the four role-named files** (`orchestrator`,
+`build`, `plan`, `reviewer`), which restate parts of them in their own words —
+so the four agents that lead the work are the ones missing the report and
+delivery discipline. Meanwhile the rules that carry the most weight exist in
+only one runtime:
+
+| Rule | 3 Claude workers | 16 OpenCode workers | 4 role-named |
+|---|---|---|---|
+| "Never fabricate a confirmation" | all three | **none** | none |
+| "The code wins over the doc" | all three | **none** | none |
+| English for every artifact | all three | **none** | none |
+| "If you can name the check, run it" | **worker-sonnet only** | none | none |
+| `Verified:` slot | one wording | a second wording (15), a third (`mistral-fast`) | absent |
+
+The `Verified:` slot reads three ways across the kit. A worker on OpenCode is
+not told the code wins over the doc. This is the kit breaking, in its own
+files, the rule cs-kernel's charter states for clones: a capability shared by
+two or more consumers lives in one place and is never copied.
+
+### What each runtime can actually do
+
+Settled from each runtime's own documentation, and for Claude Code by test.
+
+**Can shared rule text be written once and reach an agent?**
+
+- **Claude Code — yes, preloaded.** `skills:` frontmatter injects the full
+  SKILL.md body at subagent startup. Verified by probe rather than read: a skill
+  carrying a codeword found nowhere else, and an agent whose `tools:` is `Bash`
+  alone so it has no Skill tool and cannot fetch anything, returned the codeword
+  after **zero tool calls**. The probe was then re-run with the control it
+  lacked — a second agent, identical but with no `skills:` field, answered
+  `NO-CODEWORD-IN-CONTEXT`. Without that control the probe showed only that the
+  codeword arrived, not that `skills:` is what carried it.
+- **OpenCode — not in the form this kit ships, and this was run rather than
+  read.** `opencode debug agent <name>` prints an agent's resolved
+  configuration without calling a model, so all three routes were tested
+  directly on the installed 1.17.18:
+
+  | What was tried | Resolved `prompt` |
+  |---|---|
+  | `prompt: "{file:…}"` in **markdown frontmatter** | discarded; the prompt is the file body |
+  | `prompt: "LITERAL-STRING"` in **markdown frontmatter** | discarded too — so this is not about `{file:}` |
+  | `{file:…}` in the **markdown body** | kept **literally** — the model receives `{file:../shared-rules.txt}` as text |
+  | `prompt: "{file:…}"` in **`opencode.json`** | **expands correctly** — the shared file's content is the prompt |
+
+  Read together, those rows say something sharper than "`{file:}` does not
+  expand". The second row is a control with no `{file:}` in it at all, and it is
+  discarded just the same: **markdown agent frontmatter has no `prompt:` field**,
+  and the body is always the prompt. That is exactly the documented five-field
+  schema — `description`, `mode`, `model`, `temperature`, `permission` — behaving
+  as documented, with `prompt:` and `{file:}` belonging to `opencode.json` only.
+  There is no include to reach for and no expansion to rely on. The kit ships 20
+  markdown agents to
+  `~/.config/opencode/agents/*.md` (`install.sh:326,330`), ships no
+  `opencode.json`, and no agent of its own uses `prompt:`. Its Agent Skills are
+  a separate, explicitly on-demand mechanism — which cannot carry rules
+  described as non-negotiable, since the agent must choose to load them.
+- **Codex — no preload into an agent's own instructions.** Skills are on-demand
+  by name, and `developer_instructions` is an inline string. The config
+  reference does carry file-valued keys — `model_instructions_file`
+  (`string (path)`, "Replacement for built-in instructions instead of
+  `AGENTS.md`") and `experimental_compact_prompt_file` — so "no file mechanism
+  at all" would be wrong; but replacing the built-in instructions is not
+  including shared text into one agent, and whether that key is honoured inside
+  a custom agent file is unverified. `AGENTS.md` is layered per directory, so it
+  reaches every agent in the tree and none can opt in or out
+  (learn.chatgpt.com/codex/build-skills, /codex/config-file/config-reference).
+
+**Can the caller choose the model per invocation?**
+
+- **Claude Code — yes.** Per-invocation `model` outranks the definition's
+  frontmatter; `inherit` is a valid frontmatter value.
+- **OpenCode — partly.** An unset subagent model takes the invoking agent's.
+  `-m/--model` exists, but as a session flag listed beside `--agent`
+  (opencode.ai/docs/cli), not a per-spawn parameter. Which wins when a named
+  agent pins a model *and* the caller passes `-m` is **not stated anywhere in
+  the documentation** and is not asserted here.
+- **Codex — inverted.** "If a custom agent file sets model … the value in the
+  file takes precedence" — over the caller's spawn value. A pinned model
+  **defeats** the override (learn.chatgpt.com/codex/agent-configuration/subagents).
+
+### The design that follows
+
+**The filename names the role. The model stays a field, and it stays set.**
+The requirement is that a model is not an agent's identity — not that no
+definition may name one, and the difference decides whether the change is an
+improvement or a silent downgrade.
+
+Pinning nothing looks tempting and is wrong here. On Claude Code an unset model
+falls back through `CLAUDE_CODE_SUBAGENT_MODEL` to the main conversation's
+model, and this kit deliberately runs that conversation on Haiku
+(`docs/model-router.md:20-22`). A judgment role with no model would therefore
+resolve to Haiku exactly in the sessions the router is designed for — the
+cheapest model silently taking the hardest job. The kit's own rules call that a
+bug rather than an optimisation: "Picking a cheaper/smaller model to 'save
+cost' … If unsure, use Opus" (`AGENTS.md`, Planning). Nothing about renaming
+files justifies introducing it.
+
+So each role definition carries the tier its job needs:
+
+- **Claude Code** — keep `model:` in the definition. It is a *default*, not a
+  pin: a per-invocation `model` outranks it, so the caller can still choose and
+  a caller who names nothing gets the right tier anyway. Strictly better than
+  leaving it unset; there is no case where unset wins. "Outranks" is not
+  "always honoured" — the installed binary carries `override_dropped`,
+  `family_step_down` and an allowlist fallback that inherits the parent model —
+  so the definition's value is the floor that matters, which is the argument for
+  setting it.
+- **OpenCode** — keep `model:` too, and treat it as binding, because whether
+  `-m` overrides a named agent's own field is not documented. Choosing the
+  safe reading costs flexibility the kit does not currently use.
+
+What actually moves is the **vocabulary**: the role's name and its
+`description` stop advertising a vendor and start stating the job and the tier
+it requires. That is what the delegating session reads, and it is the thing that
+has to change for a model to stop being an identity.
+
+**The shared rules are written once per role, and reach each runtime the way
+that runtime allows — which is not the same way twice.**
+
+- **Claude Code — a real include.** The rules live in a skill, and each role
+  names it in `skills:`. Nothing is duplicated and nothing is generated.
+- **OpenCode — generated, because it has no include.** For a markdown agent the
+  body IS the prompt, and neither `prompt:` nor `{file:}` is documented for that
+  form. So the role's shipped `.md` is **composed** from the shared rules plus a
+  per-role header, by a generator in this repository, and the result is
+  committed. The installer keeps copying files whole; the composition happens
+  before it, where a reviewer can see the diff.
+
+That generator is the one piece of new machinery in this item, so it owes an
+account of what it was chosen over. Two alternatives were considered and
+rejected.
+
+**Convert the kit's OpenCode agents to `opencode.json`,** the one form where
+`prompt: {file:}` is documented and, as the table above shows, actually works.
+Rejected on the kit's own shipping model: `add_one` (`install.sh:266-269`)
+appends a source and a destination and copies whole files. A JSON conversion
+would require the installer to **merge** its agents into whatever
+`opencode.json` a user already has, rather than place a file — strictly more
+new machinery than a generator, and machinery that can damage a user's existing
+config. The generator extends how this kit already ships; the conversion
+replaces it.
+
+**Put `{file:}` in the markdown body and rely on it anyway.** Rejected, and the
+test above is the reason rather than a principle. It does not expand: the agent
+would ship with the literal string `{file:../shared-rules.txt}` as its entire
+prompt — a worker with no rules at all, failing **open**, with no error at
+install time and none at run time. That is precisely the failure this item
+exists to end. It generalises: this kit installs onto other people's machines
+at OpenCode versions nobody here controls, so "it worked when someone ran it"
+is not a foundation, and an undocumented behaviour that fails silently is worse
+than one that fails loudly.
+
+`install.sh` itself cannot compose — it stamps, renders and substitutes
+nothing. The cost of the generator is a committed file that must never be
+hand-edited, so it ships with a gate that fails when a generated file and its
+source disagree. Without that gate the drift this item exists to end simply
+returns in a new place.
+
+**Codex is not in this item, and the reason is not a judgement call.** The kit
+ships no Codex agent definitions at all — `codex/` contains six skills and one
+hook script, and there is no `.toml` agent file anywhere in the repository. So
+there is nothing on Codex for a shared-rules mechanism to reach. Codex's
+capability answers above are kept because they decide what happens *if* the kit
+ever ships Codex agents: a pinned model would be binding there, and its
+instructions field takes no include, so those files would have to be composed
+too. That is a different item, on the day it exists.
+
+**Adding a model costs zero new files.** A model is named at delegation time,
+so the catalogue is a runtime question, not a file-per-model question. Today
+`llms.md` carries a hand-maintained 30-line price and roster table that already
+admits a gap (`docs/harness-backlog.md:6-10`), and every shipped agent pins a
+static slug. `opencode/agents/worker-auto.md` is the one dynamic precedent, and
+its dynamism is entirely external — OpenRouter picks server-side; nothing here
+fetches a catalogue.
+
+### The router: what actually couples
+
+No code selects a model from a worker's name. `claude/scripts/router-hook.py`
+resolves and prints this session's memory-file path and nothing else, and
+`claude/commands/router.md` is an install-and-flag lifecycle. The routing
+decision is made by the session model, and the contract reaches it "from the
+managed `CLAUDE.md` and from each worker agent's own `description`"
+(`docs/model-router.md:20-27`).
+
+So the coupling is **vocabulary, not selection logic**: a session picks a model
+by choosing a `subagent_type` whose name and description say which model it is.
+What has to change is the delegating session's decision procedure, which lives
+in the managed `CLAUDE.md` and in 23 `description` fields — not a parser. That
+is why this is one job and not four, and it is cheaper than the plan first
+assumed.
+
+One qualification, because "no code reads a worker name" is too strong as a flat
+statement. `install.sh:93-95` counts `worker-*.md` and strips the `worker-`
+prefix off each filename to print "N worker models — sonnet opus …" in its own
+`--list` output, and `install.sh:325,330` iterate the four role names literally
+and the worker files by glob. That is display and file placement rather than
+model selection, but it is a filename being read as a model name, and all three
+loops move when the files are renamed.
+
+### Blast radius, counted
+
+**26 files** mention a worker name. Four are the agent definitions themselves;
+of the remaining 22, **12 are live** and 10 are historical briefs and plans that
+record what was true then and must not be rewritten. The file count is the
+durable half: a line count is self-referential here, since this plan is one of
+the 26 and every edit to it moves the number. The live
+set, all twelve named: `install.sh:300`, `shared/commands/doc-start.md:20`,
+`shared/commands/doc-end.md:12,14-15,58`, the two Codex `WORKFLOW.md` mirrors,
+`docs/model-router.md:23-24`, `docs/documentation-harness.md:17-18`,
+`docs/harness-backlog.md:34`, `docs/known-issues-and-solutions.md:16,38,39`,
+`tests/test_router_install.sh:18,22,28,54,55,69`,
+`tests/test_agent_profiles.sh:127-131`, and **`llms.md`**.
+
+`llms.md` is the one to watch. It is installed to `~/.config/opencode/llms.md`
+(`install.sh:324`) and read by the orchestrator at every worker pick, and its
+table is keyed by worker name — `| worker-glm |`, `| worker-qwen |`,
+`| worker-mistral-fast |` (`llms.md:23-27`). A rename that misses it leaves the
+orchestrator choosing from a table of names that no longer exist. Both test scripts pass at HEAD and both
+would abort on the first hardcoded old name — `set -euo pipefail` stops them
+before later assertions run, so a rename must land with them.
 
 ## 2 — Known issues you can actually see at session start
 
@@ -200,18 +412,129 @@ will read.
 
 ## Order
 
-Item 2 first: it depends on no decision, and its four steps unblock each other.
-Item 1 next, as one piece of work rather than four, starting with the shared rules
-and leaving the router redesign until the roles exist. Items 3 and 4 wait on the two
-answers above.
+Item 1 next, as one piece of work rather than four. Its milestones, in dependency
+order:
+
+1. **The shared rules, extracted once — BUILT.** `shared/roles/`: `common.md`
+   (the non-negotiables, proportional execution, the delivery contract),
+   `worker-report.md` (the budget and the report format, for the roles that
+   report to a delegating session), one file per role, and a `README.md` that
+   states how each runtime consumes them and that a generated file is never
+   hand-edited. 245 lines standing in for the 2192 generic ones.
+
+   Three rules were dropped in the first pass and restored after a coverage
+   check against the source files — "No comments in code unless asked", "Test in
+   the real environment", "Do not delegate". That check is the milestone's real
+   verification: a silent drop here would be the regression this item exists to
+   prevent, wearing the costume of a refactor.
+
+   Nothing consumes these files yet, which is the point: `grep -rn shared/roles`
+   finds no consumer, `tests/test_router_install.sh` and
+   `tests/test_agent_profiles.sh` are both exit=0, and `doc-check.py` is
+   mechanically clean.
+
+   **Milestone 1 is an extraction, and holding it to that took three rounds.**
+   Nothing is lost: the first coverage check matched phrases from a list the
+   author had written — circular, and it missed `worker-sonnet`'s "preserve
+   content you are asked to move". It is replaced by a mechanical sweep that
+   pulls every bolded rule out of all 23 sources and checks each: 13 distinct
+   rules, all present. `reviewer.md:32-35`'s "reuse credible verification" was
+   absent from both `shared/roles/` and the managed template, so the extraction
+   would have deleted it from the kit outright; it is restored.
+
+   Nothing is gained either, but that claim was false when first made and is
+   worth recording as such. Three pieces of text had no source in this
+   repository: a re-verification rule in `orchestrate.md`, eleven lines in
+   `verify.md` about citing `path:line` and about "not verified" differing from
+   "not reachable", and an expansion of the English rule beyond its one-line
+   original. All three came from outside the kit — the operator's session
+   instructions and the meta-repository's own plans — and all three are now
+   removed from the extraction and proposed below instead. A fourth was found at
+   the last gate and simply deleted — a clause of rationale hanging off a
+   sourced imperative in `verify.md`, imposing nothing, but unsourced all the
+   same. `shared/roles/` now contains no text without a source in this
+   repository.
+
+   The pattern is worth naming: text absorbed from the surrounding conversation
+   reads as though it belongs, which is exactly why an extraction needs a sweep
+   rather than a memory. Three separate checks missed these — two written from
+   the author's own lists, and one whose `grep` exclusion pattern did not match
+   the paths `grep` was emitting.
+
+### Proposed, not extracted — decide as its own change
+
+Three pieces of text were written into `shared/roles/` during extraction and
+then removed, because a rule change wearing a refactor's costume is the thing
+this item exists to stop. They belong together: all three are about not acting
+on a claim nobody checked.
+
+1. **Re-verify a worker's or a reviewer's blocking finding at source before
+   repairing on it.**
+2. **A claim about a file carries a `path:line`, or it is not made** — citing
+   does not make a claim true, but reaching for the citation forces the file
+   open, which is where the error dies.
+3. **"Not verified" and "not reachable from here" are different statements and
+   must not share a phrase** — the first is work not done, the second work that
+   cannot be done from here.
+
+The evidence for it is this session. Every blocking finding raised here was
+re-checked at source before being acted on, and that check changed the outcome
+twice: a worker's "the router does not select any model, ever" was true of one
+script and false of the system, and the same habit caught two of the author's
+own overclaims. It also has a cost — re-checking a finding is work — and the
+kit already carries the opposing economy in "reuse credible verification, do not
+mechanically replay". The two are compatible (one is about re-running checks,
+the other about acting on unchecked claims) but the tension is real and the
+wording has to hold both. Decide it as its own change.
+2. **The roles, on Claude Code.** Role definitions that include the shared file
+   the way Claude Code includes it, verified with a probe of the kind already run
+   rather than by reading the frontmatter back.
+3. **OpenCode**, via the generator — all twenty of its agent files. The
+   sixteen workers are where the copied blocks live; the four role-named ones
+   are where those blocks are missing, so both halves are fixed by the same
+   move. This milestone carries the new machinery, so it ships with the gate
+   that fails when a generated file and its source disagree. Codex has no agent
+   definitions, so it has no milestone here.
+4. **All twelve live references in the same change** — two of which are the
+   test scripts. Both scripts abort on the first stale name, so they land with
+   the rename or the rename is not finished. `install.sh:93-95,325,330` moves
+   with them, and so does `llms.md`.
+
+Item 4 (the hook guard) follows, in its own session and with its own verification:
+it runs in every session on this machine, and the Codex and OpenCode halves of its
+injection question are still unanswered.
 
 ## What this plan does not establish
 
-It does not establish that OpenCode or Codex can preload a shared skill the way
-Claude Code does, which decides how much of item 1 generalises rather than applying
-to one runtime. It does not establish that any of the three runtimes can inject text
-from a hook, which is the capability item 4 depends on and which the existing scope
-guard does not demonstrate. It does not establish what the router should become once
-workers are no longer named after models, only that its current mechanism stops
-working. And it does not re-verify the investigation's own findings: those carry the
-record of three review gates, not a fresh check by this document.
+The preload question is answered for each runtime, and the router question with
+it. Both are stated in item 1 with their evidence, and neither is open.
+
+What remains unestablished:
+
+- **Two of the three runtimes were executed; Codex was not.** On Claude Code a
+  probe established the `skills:` preload and, separately, the Haiku fallback.
+  On OpenCode 1.17.18 `opencode debug agent` resolved three real agent
+  definitions and produced the table above. Every **Codex** claim rests on
+  documentation read today and nothing else — codex-cli 0.155.1 is installed
+  and was not exercised.
+- **Neither runtime's model precedence was tested**, on any binary. The
+  OpenCode `-m`-versus-pinned-`model:` question and Codex's inverted precedence
+  are both documentation claims here.
+- **The OpenCode result is one version's behaviour.** On 1.17.18 a markdown
+  agent's frontmatter `prompt:` is ignored — with or without `{file:}` — and
+  `{file:}` in the body is passed through literally. That is what this machine
+  does today, not a guarantee about the versions the kit installs onto, which is
+  itself part of the argument for generating rather than depending on it.
+- **`model_instructions_file` is unverified inside a Codex custom agent file**,
+  and it replaces built-in instructions rather than including shared text, so it
+  is named above rather than used.
+- **OpenCode's `-m` precedence over a named agent's own `model:`** is not stated
+  anywhere, and this plan does not assert an answer — it chooses the safe
+  reading instead.
+- **The 89-line split is a disclosed judgement, not a script.** The 836 figure
+  ships the command that produces it; the 89 does not, and is worth roughly
+  70-71 under a plain vendor grep.
+- **Only Claude Code is shown to inject text from a hook.** The Codex and
+  OpenCode halves of item 4 are open.
+- **This plan does not re-verify the investigation that produced it**: those
+  findings carry the record of three review gates, not a fresh check here.
