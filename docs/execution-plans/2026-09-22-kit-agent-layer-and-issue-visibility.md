@@ -164,7 +164,15 @@ the same event: the scope guard already records on one event and decides on anot
 The guard worth building is the one this session earned — a session that names a
 check it did not run is stopped until it runs it.
 
-Two prerequisites, neither technical. First, hooks are **not running**: the scope
+**Injection is confirmed, 2026-09-22.** The open question was whether a hook can
+put text in front of a session or only allow, deny and ask, because the scope
+guard demonstrates interception and not injection. It can: a throwaway
+`PreToolUse` hook returning `hookSpecificOutput.additionalContext` was registered
+through `claude -p --settings`, and the session reported the injected codeword
+unprompted. So the guard is buildable on Claude Code. The same question for the
+Codex adapter and the OpenCode plugin is still open, and each has its own answer.
+
+Two prerequisites remain, neither technical. First, hooks are **not running**: the scope
 guard is installed and not registered in settings, so turning hooks on at all is a
 decision that changes every session on that machine. Second, parity: a Claude hook
 script, a Codex adapter and an OpenCode plugin already exist for the scope guard, so
