@@ -643,6 +643,38 @@ def check_open_sessions(root: Path) -> list[str]:
     return [f"{rel}: session still open" for rel in open_files]
 
 
+VALID_ISSUE_STATUSES = {"open", "fixed", "unknown"}
+
+
+def check_unstated_issues(root: Path) -> list[str]:
+    """ADVISORY — name every docs/known-issues/*.md with no usable `status:`.
+
+    `doc-start` counts open issues from this frontmatter, so a file without it
+    is invisible to the count rather than merely untidy. It stays advisory and
+    not a gate failure on purpose: the directory predates the field in every
+    repository that has one, and a log of real incidents must not become a
+    reason the gate refuses to run. README.md is the index, not an incident.
+    """
+    issues = root / "docs" / "known-issues"
+    if not issues.exists():
+        return []
+    warnings: list[str] = []
+    for issue in sorted(issues.glob("*.md")):
+        if issue.name.lower() == "readme.md":
+            continue
+        parsed = frontmatter(issue.read_text(encoding="utf-8"))
+        metadata = parsed[0] if parsed else {}
+        status = str(metadata.get("status", "")).lower()
+        if not status:
+            warnings.append(f"{issue.relative_to(root).as_posix()}: no `status:` frontmatter")
+        elif status not in VALID_ISSUE_STATUSES:
+            warnings.append(
+                f"{issue.relative_to(root).as_posix()}: status `{status}` is not "
+                f"one of {', '.join(sorted(VALID_ISSUE_STATUSES))}"
+            )
+    return warnings
+
+
 def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
 
@@ -842,6 +874,7 @@ def main() -> int:
     oversized = check_doc_sizes(root, index_file, harness_file, doc_max_lines)
     undated = check_trace_naming(root)
     open_sessions = check_open_sessions(root)
+    unstated_issues = check_unstated_issues(root)
     unoriented = check_orientation_heads(root, index_file) if meta else []
 
     failed = [(name, errs) for name, errs in groups if errs]
@@ -868,6 +901,13 @@ def main() -> int:
     if open_sessions:
         print(f"advisory — {len(open_sessions)} open session file(s), NOT a gate failure:")
         for warning in open_sessions:
+            print(f"    - {warning}")
+    if unstated_issues:
+        print(
+            f"advisory — {len(unstated_issues)} known issue(s) without a usable "
+            "`status:`, NOT a gate failure:"
+        )
+        for warning in unstated_issues:
             print(f"    - {warning}")
     if unoriented:
         print(

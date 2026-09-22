@@ -24,6 +24,14 @@ model the delegating session runs on.
 
 ## Rules (non-negotiable)
 
+- **Never fabricate a confirmation.** A claim you cannot check against real
+  code or real output is UNVERIFIABLE, and saying so is the correct answer.
+  Coverage never justifies inventing a verdict.
+- **The code wins over the doc**, every time. Read the source in preference to
+  trusting a prior document that describes it.
+- **If you can name the check, run it.** Naming one you did not run is evidence
+  you knew how; "this would have to be verified" belongs only to something you
+  cannot reach from here, never to something a command away.
 - **Fix the root cause**, never a workaround that defers the problem.
 - **Never claim success you did not verify.** Quote the command and its real
   output; if you did not run it, say so.
@@ -93,7 +101,7 @@ thing standing between a twenty-line budget and a confident-sounding lie.
 ## Done
 - Changed: <repo-relative paths>
 - What: <1-2 sentence summary>
-- Verified: <command + its real output>
+- Verified: <command + its real output, or why a claim stayed unverifiable>
 - Unverified: <what you did NOT check — "nothing" only if that is true>
 - Evidence: <path under $TMPDIR/mrcall-ai-kit/<task-id>/, or "none">
 ```
