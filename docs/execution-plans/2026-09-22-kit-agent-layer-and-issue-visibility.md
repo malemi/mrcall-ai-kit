@@ -412,97 +412,26 @@ will read.
 
 ## Order
 
-Item 1 next, as one piece of work rather than four. Its milestones, in dependency
-order:
+**Shipped `33c3b18`: the duplication is gone and gated.** Every agent file is
+composed by `shared/scripts/build-agents.py` from a per-agent stub plus the
+blocks that agent already carried, and `tests/test_agents_generated.sh` fails
+when a shipped file and its sources disagree. Zero content lost, checked line by
+line. Claude's three agents take the blocks from a preloaded skill — proven
+end-to-end with a real session — and OpenCode's twenty carry them inline,
+because that runtime has no include.
 
-1. **The shared rules, extracted once — BUILT.** `shared/roles/`: `common.md`
-   (the non-negotiables, proportional execution, the delivery contract),
-   `worker-report.md` (the budget and the report format, for the roles that
-   report to a delegating session), one file per role, and a `README.md` that
-   states how each runtime consumes them and that a generated file is never
-   hand-edited. 245 lines standing in for the 2192 generic ones.
+**Deliberately not done: the rename.** Five roles replacing 23 model-named
+agents renames files that `install.sh:93-95,325,330`, `llms.md:23-27`, both test
+scripts and `build.md`'s `task: worker-*: allow` permission pattern all refer to
+by name — thirteen live references, not twelve; the permission pattern was
+missed in the earlier count. Doing it is now cheap, because every agent file is
+generated from one place, and it can be a single reviewable change instead of
+being tangled with the deduplication. `shared/roles/` carries the target
+taxonomy unwired, and its README says plainly that it is unwired.
 
-   Three rules were dropped in the first pass and restored after a coverage
-   check against the source files — "No comments in code unless asked", "Test in
-   the real environment", "Do not delegate". That check is the milestone's real
-   verification: a silent drop here would be the regression this item exists to
-   prevent, wearing the costume of a refactor.
-
-   Nothing consumes these files yet, which is the point: `grep -rn shared/roles`
-   finds no consumer, `tests/test_router_install.sh` and
-   `tests/test_agent_profiles.sh` are both exit=0, and `doc-check.py` is
-   mechanically clean.
-
-   **Milestone 1 is an extraction, and holding it to that took three rounds.**
-   Nothing is lost: the first coverage check matched phrases from a list the
-   author had written — circular, and it missed `worker-sonnet`'s "preserve
-   content you are asked to move". It is replaced by a mechanical sweep that
-   pulls every bolded rule out of all 23 sources and checks each: 13 distinct
-   rules, all present. `reviewer.md:32-35`'s "reuse credible verification" was
-   absent from both `shared/roles/` and the managed template, so the extraction
-   would have deleted it from the kit outright; it is restored.
-
-   Nothing is gained either, but that claim was false when first made and is
-   worth recording as such. Three pieces of text had no source in this
-   repository: a re-verification rule in `orchestrate.md`, eleven lines in
-   `verify.md` about citing `path:line` and about "not verified" differing from
-   "not reachable", and an expansion of the English rule beyond its one-line
-   original. All three came from outside the kit — the operator's session
-   instructions and the meta-repository's own plans — and all three are now
-   removed from the extraction and proposed below instead. A fourth was found at
-   the last gate and simply deleted — a clause of rationale hanging off a
-   sourced imperative in `verify.md`, imposing nothing, but unsourced all the
-   same. `shared/roles/` now contains no text without a source in this
-   repository.
-
-   The pattern is worth naming: text absorbed from the surrounding conversation
-   reads as though it belongs, which is exactly why an extraction needs a sweep
-   rather than a memory. Three separate checks missed these — two written from
-   the author's own lists, and one whose `grep` exclusion pattern did not match
-   the paths `grep` was emitting.
-
-### Proposed, not extracted — decide as its own change
-
-Three pieces of text were written into `shared/roles/` during extraction and
-then removed, because a rule change wearing a refactor's costume is the thing
-this item exists to stop. They belong together: all three are about not acting
-on a claim nobody checked.
-
-1. **Re-verify a worker's or a reviewer's blocking finding at source before
-   repairing on it.**
-2. **A claim about a file carries a `path:line`, or it is not made** — citing
-   does not make a claim true, but reaching for the citation forces the file
-   open, which is where the error dies.
-3. **"Not verified" and "not reachable from here" are different statements and
-   must not share a phrase** — the first is work not done, the second work that
-   cannot be done from here.
-
-The evidence for it is this session. Every blocking finding raised here was
-re-checked at source before being acted on, and that check changed the outcome
-twice: a worker's "the router does not select any model, ever" was true of one
-script and false of the system, and the same habit caught two of the author's
-own overclaims. It also has a cost — re-checking a finding is work — and the
-kit already carries the opposing economy in "reuse credible verification, do not
-mechanically replay". The two are compatible (one is about re-running checks,
-the other about acting on unchecked claims) but the tension is real and the
-wording has to hold both. Decide it as its own change.
-2. **The roles, on Claude Code.** Role definitions that include the shared file
-   the way Claude Code includes it, verified with a probe of the kind already run
-   rather than by reading the frontmatter back.
-3. **OpenCode**, via the generator — all twenty of its agent files. The
-   sixteen workers are where the copied blocks live; the four role-named ones
-   are where those blocks are missing, so both halves are fixed by the same
-   move. This milestone carries the new machinery, so it ships with the gate
-   that fails when a generated file and its source disagree. Codex has no agent
-   definitions, so it has no milestone here.
-4. **All twelve live references in the same change** — two of which are the
-   test scripts. Both scripts abort on the first stale name, so they land with
-   the rename or the rename is not finished. `install.sh:93-95,325,330` moves
-   with them, and so does `llms.md`.
-
-Item 4 (the hook guard) follows, in its own session and with its own verification:
-it runs in every session on this machine, and the Codex and OpenCode halves of its
-injection question are still unanswered.
+Item 4 (the hook guard) follows, in its own session and with its own
+verification: it runs in every session on this machine, and the Codex and
+OpenCode halves of its injection question are still unanswered.
 
 ## What this plan does not establish
 
