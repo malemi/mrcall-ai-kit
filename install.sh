@@ -296,8 +296,11 @@ if $DO_ROUTER; then
   add_one "$SCRIPT_DIR/claude/scripts/router-hook.py" "$KIT_GLOBAL/router-hook.py"
   add_dir "$SCRIPT_DIR/claude/commands" "$CC_DIR/commands"
   # worker-fable rides with doc-harness's claude/agents sweep when both are
-  # selected; add it alone only when doc-harness was skipped.
-  $DO_DOC || add_one "$SCRIPT_DIR/claude/agents/worker-fable.md" "$CC_DIR/agents/worker-fable.md"
+  # selected; add it alone only when doc-harness was skipped. Its rules arrive
+  # through the preloaded kit-role-rules skill, so that ships with it — without
+  # doc-harness nothing else installs shared/skills.
+  $DO_DOC || { add_one "$SCRIPT_DIR/claude/agents/worker-fable.md" "$CC_DIR/agents/worker-fable.md"; \
+               add_one "$SCRIPT_DIR/shared/skills/kit-role-rules" "$CC_DIR/skills/kit-role-rules"; }
 fi
 if $DO_SCOPE; then
   add_one "$SCRIPT_DIR/shared/scripts/scope_guard.py" "$KIT_GLOBAL/scope-guard/scope_guard.py"

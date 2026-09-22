@@ -9,14 +9,31 @@ fail() { echo "$1" >&2; exit 1; }
 
 workers=("$KIT_DIR"/claude/agents/worker-*.md "$KIT_DIR"/opencode/agents/worker-*.md)
 [[ "${#workers[@]}" -eq 19 ]] || fail "expected 19 worker profiles, got ${#workers[@]}"
+
+# The contract must REACH every worker; which route it takes is the runtime's
+# business. OpenCode has no include, so its agents carry the text inline.
+# Claude Code preloads a skill's full body into a subagent at startup, so its
+# agents name the skill instead — verified end-to-end, not assumed: a worker
+# whose body no longer holds the rule quotes it with zero tool calls.
+role_skill="$KIT_DIR/shared/skills/kit-role-rules/SKILL.md"
+[[ -f "$role_skill" ]] || fail "the role skill is missing: $role_skill"
+carries() {  # $1 = file that must hold the proportional contract
+  grep -q '^## Proportional execution$' "$1" || fail "missing proportional contract: $1"
+  grep -q 'smallest real check that could fail because of your change' "$1" \
+    || fail "missing focused verification rule: $1"
+  grep -q 'do not expand it into unrelated research' "$1" \
+    || fail "missing scope budget: $1"
+}
+carries "$role_skill"
 for worker in "${workers[@]}"; do
-  grep -q '^## Proportional execution$' "$worker" || fail "missing proportional contract: $worker"
-  grep -q 'smallest real check that could fail because of your change' "$worker" \
-    || fail "missing focused verification rule: $worker"
-  grep -q 'do not expand it into unrelated research' "$worker" \
-    || fail "missing scope budget: $worker"
+  if [[ "$worker" == *"/claude/agents/"* ]]; then
+    grep -q '^skills: kit-role-rules$' "$worker" \
+      || fail "claude worker reaches the contract by neither route: $worker"
+  else
+    carries "$worker"
+  fi
 done
-echo "all worker profiles carry the proportional-execution contract: PASS"
+echo "all worker profiles reach the proportional-execution contract: PASS"
 
 primary="$KIT_DIR/opencode/agents/orchestrator.md"
 build="$KIT_DIR/opencode/agents/build.md"
@@ -127,7 +144,9 @@ for mode in copy symlink; do
   grep -q '^## Artifact and integration review$' "$test_home/.claude/agents/worker-opus.md"
   grep -q 'Review tasks are read-only' "$test_home/.claude/agents/worker-opus.md"
   grep -q 'APPROVED | REVISE | FAST_PATH' "$test_home/.claude/agents/worker-opus.md"
-  grep -q '^## Proportional execution$' "$test_home/.claude/agents/worker-sonnet.md"
+  # Claude's copy reaches the contract through the installed skill, not inline.
+  grep -q '^skills: kit-role-rules$' "$test_home/.claude/agents/worker-sonnet.md"
+  grep -q '^## Proportional execution$' "$test_home/.claude/skills/kit-role-rules/SKILL.md"
   grep -q '^## Proportional execution$' "$test_home/.config/opencode/agents/worker-sonnet.md"
 done
 echo "copy and symlink installs ship the new primary and worker contracts: PASS"

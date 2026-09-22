@@ -1,0 +1,216 @@
+{
+  "claude--worker-fable": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-fable",
+    "runtime": "claude",
+    "src": "claude/agents/worker-fable.md"
+  },
+  "claude--worker-opus": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-opus",
+    "runtime": "claude",
+    "src": "claude/agents/worker-opus.md"
+  },
+  "claude--worker-sonnet": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-sonnet",
+    "runtime": "claude",
+    "src": "claude/agents/worker-sonnet.md"
+  },
+  "opencode--build": {
+    "blocks": [],
+    "name": "build",
+    "runtime": "opencode",
+    "src": "opencode/agents/build.md"
+  },
+  "opencode--orchestrator": {
+    "blocks": [],
+    "name": "orchestrator",
+    "runtime": "opencode",
+    "src": "opencode/agents/orchestrator.md"
+  },
+  "opencode--plan": {
+    "blocks": [],
+    "name": "plan",
+    "runtime": "opencode",
+    "src": "opencode/agents/plan.md"
+  },
+  "opencode--reviewer": {
+    "blocks": [],
+    "name": "reviewer",
+    "runtime": "opencode",
+    "src": "opencode/agents/reviewer.md"
+  },
+  "opencode--worker-auto": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-auto",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-auto.md"
+  },
+  "opencode--worker-deepseek": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-deepseek",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-deepseek.md"
+  },
+  "opencode--worker-deepseek-flash": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-deepseek-flash",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-deepseek-flash.md"
+  },
+  "opencode--worker-deepseek-free": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-deepseek-free",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-deepseek-free.md"
+  },
+  "opencode--worker-gemini": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-gemini",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-gemini.md"
+  },
+  "opencode--worker-glm": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-glm",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-glm.md"
+  },
+  "opencode--worker-gpt": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-gpt",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-gpt.md"
+  },
+  "opencode--worker-kimi": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-kimi",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-kimi.md"
+  },
+  "opencode--worker-llama": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-llama",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-llama.md"
+  },
+  "opencode--worker-mimo": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-mimo",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-mimo.md"
+  },
+  "opencode--worker-mistral": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-mistral",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-mistral.md"
+  },
+  "opencode--worker-mistral-fast": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-mistral-fast",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-mistral-fast.md"
+  },
+  "opencode--worker-nemotron": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-nemotron",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-nemotron.md"
+  },
+  "opencode--worker-qwen": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-qwen",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-qwen.md"
+  },
+  "opencode--worker-qwen-coder": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-qwen-coder",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-qwen-coder.md"
+  },
+  "opencode--worker-sonnet": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "worker-sonnet",
+    "runtime": "opencode",
+    "src": "opencode/agents/worker-sonnet.md"
+  }
+}
