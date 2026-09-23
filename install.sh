@@ -23,7 +23,7 @@ set -euo pipefail
 #
 # Flags (any provided value skips its prompt):
 #   --environment claude|codex|opencode|all|both
-#   --features    doc-harness,orchestration,workers,migrate,router,scope-guard,shortcuts (or: all)
+#   --features    doc-harness,orchestration,workers,migrate,router,reread,scope-guard,shortcuts (or: all)
 #   --activate-scope-guard claude|codex|opencode|all (explicit hook opt-in)
 #   --mode        symlink|copy
 #   --on-exist    skip|overwrite|backup
@@ -59,7 +59,7 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
                     [--activate-scope-guard RUNTIMES|all]
                     [--yes] [--dry-run] [--help]
 
-  --features: doc-harness, orchestration, workers, migrate, router, scope-guard,
+  --features: doc-harness, orchestration, workers, migrate, router, reread, scope-guard,
               shortcuts (comma list, or: all)
   --activate-scope-guard: explicitly register scope-guard hooks/plugins for a
               comma-separated subset of claude,codex,opencode (or: all).
@@ -180,7 +180,7 @@ $WANT_CC || $WANT_CODEX || $WANT_OC || { echo "Nothing selected. Exiting." >&2; 
 
 # ── Resolve features (offer OC-only content only if OpenCode is selected) ───
 want_feature() { [[ ",$FEATURES," == *",$1,"* || "$FEATURES" == all ]]; }
-DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false ; DO_SCOPE=false ; DO_SHORTCUTS=false
+DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false ; DO_SCOPE=false ; DO_SHORTCUTS=false ; DO_REREAD=false
 if [[ -n "$FEATURES" ]]; then
   want_feature doc-harness  && DO_DOC=true
   want_feature orchestration && DO_ORCH=true
@@ -189,6 +189,7 @@ if [[ -n "$FEATURES" ]]; then
   want_feature router       && DO_ROUTER=true
   want_feature scope-guard  && DO_SCOPE=true
   want_feature shortcuts    && DO_SHORTCUTS=true
+  want_feature reread       && DO_REREAD=true
 else
   need_tty_or_flag "--features"
   ask_yn "Install doc-harness (doc-create/start/end + doc-check + doc-critic)? [GLOBAL, cross-tool]" y && DO_DOC=true
@@ -199,6 +200,7 @@ else
   fi
   if $WANT_CC; then
     ask_yn "Install the opt-in model router (Haiku session as classifier + pinned workers)? [Claude Code only, dormant until /router on]" n && DO_ROUTER=true
+    ask_yn "Install the re-read guard (hands each finished answer back once against a checklist)? [Claude Code only, dormant until /sc on]" n && DO_REREAD=true
   fi
   ask_yn "Install scope guard (dormant unless activated separately)? [GLOBAL, cross-tool]" n && DO_SCOPE=true
   ask_yn "Install shortcuts (nr, av — on-demand instruction overrides; typed commands on Claude Code/OpenCode, a model-invoked skill on Codex)? [GLOBAL, cross-tool]" n && DO_SHORTCUTS=true
@@ -212,6 +214,11 @@ fi
 if ! $WANT_CC && $DO_ROUTER; then
   echo "router is Claude Code-only; ignoring it (Claude Code not selected)." >&2
   DO_ROUTER=false
+fi
+# The re-read guard is a Claude Code Stop hook, so it is Claude Code-only too.
+if ! $WANT_CC && $DO_REREAD; then
+  echo "reread is Claude Code-only; ignoring it (Claude Code not selected)." >&2
+  DO_REREAD=false
 fi
 
 # Scope-guard activation is always a separate opt-in. `--yes` only skips the
@@ -301,6 +308,14 @@ if $DO_ROUTER; then
   # doc-harness nothing else installs shared/skills.
   $DO_DOC || { add_one "$SCRIPT_DIR/claude/agents/worker-fable.md" "$CC_DIR/agents/worker-fable.md"; \
                add_one "$SCRIPT_DIR/shared/skills/kit-role-rules" "$CC_DIR/skills/kit-role-rules"; }
+fi
+if $DO_REREAD; then
+  # Claude Code-only; dormant until `/sc on` creates the flag. The checklist is
+  # a separate file on purpose: an operator tunes the list without touching code,
+  # and the hook fails open when it is missing.
+  add_one "$SCRIPT_DIR/claude/scripts/reread-hook.py" "$KIT_GLOBAL/reread-hook.py"
+  add_one "$SCRIPT_DIR/shared/roles/reread-checklist.md" "$KIT_GLOBAL/reread-checklist.md"
+  add_one "$SCRIPT_DIR/claude/commands/sc.md" "$CC_DIR/commands/sc.md"
 fi
 if $DO_SCOPE; then
   add_one "$SCRIPT_DIR/shared/scripts/scope_guard.py" "$KIT_GLOBAL/scope-guard/scope_guard.py"
@@ -430,6 +445,7 @@ $WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."
+$DO_REREAD && echo "  Re-read guard installed but dormant: run /sc on to activate."
 if $DO_SCOPE; then
   if $WANT_CC && ! $ACTIVATE_CC; then echo "  Claude scope guard installed but dormant: run /scope-guard on to activate."; fi
   if $WANT_CODEX && ! $ACTIVATE_CODEX; then echo "  Codex scope guard installed but dormant: invoke the scope-guard skill to activate."; fi
