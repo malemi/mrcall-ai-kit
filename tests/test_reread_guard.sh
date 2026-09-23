@@ -63,7 +63,23 @@ if [ -z "$(run_hook False "$LONG")" ]; then echo "OK"; else
   echo "FAIL: a missing checklist blocked the turn"; FAIL=1; fi
 mv "$KIT/elsewhere.md" "$KIT/reread-checklist.md"
 
-step "6. the checklist ships, and stays short enough to be read"
+rm -f "$KIT/reread.on"
+
+step "6. the one-shot arms for exactly one answer and clears itself"
+# `/sc <question>` is the main path. An arming that outlives its turn would be
+# an always-on mode nobody switched on, so the hook spends the flag itself.
+touch "$KIT/reread.once"
+if [ -n "$(run_hook False "$LONG")" ] && [ ! -e "$KIT/reread.once" ]; then echo "OK"; else
+  echo "FAIL: the one-shot either did not fire or survived its turn"; FAIL=1; fi
+
+step "7. a one-shot spent on a short answer does not leak into the next question"
+# The arming is spent either way. Otherwise a `/sc` whose answer came out short
+# would lie in wait and fire on whatever the user asked next.
+touch "$KIT/reread.once"
+if [ -z "$(run_hook False "breve.")" ] && [ ! -e "$KIT/reread.once" ]; then echo "OK"; else
+  echo "FAIL: a short answer left the guard armed for the next question"; FAIL=1; fi
+
+step "8. the checklist ships, and stays short enough to be read"
 LINES=$(grep -c '^[0-9]\.' "$ROOT/shared/roles/reread-checklist.md")
 if [ "$LINES" -ge 1 ] && [ "$LINES" -le 8 ]; then echo "OK: $LINES items"; else
   echo "FAIL: $LINES checklist items — a list this long is injected every turn and stops being read"

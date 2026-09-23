@@ -1,18 +1,42 @@
 ---
-description: Toggle the re-read guard — before an answer reaches you, the session reads it back against a short checklist and fixes what fails. On, off, status, or unregister.
+description: Answer with a re-read pass — before the answer reaches you, the session reads it back against a short checklist and fixes what fails. Takes the question as its argument; `on`/`off`/`status`/`unregister` manage the always-on mode instead.
 allowed-tools: Bash(python3 *) Bash(ls *) Bash(cat *) Bash(mkdir *) Bash(touch *) Bash(rm *) Read
 ---
 
-Manage the re-read guard. The hook script lives at
-`~/.config/mrcall-ai-kit/reread-hook.py` and its checklist at
-`~/.config/mrcall-ai-kit/reread-checklist.md` (both installed by
-`./install.sh --features reread`). The hook is dormant unless
-`~/.config/mrcall-ai-kit/reread.on` exists — this command is the only thing that
-creates, removes, or inspects that flag, and the only thing that registers the
-hook in `~/.claude/settings.json`.
+Answer a question with a re-read pass over the finished answer.
 
-Argument: `$ARGUMENTS` — one of `on`, `off`, `status`, `unregister`.
-No argument or an unrecognized one: show `status` and stop.
+The hook script lives at `~/.config/mrcall-ai-kit/reread-hook.py` and its
+checklist at `~/.config/mrcall-ai-kit/reread-checklist.md` (both installed by
+`./install.sh --features reread`). It is dormant unless one of two flags exists
+in that directory: `reread.once`, armed for a single answer and cleared by the
+hook itself, or `reread.on`, which stays until switched off. This command is the
+only thing that creates, removes or inspects either, and the only thing that
+registers the hook in `~/.claude/settings.json`.
+
+Argument: `$ARGUMENTS`.
+
+- **Anything that is not a verb below is the question.** Arm the guard for this
+  one answer, then answer the question. This is the common case and what the
+  command is for: `/sc perché il cron non parte?`
+- `on`, `off`, `status`, `unregister` manage the always-on mode.
+- No argument at all: show `status` and stop.
+
+## `<question>` — the one-shot, and the main path
+
+Do these in order:
+
+1. Make sure the hook is registered (see *Shared: locating the hook entry*). It
+   is inert without a flag, costing one `Path.exists()` per turn, so registering
+   it is not a commitment to anything.
+2. `touch ~/.config/mrcall-ai-kit/reread.once`
+3. Answer the question — the rest of `$ARGUMENTS` — normally.
+
+Then stop thinking about it. The hook clears that flag itself when it fires, so
+the arming never outlives the turn and never leaks into the next question.
+
+Say nothing about any of this. No "arming the guard", no note that a re-read
+will happen, no mention of the flag. The user asked a question and wants its
+answer; the pass is machinery, and machinery that announces itself is noise.
 
 ## What it does, when asked
 
@@ -26,18 +50,23 @@ It judges nothing and calls no model. It re-presents a list; the session does th
 work, in the same turn, with the answer in front of it.
 
 Cost: one extra pass of the model already running, on answers longer than
-`SC_MIN_CHARS` (default 500). Short answers are skipped.
+`SC_MIN_CHARS` (default 500). Short answers are skipped, and the arming is spent
+either way rather than waiting for a long enough answer to come along.
 
-## What to print — read this before every verb
+## What to print — for the verbs below, not for a question
 
-Everything below about flag files, `settings.json` and hook registration tells
-**you** how to do the work. None of it is the answer. The answer is two clauses:
-what state the guard is in, and the command that changes it. Print that, stop.
+When the argument is a question, the output is the answer to that question and
+nothing else. This section does not apply to it.
 
-Never report the flag file, the install path, `settings.json`, registration, or
-backups — not as detail, not as reassurance, not "for completeness". Two
-exceptions, both narrow: say more when something is **broken**, and answer
-whatever the user asks directly afterwards.
+For `on`, `off`, `status` and `unregister`: everything here about flag files,
+`settings.json` and registration tells **you** how to do the work, and none of
+it is the answer. The answer is two clauses — what state the guard is in, and
+the command that changes it. Print that, stop.
+
+Never report the flag file, the install path, `settings.json`, registration or
+backups, not as detail and not as reassurance. One exception: say more when
+something is **broken**, because the user cannot act on a problem they cannot
+see.
 
 ## Shared: locating the hook entry
 
@@ -58,10 +87,11 @@ matcher-group entry whose nested `hooks` array contains a command running
 Read the file with `python3 -c` and `json`, never by hand-editing text. Preserve
 every other key exactly. Write it back with `json.dump(..., indent=2)`.
 
-## `on`
+## `on` — always-on mode
 
-Register the hook if no entry running `reread-hook.py` is present, then create
-the flag. If `~/.config/mrcall-ai-kit/reread-hook.py` is missing, say the guard
+For a stretch of work where every answer should get the pass, rather than the
+one-shot above. Register the hook if no entry running `reread-hook.py` is
+present, then create the persistent flag `~/.config/mrcall-ai-kit/reread.on`. If `~/.config/mrcall-ai-kit/reread-hook.py` is missing, say the guard
 is not installed and name `./install.sh --features reread`; do not create a flag
 that points at nothing.
 
@@ -69,7 +99,8 @@ Print: `Re-read guard on. /sc off to stop it.`
 
 ## `off`
 
-Remove the flag. Leave registration in place — a registered hook with no flag
+Remove the persistent flag (`reread.on`). One-shot armings clear themselves and
+need no cleanup here. Leave registration in place — a registered hook with no flag
 costs one `Path.exists()` per turn, and re-registering is the part that touches
 `settings.json`.
 
@@ -94,6 +125,7 @@ Print: `Re-read guard removed from settings.`
 
 `/nr` answers a question with no tools and instructs the session to name what it
 could not check. The guard's first item asks the opposite — run the check you
-named. They do not actually collide often, because `/nr` answers are short and
-fall under the length threshold. If one does collide, `/sc off` for that turn.
-This is a known edge, not a solved one.
+named. With the one-shot as the main path the two barely meet: you would have to
+type both. In always-on mode they can, though rarely, because `/nr` answers are
+short and fall under the length threshold. If one does collide, `/sc off` for
+that turn. This is a known edge, not a solved one.

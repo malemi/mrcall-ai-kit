@@ -2,9 +2,14 @@
 """
 reread-hook.py — dormant Stop hook that hands a finished answer back once.
 
-Registered by `/sc on` in `~/.claude/settings.json`, inert by default: the
-first thing it does is check for the flag file that `/sc` toggles, and if that
-is absent it exits with no output and no stdin read.
+Registered in `~/.claude/settings.json` once, inert by default: the first thing
+it does is look for one of two flag files, and if neither is there it exits with
+no output and no stdin read.
+
+Two flags, because there are two ways to want this. `/sc <question>` arms it for
+the next answer only and the hook clears the flag itself — that is the common
+case, and it costs nothing when unused. `/sc on` sets a flag that stays until
+`/sc off`, for a stretch of work where every answer should get the pass.
 
 What it is for. The rules about how to answer — run the check you just named,
 say what a thing is before naming it, one idea per sentence — already exist, in
@@ -40,7 +45,8 @@ import sys
 from pathlib import Path
 
 KIT_STATE = Path.home() / ".config" / "mrcall-ai-kit"
-FLAG = KIT_STATE / "reread.on"
+FLAG = KIT_STATE / "reread.on"        # `/sc on` — stays until `/sc off`
+ONCE = KIT_STATE / "reread.once"      # `/sc <question>` — armed for one answer
 CHECKLIST = KIT_STATE / "reread-checklist.md"
 
 # Short answers are skipped, because the second pass costs a full model turn and
@@ -59,8 +65,23 @@ The reader sees only the answer.
 """
 
 
+def disarm() -> None:
+    """Spend the one-shot arming, whatever happens next.
+
+    It is cleared before the decision to block, not after, so a turn that is
+    skipped for being short — or that fails for any other reason — does not
+    leave the guard armed for whatever the user asks next. A one-shot that
+    outlives its turn is a toggle nobody switched on.
+    """
+    try:
+        ONCE.unlink()
+    except OSError:
+        pass
+
+
 def main() -> int:
-    if not FLAG.exists():
+    armed_once = ONCE.exists()
+    if not (FLAG.exists() or armed_once):
         return 0  # dormant: no stdin read, no output
 
     try:
@@ -73,19 +94,27 @@ def main() -> int:
     # Second pass: the list has already been delivered. Let the turn end, or the
     # session blocks itself forever.
     if payload.get("stop_hook_active"):
+        disarm()
         return 0
 
     answer = payload.get("last_assistant_message")
     if not isinstance(answer, str) or len(answer.strip()) < MIN_CHARS:
+        disarm()
         return 0
 
     try:
         checklist = CHECKLIST.read_text(encoding="utf-8").strip()
     except OSError:
+        disarm()
         return 0  # nothing to say: fail open rather than block on a missing file
     if not checklist:
+        disarm()
         return 0
 
+    # Spend the arming before blocking, not on the second pass. If the session
+    # dies between the two, a flag left behind would silently re-arm whatever
+    # the user asks next.
+    disarm()
     print(json.dumps({
         "decision": "block",
         "reason": f"{PREAMBLE}\n{checklist}",
