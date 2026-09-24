@@ -10,7 +10,10 @@ set -euo pipefail
 #   --dry-run           show what would be removed, change nothing
 #   --yes               skip the confirmation (also removes symlinks even if
 #                       their target no longer matches what we installed)
-#   --restore-backups   move each recorded *.bak back into place after removal
+#   --restore-backups   move each recorded backup back into place after removal:
+#                       a <file>.bak, or a directory under
+#                       ~/.config/mrcall-ai-kit/backups/. A file the install
+#                       retired comes back the same way.
 #   --help
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -44,12 +47,34 @@ done < "$MANIFEST"
 
 [[ ${#order[@]} -gt 0 ]] || { echo "Manifest is empty — nothing to uninstall."; exit 0; }
 
+# A backup that is a moved symlink may dangle, and still is one.
+has_backup() { [[ -n "${BAK_OF[$1]}" ]] && [[ -e "${BAK_OF[$1]}" || -L "${BAK_OF[$1]}" ]]; }
+
+# Once an entry is handled, a file the kit did not put there may still sit at
+# its path: whatever fills a retired path, or a link pointed away from the
+# kit's source that --yes does not remove. No backup goes back onto it.
+stays_occupied() { # $1=destination
+  if [[ "${MODE_OF[$1]}" == retired ]]; then [[ -e "$1" || -L "$1" ]]
+  elif [[ -L "$1" ]]; then ! $ASSUME_YES && [[ "$(readlink "$1" || true)" != "${SRC_OF[$1]}" ]]
+  else return 1
+  fi
+}
+
 echo "Uninstall plan (from $MANIFEST):"
 for d in "${order[@]}"; do
-  state="${MODE_OF[$d]}"; [[ -e "$d" || -L "$d" ]] || state="$state, already gone"
-  printf "  remove  %s\n" "$d  [$state]"
-  if $RESTORE && [[ -n "${BAK_OF[$d]}" && -e "${BAK_OF[$d]}" ]]; then
-    echo "          then restore <- ${BAK_OF[$d]}"
+  if [[ "${MODE_OF[$d]}" == retired ]]; then
+    # The install removed the kit's file here and put nothing in its place.
+    printf "  retired %s\n" "$d  [nothing to remove]"
+  else
+    state="${MODE_OF[$d]}"; [[ -e "$d" || -L "$d" ]] || state="$state, already gone"
+    printf "  remove  %s\n" "$d  [$state]"
+  fi
+  if $RESTORE && has_backup "$d"; then
+    if stays_occupied "$d"; then
+      echo "          backup stays at ${BAK_OF[$d]}: $d holds a file the kit did not put there"
+    else
+      echo "          then restore <- ${BAK_OF[$d]}"
+    fi
   fi
 done
 echo
@@ -77,7 +102,9 @@ fi
 
 removed=0
 for d in "${order[@]}"; do
-  if [[ -L "$d" ]]; then
+  if [[ "${MODE_OF[$d]}" == retired ]]; then
+    :   # anything here now was put there after the retirement, and not by the kit
+  elif [[ -L "$d" ]]; then
     tgt="$(readlink "$d" || true)"
     if [[ "$tgt" == "${SRC_OF[$d]}" || "$ASSUME_YES" == true ]]; then
       $DRY_RUN || rm -f "$d"; echo "  $RM symlink  $d"; removed=$((removed + 1))
@@ -89,8 +116,12 @@ for d in "${order[@]}"; do
   else
     echo "  already gone  $d"
   fi
-  if $RESTORE && [[ -n "${BAK_OF[$d]}" && -e "${BAK_OF[$d]}" ]]; then
-    $DRY_RUN || mv "${BAK_OF[$d]}" "$d"; echo "  $RS backup  $d"
+  if $RESTORE && has_backup "$d"; then
+    if stays_occupied "$d"; then
+      echo "  KEPT backup  ${BAK_OF[$d]}  ($d holds a file the kit did not put there)"
+    else
+      $DRY_RUN || mv "${BAK_OF[$d]}" "$d"; echo "  $RS backup  $d"
+    fi
   fi
 done
 

@@ -37,6 +37,8 @@ OC_DIR="$HOME/.config/opencode"
 CODEX_SKILLS_DIR="$HOME/.agents/skills"
 KIT_GLOBAL="$HOME/.config/mrcall-ai-kit"   # tool-independent home for doc-check.py
 MANIFEST="$KIT_GLOBAL/installed.tsv"       # append-only install log, read by ./uninstall.sh
+BACKUPS="$KIT_GLOBAL/backups"              # --on-exist backup of a directory, outside every scan path
+RETIRED_LIST="$SCRIPT_DIR/shared/roles/retired.txt"  # files the kit shipped under names it has retired
 CC_ROLES="execute verify reviewer"          # Claude Code role agents (claude/agents/)
 OC_ROLES="execute verify"                   # OpenCode role agents the leads delegate to
 
@@ -78,8 +80,21 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
               skip      = leave the existing file alone and install nothing
                           over it. Updating an existing install does nothing.
               overwrite = replace it. This is what you want when updating.
-              backup    = move it to <file>.bak, then install. Only one
-                          generation is kept: a second run overwrites the .bak.
+              backup    = move it aside, then install. A file moves to
+                          <file>.bak. A directory, such as a skill, moves to
+                          ~/.config/mrcall-ai-kit/backups/<its path under ~>,
+                          where no runtime loads it. Only one generation is
+                          kept: a second run replaces the backup.
+              The same choice applies to the files the kit once installed
+              under names it has retired (shared/roles/retired.txt), in a run
+              that installs the role agents replacing them: doc-harness or
+              router for Claude Code, workers for OpenCode. overwrite deletes
+              them, backup moves them aside, and skip leaves them and lists
+              them. A run that installs other things for that runtime only
+              lists them. A file there is the kit's when it is what the
+              install log records the kit putting there, or when its bytes
+              match a version this checkout's git history shipped at that
+              path. Anything else stays, and the installer lists it.
   --yes:      skip the final confirmation prompt. It never enables a hook or
               chooses a feature for you — everything else must still be a flag.
   --dry-run:  print exactly what would be written, and write nothing.
@@ -406,6 +421,104 @@ if $DO_SHORTCUTS; then
 fi
 [[ ${#PLAN_SRC[@]} -gt 0 ]] || { echo "Nothing to install. Exiting." >&2; exit 1; }
 
+# ── Retired names: find the kit's files under them ─────────────────────────
+# retired.txt holds one file per line: the repository path, a tab, and the
+# destination under $HOME. A file found at a destination is the kit's when the
+# install log's last line for it is an install that still stands, or when its
+# bytes equal a version the kit shipped at that repository path, which this
+# checkout's history answers. The second test covers what was installed before
+# the log existed. Anything else stays and is listed. A runtime this run does
+# not install for is not looked at.
+[[ -f "$RETIRED_LIST" ]] || { echo "Missing install source: $RETIRED_LIST" >&2; exit 1; }
+
+recorded_by_kit() { # $1=destination → the log's last line for it is an install that still stands
+  [[ -f "$MANIFEST" ]] || return 1
+  local line mode src
+  line="$(D="$1" awk -F'\t' '$3 == ENVIRON["D"] { m = $2; s = $4 } END { if (m != "") print m "\t" s }' "$MANIFEST")"
+  [[ -n "$line" ]] || return 1
+  mode="${line%%$'\t'*}" ; src="${line#*$'\t'}"
+  case "$mode" in
+    symlink) [[ -L "$1" && "$(readlink "$1")" == "$src" ]] ;;
+    copy)    [[ -e "$1" && ! -L "$1" ]] ;;
+    *)       return 1 ;;   # retired: the kit has put nothing there since
+  esac
+}
+
+HISTORY=true ; HISTORY_NOTE=""
+if [[ "$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)" != "$(cd "$SCRIPT_DIR" && pwd -P)" ]]; then
+  HISTORY=false
+  HISTORY_NOTE="this kit is not a git checkout, so only the install log can show that a file is the kit's"
+elif [[ "$(git -C "$SCRIPT_DIR" rev-parse --is-shallow-repository)" == true ]]; then
+  HISTORY_NOTE="this checkout is a shallow clone, so a version older than its history is not recognised"
+fi
+
+shipped_in() { # $1=file $2=repository path → prints the newest commit holding these bytes there
+  $HISTORY && [[ -f "$1" ]] || return 1   # a dangling link has no bytes to compare
+  local blob commit
+  blob="$(git -C "$SCRIPT_DIR" hash-object --stdin < "$1")" || return 1
+  # --find-object also lists the commit that replaced the blob, so each hit is
+  # checked for the blob actually being at that path.
+  for commit in $(git -C "$SCRIPT_DIR" log --all --format=%h --find-object="$blob" -- "$2"); do
+    if [[ "$(git -C "$SCRIPT_DIR" rev-parse -q --verify "$commit:$2" 2>/dev/null)" == "$blob" ]]; then
+      echo "$commit" ; return 0
+    fi
+  done
+  return 1
+}
+
+selected_for() { # $1=destination → this run installs for the runtime it belongs to
+  case "$1" in
+    "$CC_DIR"/*)           $WANT_CC ;;
+    "$OC_DIR"/*)           $WANT_OC ;;
+    "$CODEX_SKILLS_DIR"/*) $WANT_CODEX ;;
+    *)                     true ;;
+  esac
+}
+
+# A runtime's retired files go in a run that installs the role agents replacing
+# them, so no run removes an old agent without putting its successor in place.
+# A run that installs other things for that runtime lists them and leaves them.
+installs_roles_for() { # $1=destination → this run installs role agents for its runtime
+  local dir roles r i
+  case "$1" in
+    "$CC_DIR"/*) dir="$CC_DIR/agents" ; roles="$CC_ROLES" ;;
+    "$OC_DIR"/*) dir="$OC_DIR/agents" ; roles="$OC_ROLES" ;;
+    *)           return 0 ;;   # no role agents replace it
+  esac
+  i=0
+  while [[ $i -lt ${#PLAN_DST[@]} ]]; do
+    for r in $roles; do [[ "${PLAN_DST[$i]}" == "$dir/$r.md" ]] && return 0; done
+    i=$((i+1))
+  done
+  return 1
+}
+
+backup_path() { # $1=destination → where --on-exist backup moves it
+  # A directory, or a link to one, leaves the runtimes' scan paths: OpenCode
+  # loads skills/<name>.bak/SKILL.md as the skill <name>, and with the new skill
+  # beside it keeps one of the two at random.
+  if [[ -d "$1" ]]; then echo "$BACKUPS/${1#"$HOME"/}"; else echo "$1.bak"; fi
+}
+
+RET_DST=() ; RET_SRC=() ; RET_WHY=() ; WAIT_DST=() ; WAIT_WHY=() ; KEEP_DST=()
+while IFS=$'\t' read -r r_src r_rel || [[ -n "${r_src:-}" ]]; do
+  [[ -z "$r_src" || "$r_src" == \#* ]] && continue
+  r_dst="$HOME/$r_rel"
+  { [[ -e "$r_dst" || -L "$r_dst" ]] && selected_for "$r_dst"; } || continue
+  if recorded_by_kit "$r_dst"; then
+    r_why="recorded in the install log"
+  elif r_commit="$(shipped_in "$r_dst" "$r_src")"; then
+    r_why="shipped in $r_commit"
+  else
+    KEEP_DST+=("$r_dst") ; continue
+  fi
+  if installs_roles_for "$r_dst"; then
+    RET_DST+=("$r_dst") ; RET_SRC+=("$SCRIPT_DIR/$r_src") ; RET_WHY+=("$r_why")
+  else
+    WAIT_DST+=("$r_dst") ; WAIT_WHY+=("$r_why")
+  fi
+done < "$RETIRED_LIST"
+
 # ── Preview ────────────────────────────────────────────────────────────────
 echo "── Plan (mode: $MODE, on-exist: $ON_EXIST$($DRY_RUN && echo ', DRY-RUN' || true)) ──"
 i=0
@@ -417,6 +530,38 @@ $ACTIVATE_CC && printf "  %-8s %s\n" "activate" "Claude scope guard -> $CC_DIR/s
 $ACTIVATE_CODEX && printf "  %-8s %s\n" "activate" "Codex scope guard -> $HOME/.codex/hooks.json"
 $ACTIVATE_OC && printf "  %-8s %s\n" "activate" "OpenCode scope guard -> $OC_DIR/plugins/mrcall-scope-guard.ts"
 echo
+if [[ ${#RET_DST[@]} -gt 0 || ${#WAIT_DST[@]} -gt 0 || ${#KEEP_DST[@]} -gt 0 ]]; then
+  echo "── Retired names: files the kit once installed under a name it no longer ships ──"
+  i=0
+  while [[ $i -lt ${#RET_DST[@]} ]]; do
+    case "$ON_EXIST" in
+      overwrite) printf "  %-8s %s  (%s)\n" "remove" "${RET_DST[$i]}" "${RET_WHY[$i]}" ;;
+      backup)    printf "  %-8s %s -> %s  (%s)\n" "backup" "${RET_DST[$i]}" "$(backup_path "${RET_DST[$i]}")" "${RET_WHY[$i]}" ;;
+      skip)      printf "  %-8s %s  (%s)\n" "found" "${RET_DST[$i]}" "${RET_WHY[$i]}" ;;
+    esac
+    i=$((i+1))
+  done
+  i=0
+  while [[ $i -lt ${#WAIT_DST[@]} ]]; do
+    printf "  %-8s %s  (%s)\n" "found" "${WAIT_DST[$i]}" "${WAIT_WHY[$i]}"
+    i=$((i+1))
+  done
+  i=0
+  while [[ $i -lt ${#KEEP_DST[@]} ]]; do
+    printf "  %-8s %s  (%s)\n" "keep" "${KEEP_DST[$i]}" "not the kit's: no install record, and no version the kit shipped matches"
+    i=$((i+1))
+  done
+  [[ -z "$HISTORY_NOTE" ]] || echo "  note:    $HISTORY_NOTE."
+  if [[ "$ON_EXIST" == skip && ${#RET_DST[@]} -gt 0 ]]; then
+    echo "  --on-exist skip retires nothing: overwrite or backup completes the migration."
+  fi
+  if [[ ${#WAIT_DST[@]} -gt 0 ]]; then
+    echo "  A runtime's retired files go only in a run that installs its role agents. Reinstall"
+    echo "  what calls them in that same run: for Claude Code doc-harness, with router if"
+    echo "  installed; for OpenCode workers, with orchestration if its leads are installed."
+  fi
+  echo
+fi
 
 # ── Confirm ────────────────────────────────────────────────────────────────
 if ! $DRY_RUN && ! $ASSUME_YES; then
@@ -429,12 +574,18 @@ record_install() { # $1=mode $2=dest $3=src $4=backup — append one manifest li
   printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3" "${4:-}" >> "$MANIFEST"
 }
 
+move_aside() { # $1=path $2=its backup — one generation: an older backup is replaced
+  rm -rf "$2"
+  mkdir -p "$(dirname "$2")"
+  mv "$1" "$2"
+}
+
 install_item() { # $1=src $2=dst
   local src="$1" dst="$2" bak=""
   if [[ -e "$dst" || -L "$dst" ]]; then
     case "$ON_EXIST" in
       skip)      echo "  skip     $dst (exists)"; return ;;
-      backup)    bak="$dst.bak"; $DRY_RUN || mv "$dst" "$bak"; echo "  backup   $dst -> $bak" ;;
+      backup)    bak="$(backup_path "$dst")"; $DRY_RUN || move_aside "$dst" "$bak"; echo "  backup   $dst -> $bak" ;;
       overwrite) $DRY_RUN || rm -rf "$dst"; echo "  remove   $dst (overwrite)" ;;
     esac
   fi
@@ -445,12 +596,35 @@ install_item() { # $1=src $2=dst
   echo "  $MODE   $dst"
 }
 
+retire_item() { # $1=destination $2=the source the kit shipped it from — under skip, never called
+  local dst="$1" bak=""
+  case "$ON_EXIST" in
+    backup)    bak="$(backup_path "$dst")"; $DRY_RUN || move_aside "$dst" "$bak"; echo "  backup   $dst -> $bak (retired)" ;;
+    overwrite) $DRY_RUN || rm -rf "$dst"; echo "  remove   $dst (retired)" ;;
+  esac
+  # The log's last line for the path now says the kit put nothing there: a file
+  # made there later is not taken for the kit's, and --restore-backups can put
+  # this one back.
+  $DRY_RUN || record_install retired "$dst" "$2" "$bak"
+}
+
 echo "── Installing ──"
 i=0
 while [[ $i -lt ${#PLAN_SRC[@]} ]]; do
   install_item "${PLAN_SRC[$i]}" "${PLAN_DST[$i]}"
   i=$((i+1))
 done
+
+# After the installs, so a failed install never leaves a runtime with neither
+# the old files nor the new ones.
+if [[ "$ON_EXIST" != skip && ${#RET_DST[@]} -gt 0 ]]; then
+  echo "── Retiring ──"
+  i=0
+  while [[ $i -lt ${#RET_DST[@]} ]]; do
+    retire_item "${RET_DST[$i]}" "${RET_SRC[$i]}"
+    i=$((i+1))
+  done
+fi
 
 if $DO_SCOPE; then
   register_scope_guard() { # $1=runtime $2=registry path
@@ -470,6 +644,10 @@ fi
 echo
 echo "── Done ──"
 $DRY_RUN && echo "(dry-run — nothing was written)"
+still=${#WAIT_DST[@]} ; [[ "$ON_EXIST" != skip ]] || still=$((still + ${#RET_DST[@]}))
+if [[ $still -gt 0 ]]; then
+  echo "  Retired names: $still file(s) the kit once installed are still in place, listed above with what completes the migration."
+fi
 $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills/agents."
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/.agents/skills."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
