@@ -56,9 +56,22 @@ if show Codex && compgen -G "$HOME/.agents/skills/*/SKILL.md" >/dev/null; then
   done
 fi
 
-printf '\nrouter: '
-[ -f "$HOME/.config/mrcall-ai-kit/router.on" ] && printf 'flag ON' || printf 'flag off'
-grep -q router-hook "$HOME/.claude/settings.json" 2>/dev/null \
-  && printf ', hook registered\n' || printf ', hook not registered\n'
+# Hook-backed features have a state the file listing cannot show: a command can
+# be installed while its hook is dormant, or registered and switched off. Each
+# line below is one such feature — flag first, then whether Claude Code actually
+# calls it, because a flag with no registration does nothing at all.
+hook_state() { # $1=label $2=flag file $3=script name to find in settings.json
+  printf '\n%s: ' "$1"
+  [ -f "$HOME/.config/mrcall-ai-kit/$2" ] && printf 'flag ON' || printf 'flag off'
+  grep -q "$3" "$HOME/.claude/settings.json" 2>/dev/null \
+    && printf ', hook registered\n' || printf ', hook not registered\n'
+}
+hook_state router router.on router-hook
+if [ -f "$HOME/.config/mrcall-ai-kit/reread-hook.py" ]; then
+  # The re-read guard has two flags: one armed for a single answer, one that
+  # stays. Report the persistent one — a one-shot is spent before anyone reads
+  # this, so printing it would only ever be noise.
+  hook_state "re-read guard" reread.on reread-hook
+fi
 
 [ "$here" = all ] || printf '\nShowing %s only. `/ai-help all` for every runtime.\n' "$here"

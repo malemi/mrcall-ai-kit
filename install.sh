@@ -11,7 +11,7 @@ set -euo pipefail
 #   shared/    cross-tool  — the doc-harness (doc-* commands, doc-critic skill)
 #              + doc-check.py and the managed CLAUDE.md template
 #                (installed once to ~/.config/mrcall-ai-kit/)
-#              + ai-help (installed with doc-harness; introspects whatever is
+#              + ai-help / ai-tutorial (installed with doc-harness; introspect whatever is
 #                actually installed rather than a list that goes stale)
 #   claude/    Claude Code-only — worker agents with pinned models, which the
 #              doc-* commands delegate to (part of doc-harness, not optional);
@@ -285,6 +285,11 @@ if $DO_DOC; then
   # Claude Code delimits an injected shell block with backticks, and the script
   # needs backticks of its own to format a model column.
   add_one "$SCRIPT_DIR/shared/scripts/ai-help.sh" "$KIT_GLOBAL/ai-help.sh"
+  # ai-tutorial does the same, and its prose ships beside it: the script prints
+  # only the sections whose capability is installed, so the source has to travel
+  # with it rather than be read out of a checkout that may not be there.
+  add_one "$SCRIPT_DIR/shared/scripts/ai-tutorial.sh" "$KIT_GLOBAL/ai-tutorial.sh"
+  add_one "$SCRIPT_DIR/shared/tutorial.md" "$KIT_GLOBAL/tutorial.md"
   # The doc-* commands delegate to the pinned-model workers, so those agents are
   # part of doc-harness rather than an opt-out: without them the delegation dies.
   $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; add_dir "$SCRIPT_DIR/claude/agents" "$CC_DIR/agents"; }
