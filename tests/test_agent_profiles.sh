@@ -7,13 +7,14 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 
 fail() { echo "$1" >&2; exit 1; }
 
-workers=("$KIT_DIR"/claude/agents/worker-*.md "$KIT_DIR"/opencode/agents/worker-*.md)
-[[ "${#workers[@]}" -eq 19 ]] || fail "expected 19 worker profiles, got ${#workers[@]}"
+# The role agents that report to a delegating session, on both runtimes.
+roles=("$KIT_DIR"/claude/agents/{execute,verify,reviewer}.md "$KIT_DIR"/opencode/agents/{execute,verify,reviewer}.md)
+for role in "${roles[@]}"; do [[ -f "$role" ]] || fail "missing role agent: $role"; done
 
-# The contract must REACH every worker; which route it takes is the runtime's
+# The contract must REACH every role agent; which route it takes is the runtime's
 # business. OpenCode has no include, so its agents carry the text inline.
 # Claude Code preloads a skill's full body into a subagent at startup, so its
-# agents name the skill instead — verified end-to-end, not assumed: a worker
+# agents name the skill instead — verified end-to-end, not assumed: an agent
 # whose body no longer holds the rule quotes it with zero tool calls.
 role_skill="$KIT_DIR/shared/skills/kit-role-rules/SKILL.md"
 [[ -f "$role_skill" ]] || fail "the role skill is missing: $role_skill"
@@ -25,15 +26,15 @@ carries() {  # $1 = file that must hold the proportional contract
     || fail "missing scope budget: $1"
 }
 carries "$role_skill"
-for worker in "${workers[@]}"; do
-  if [[ "$worker" == *"/claude/agents/"* ]]; then
-    grep -q '^skills: kit-role-rules$' "$worker" \
-      || fail "claude worker reaches the contract by neither route: $worker"
+for role in "${roles[@]}"; do
+  if [[ "$role" == *"/claude/agents/"* ]]; then
+    grep -q '^skills: kit-role-rules$' "$role" \
+      || fail "claude role reaches the contract by neither route: $role"
   else
-    carries "$worker"
+    carries "$role"
   fi
 done
-echo "all worker profiles reach the proportional-execution contract: PASS"
+echo "all role agents reach the proportional-execution contract: PASS"
 
 primary="$KIT_DIR/opencode/agents/orchestrator.md"
 build="$KIT_DIR/opencode/agents/build.md"
@@ -141,12 +142,19 @@ for mode in copy symlink; do
   grep -q 'reviewer: allow' "$test_home/.config/opencode/agents/build.md"
   grep -q 'Do not draft the plan until' "$test_home/.config/opencode/agents/plan.md"
   grep -q 'Return exactly one verdict' "$test_home/.config/opencode/agents/reviewer.md"
-  grep -q '^## Artifact and integration review$' "$test_home/.claude/agents/worker-opus.md"
-  grep -q 'Review tasks are read-only' "$test_home/.claude/agents/worker-opus.md"
-  grep -q 'APPROVED | REVISE | FAST_PATH' "$test_home/.claude/agents/worker-opus.md"
+  grep -q '^# Role: review$' "$test_home/.claude/agents/reviewer.md"
+  grep -q 'Review is \*\*read-only\*\*' "$test_home/.claude/agents/reviewer.md"
+  grep -q 'Return exactly one verdict' "$test_home/.claude/agents/reviewer.md"
   # Claude's copy reaches the contract through the installed skill, not inline.
-  grep -q '^skills: kit-role-rules$' "$test_home/.claude/agents/worker-sonnet.md"
+  grep -q '^skills: kit-role-rules$' "$test_home/.claude/agents/execute.md"
   grep -q '^## Proportional execution$' "$test_home/.claude/skills/kit-role-rules/SKILL.md"
-  grep -q '^## Proportional execution$' "$test_home/.config/opencode/agents/worker-sonnet.md"
+  grep -q '^## Proportional execution$' "$test_home/.config/opencode/agents/execute.md"
+  # A preloaded skill that is not installed fails silently: the agent loads and
+  # runs without the rules. So every skill an installed agent names must be there.
+  for agent in "$test_home"/.claude/agents/*.md; do
+    skill="$(awk -F': ' '/^skills:/{print $2; exit}' "$agent")"
+    [[ -z "$skill" || -f "$test_home/.claude/skills/$skill/SKILL.md" ]] \
+      || fail "$agent preloads $skill, which is not installed"
+  done
 done
-echo "copy and symlink installs ship the new primary and worker contracts: PASS"
+echo "copy and symlink installs ship the new primary and role contracts: PASS"

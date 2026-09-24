@@ -1,5 +1,5 @@
 ---
-description: Claude Opus 4 — autonomous engineering lead for implementation and selective delegation.
+description: Autonomous engineering lead for implementation and selective delegation.
 mode: primary
 model: opencode/claude-opus-4-8
 permission:
@@ -13,7 +13,8 @@ permission:
   bash: allow
   task:
     "*": deny
-    worker-*: allow
+    execute: allow
+    verify: allow
     explore: allow
     general: allow
     scout: allow

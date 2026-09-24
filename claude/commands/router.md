@@ -1,5 +1,5 @@
 ---
-description: Toggle the opt-in model router (Haiku session as classifier, delegating to pinned-model workers) — on, off, status, sweep, or unregister.
+description: Toggle the opt-in model router (Haiku session as classifier, delegating to the role agents) — on, off, status, sweep, or unregister.
 allowed-tools: Bash(python3 *) Bash(ls *) Bash(cat *) Bash(mkdir *) Bash(touch *) Bash(rm *) Bash(date *) Read
 ---
 
@@ -67,7 +67,7 @@ registered".
    `Restart the session.` on its own line, because until then the router does
    nothing. Then one line: it is designed around a Haiku session (`/model
    haiku`, or launch with `claude --model claude-haiku-4-5`) delegating to
-   pinned workers, though the hook itself runs on any model. That is the whole
+   the role agents, though the hook itself runs on any model. That is the whole
    output: three lines at most, usually one.
 
 ## `off`

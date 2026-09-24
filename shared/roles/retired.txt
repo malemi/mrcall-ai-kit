@@ -1,0 +1,24 @@
+# Files the kit once installed and has retired. One per line: the repository
+# path, a tab, and the install destination under $HOME. install.sh retires
+# these from an installed machine, and tests/test_retired_names.sh keeps every
+# other live file from naming them.
+claude/agents/worker-fable.md	.claude/agents/worker-fable.md
+claude/agents/worker-opus.md	.claude/agents/worker-opus.md
+claude/agents/worker-sonnet.md	.claude/agents/worker-sonnet.md
+opencode/agents/worker-auto.md	.config/opencode/agents/worker-auto.md
+opencode/agents/worker-deepseek-flash.md	.config/opencode/agents/worker-deepseek-flash.md
+opencode/agents/worker-deepseek-free.md	.config/opencode/agents/worker-deepseek-free.md
+opencode/agents/worker-deepseek.md	.config/opencode/agents/worker-deepseek.md
+opencode/agents/worker-gemini.md	.config/opencode/agents/worker-gemini.md
+opencode/agents/worker-glm.md	.config/opencode/agents/worker-glm.md
+opencode/agents/worker-gpt.md	.config/opencode/agents/worker-gpt.md
+opencode/agents/worker-kimi.md	.config/opencode/agents/worker-kimi.md
+opencode/agents/worker-llama.md	.config/opencode/agents/worker-llama.md
+opencode/agents/worker-mimo.md	.config/opencode/agents/worker-mimo.md
+opencode/agents/worker-mistral-fast.md	.config/opencode/agents/worker-mistral-fast.md
+opencode/agents/worker-mistral.md	.config/opencode/agents/worker-mistral.md
+opencode/agents/worker-nemotron.md	.config/opencode/agents/worker-nemotron.md
+opencode/agents/worker-qwen-coder.md	.config/opencode/agents/worker-qwen-coder.md
+opencode/agents/worker-qwen.md	.config/opencode/agents/worker-qwen.md
+opencode/agents/worker-sonnet.md	.config/opencode/agents/worker-sonnet.md
+llms.md	.config/opencode/llms.md

@@ -99,9 +99,10 @@ When delegating:
 5. Synthesize the result yourself. Do not pass worker questions or reports to
    the CTO verbatim.
 
-Read `~/.config/opencode/llms.md` only when a worker must actually be selected.
-Choose capability for the task; do not introduce a model-selection conversation
-with the CTO.
+Delegate to the role the job needs: `execute` for work whose decisions are
+already made, `verify` where a plausible-but-wrong answer is expensive, and
+`reviewer` for a lifecycle gate. Never choose a model, and do not introduce a
+model-selection conversation with the CTO; the kit resolves each role's model.
 
 ## Verification
 

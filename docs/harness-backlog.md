@@ -2,14 +2,6 @@
 
 Deferred doc-harness / orchestration improvements.
 
-## OPEN — reviewer model metadata is not in the selection table
-
-**Logged**: 2026-08-24. `opencode/agents/reviewer.md` pins
-`model: opencode/claude-sonnet-5`, but no table in `llms.md` records that
-non-worker model choice. The reviewer is absent from the strict fast path but
-mandatory at every substantial-work lifecycle gate. Its pinned model should
-still be visible in the metadata source when that table is next revised.
-
 ## OPEN — a delegation cannot be resumed, and nobody has checked whether it could be
 
 **Logged**: 2026-08-24. Every delegation is one-shot: the orchestrator calls
@@ -20,18 +12,6 @@ tool supports one has never been checked against the tool's own schema. Until
 someone checks, a worker that stops one step short costs a full re-run. The
 check is cheap and it settles whether this is a gap in the protocol or a limit
 of the platform.
-
-## OPEN — scope-guard installs its Claude command to a destination twice
-
-**Logged**: 2026-09-08. `install.sh:297` sweeps `claude/commands/` wholesale
-under the router feature, and `:307` adds `claude/commands/scope-guard.md`
-explicitly under the scope-guard feature. Selecting both with `--on-exist
-backup` therefore installs the file, then moves it to `.bak` on the second pass
-and installs it again, leaving one stray backup and two manifest entries for one
-destination. Present at `HEAD` and unrelated to the feature that surfaced it;
-the `shortcuts` feature avoids the same shape by keeping its sources outside
-every swept directory. The fix is the `$DO_DOC ||` guard pattern already used
-for `worker-fable` at `:300`, or moving the source out of the sweep.
 
 ## Oversized docs — reviewed
 

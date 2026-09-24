@@ -25,14 +25,15 @@ in `AGENTS.md`.
 OpenCode's orchestrator, build lead, read-only planner, reviewer, command, and
 orchestrator skill carry the same lifecycle. Build and plan may invoke the
 reviewer; plan reviews brief text before drafting plan text and never writes or
-implements. The Opus judgment worker reviews all four artifact kinds read-only.
+implements. The `reviewer` role judges all four artifact kinds read-only, on
+Claude Code and on OpenCode.
 Direct implementation, positive-value delegation, bounded fan-out, and
 proportionate verification remain intact.
 
 Standing instructions are pulled, not pushed. The router hook prints only this
 session's shared-memory path and the protocol for using that file, and prints
 nothing at all when no `docs/` tree is in reach; the contract itself reaches a
-session through the managed `CLAUDE.md` and each worker agent's `description`.
+session through the managed `CLAUDE.md` and each role agent's `description`.
 Two installed shortcuts pull an instruction on demand: `nr` answers one question
 with no tool, subagent, work trace or review gate, refusing to guess and
 refusing an action request, and `av` restates the engineering-lead stance. Both are typed commands on Claude Code and

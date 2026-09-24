@@ -38,8 +38,8 @@ they are bugs:
 3. Using regex/grep/string-matching to parse unstructured text
    (prose, HTML, LLM output, news articles). Call an LLM instead.
    Regex is for structured input only.
-4. Picking a cheaper/smaller model to "save cost". Use the model the
-   task needs. If unsure, use Opus.
+4. Picking a cheaper role or model to "save cost". Use the role the
+   task needs. If unsure, use `verify`.
 
 Correctness beats efficiency. Always. Delegate to subagents to spare
 context, never to spare cost.
@@ -82,13 +82,13 @@ overview lives in [`README.md`](README.md).
 - `shared/` — source workflows, `doc-check.py` gate, `CLAUDE.md` template,
   `doc-critic` skill, and `shortcuts/` (the `nr` and `av` instruction overrides
   an operator pulls on demand).
-- `claude/` — Claude Code-only: pinned-model worker agents the doc workflows
-  delegate to, plus the opt-in model router (`commands/router.md`,
-  `scripts/router-hook.py`).
+- `claude/` — Claude Code-only: the role agents (`execute`, `verify`,
+  `reviewer`) the doc workflows delegate to, plus the opt-in model router
+  (`commands/router.md`, `scripts/router-hook.py`).
 - `codex/` — Codex-native skill entry points for the shared doc workflows and
   for the shortcuts, which Codex has no operator-typed command form for.
-- `opencode/` — OpenCode-only: orchestration, worker agents, watchdog, and
-  migration tooling.
+- `opencode/` — OpenCode-only: orchestration and its leads, the role agents,
+  watchdog, and migration tooling.
 - `install.sh` / `uninstall.sh` — global installer / uninstaller.
 
 ### Conventions

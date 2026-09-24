@@ -13,13 +13,12 @@ set -euo pipefail
 #                (installed once to ~/.config/mrcall-ai-kit/)
 #              + ai-help / ai-tutorial (installed with doc-harness; introspect whatever is
 #                actually installed rather than a list that goes stale)
-#   claude/    Claude Code-only — worker agents with pinned models, which the
-#              doc-* commands delegate to (part of doc-harness, not optional);
-#              plus the opt-in model router (feature: router — hook script,
-#              /router command, worker-fable)
-#   opencode/  OpenCode-only — orchestrator, worker agents, migrate-from-cc
-#   llms.md    OpenCode-only — model metadata table the orchestrator reads at
-#              startup (ships to ~/.config/opencode/ with the orchestration feature)
+#   claude/    Claude Code-only — the role agents (execute, verify, reviewer)
+#              the doc-* commands delegate to (part of doc-harness, not
+#              optional); plus the opt-in model router (feature: router — hook
+#              script, /router command)
+#   opencode/  OpenCode-only — orchestrator and its leads, the role agents,
+#              migrate-from-cc
 #
 # Flags (any provided value skips its prompt):
 #   --environment claude|codex|opencode|all|both
@@ -38,6 +37,8 @@ OC_DIR="$HOME/.config/opencode"
 CODEX_SKILLS_DIR="$HOME/.agents/skills"
 KIT_GLOBAL="$HOME/.config/mrcall-ai-kit"   # tool-independent home for doc-check.py
 MANIFEST="$KIT_GLOBAL/installed.tsv"       # append-only install log, read by ./uninstall.sh
+CC_ROLES="execute verify reviewer"          # Claude Code role agents (claude/agents/)
+OC_ROLES="execute verify"                   # OpenCode role agents the leads delegate to
 
 ENVIRONMENT="" ; FEATURES="" ; MODE="" ; ON_EXIST="" ; ACTIVATE_SCOPE=""
 ASSUME_YES=false ; DRY_RUN=false
@@ -91,8 +92,8 @@ EOF
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
   echo "     scripts:    doc-check.py + CLAUDE.template.md  (-> ~/.config/mrcall-ai-kit/)"
-  echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents")  [Claude Code only — pinned-model"
-  echo "                 workers the doc-* commands delegate to; installed with doc-harness]"
+  echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents")  [Claude Code only — the role"
+  echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
   echo
   echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
   echo "     commands:   nr, av  (-> ~/.claude/commands/, ~/.config/opencode/commands/)"
@@ -104,19 +105,16 @@ EOF
   echo
   echo "  orchestration  [OpenCode only]"
   echo "     command:    orchestrator     agents: build, plan, reviewer, orchestrator     skill: orchestrator"
-  echo "     metadata:   llms.md  (-> ~/.config/opencode/, the model table the orchestrator reads)"
   echo
   echo "  workers        [OpenCode only]"
-  local n; n=$(find "$SCRIPT_DIR/opencode/agents" -maxdepth 1 -name 'worker-*.md' 2>/dev/null | wc -l | tr -d ' ')
-  local names=""; for w in "$SCRIPT_DIR"/opencode/agents/worker-*.md; do [[ -e "$w" ]] && names+="$(basename "$w" .md | sed 's/^worker-//') "; done
-  echo "     agents:     $n worker models — ${names:-(none)}"
+  echo "     agents:     $OC_ROLES  (the roles the leads delegate to)"
   echo
   echo "  migrate        [OpenCode only]"
   echo "     command:    migrate-check     skill: migrate-from-cc"
   echo
   echo "  router         [Claude Code only]"
   echo "     command:    router  (on/off/status/sweep/unregister — opt-in, dormant until /router on)"
-  echo "     agent:      worker-fable  (installed with doc-harness too, if selected)"
+  echo "     agents:     $CC_ROLES + the kit-role-rules skill  (installed with doc-harness too, if selected)"
   echo "     script:     router-hook.py  (-> ~/.config/mrcall-ai-kit/, a dormant UserPromptSubmit hook)"
   echo
   echo "  reread         [Claude Code only]
@@ -221,11 +219,11 @@ else
   ask_yn "Install doc-harness (doc-create/start/end + doc-check + doc-critic)? [GLOBAL, cross-tool]" y && DO_DOC=true
   if $WANT_OC; then
     ask_yn "Install orchestration (orchestrator + build/plan/reviewer)? [OpenCode only]" n && DO_ORCH=true
-    ask_yn "Install worker agents (16 models)? [OpenCode only]" n && DO_WORKERS=true
+    ask_yn "Install the role agents ($OC_ROLES)? [OpenCode only]" n && DO_WORKERS=true
     ask_yn "Install migrate-from-cc (skill + /migrate-check)? [OpenCode only]" n && DO_MIGRATE=true
   fi
   if $WANT_CC; then
-    ask_yn "Install the opt-in model router (Haiku session as classifier + pinned workers)? [Claude Code only, dormant until /router on]" n && DO_ROUTER=true
+    ask_yn "Install the opt-in model router (Haiku session as classifier + the role agents)? [Claude Code only, dormant until /router on]" n && DO_ROUTER=true
     ask_yn "Install the re-read guard (hands each finished answer back once against a checklist)? [Claude Code only, dormant until /sc on]" n && DO_REREAD=true
   fi
   ask_yn "Install scope guard (dormant unless activated separately)? [GLOBAL, cross-tool]" n && DO_SCOPE=true
@@ -316,8 +314,8 @@ if $DO_DOC; then
   # with it rather than be read out of a checkout that may not be there.
   add_one "$SCRIPT_DIR/shared/scripts/ai-tutorial.sh" "$KIT_GLOBAL/ai-tutorial.sh"
   add_one "$SCRIPT_DIR/shared/tutorial.md" "$KIT_GLOBAL/tutorial.md"
-  # The doc-* commands delegate to the pinned-model workers, so those agents are
-  # part of doc-harness rather than an opt-out: without them the delegation dies.
+  # The doc-* commands delegate to the role agents, so those agents are part of
+  # doc-harness rather than an opt-out: without them the delegation dies.
   $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; add_dir "$SCRIPT_DIR/claude/agents" "$CC_DIR/agents"; }
   if $WANT_CODEX; then
     for command in doc-create doc-start doc-end; do
@@ -332,13 +330,19 @@ fi
 if $DO_ROUTER; then
   # Claude Code-only (gated above); dormant until `/router on` creates the flag.
   add_one "$SCRIPT_DIR/claude/scripts/router-hook.py" "$KIT_GLOBAL/router-hook.py"
-  add_dir "$SCRIPT_DIR/claude/commands" "$CC_DIR/commands"
-  # worker-fable rides with doc-harness's claude/agents sweep when both are
-  # selected; add it alone only when doc-harness was skipped. Its rules arrive
-  # through the preloaded kit-role-rules skill, so that ships with it — without
-  # doc-harness nothing else installs shared/skills.
-  $DO_DOC || { add_one "$SCRIPT_DIR/claude/agents/worker-fable.md" "$CC_DIR/agents/worker-fable.md"; \
-               add_one "$SCRIPT_DIR/shared/skills/kit-role-rules" "$CC_DIR/skills/kit-role-rules"; }
+  # Only the router's own command. claude/commands also holds the commands of
+  # the reread and scope-guard features, and each of those is installed by its
+  # own feature: /sc registers a hook script only `--features reread` ships.
+  add_one "$SCRIPT_DIR/claude/commands/router.md" "$CC_DIR/commands/router.md"
+  # The role agents the router delegates to ride with doc-harness's
+  # claude/agents sweep when both are selected; add them alone only when
+  # doc-harness was skipped. Their rules arrive through the preloaded
+  # kit-role-rules skill, so that ships with them — without doc-harness nothing
+  # else installs shared/skills.
+  if ! $DO_DOC; then
+    for r in $CC_ROLES; do add_one "$SCRIPT_DIR/claude/agents/$r.md" "$CC_DIR/agents/$r.md"; done
+    add_one "$SCRIPT_DIR/shared/skills/kit-role-rules" "$CC_DIR/skills/kit-role-rules"
+  fi
 fi
 if $DO_REREAD; then
   # Claude Code-only; dormant until `/sc on` creates the flag. The checklist is
@@ -368,17 +372,12 @@ if $WANT_OC; then
   if $DO_ORCH; then
     add_one "$SCRIPT_DIR/opencode/commands/orchestrator.md" "$OC_DIR/commands/orchestrator.md"
     add_one "$SCRIPT_DIR/opencode/skills/orchestrator" "$OC_DIR/skills/orchestrator"
-    # The orchestrator agent and skill both read ~/.config/opencode/llms.md at
-    # startup and at every worker pick, so the model metadata ships with them.
-    add_one "$SCRIPT_DIR/llms.md" "$OC_DIR/llms.md"
     for a in build plan reviewer orchestrator; do
       add_one "$SCRIPT_DIR/opencode/agents/$a.md" "$OC_DIR/agents/$a.md"
     done
   fi
   if $DO_WORKERS; then
-    for w in "$SCRIPT_DIR"/opencode/agents/worker-*.md; do
-      [[ -e "$w" ]] && add_one "$w" "$OC_DIR/agents/$(basename "$w")"
-    done
+    for r in $OC_ROLES; do add_one "$SCRIPT_DIR/opencode/agents/$r.md" "$OC_DIR/agents/$r.md"; done
   fi
   if $DO_MIGRATE; then
     add_one "$SCRIPT_DIR/opencode/commands/migrate-check.md" "$OC_DIR/commands/migrate-check.md"

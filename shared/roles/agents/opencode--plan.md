@@ -1,5 +1,5 @@
 ---
-description: Claude Opus 4 — read-only planner that produces decision-ready, proportionate plans.
+description: Read-only planner that produces decision-ready, proportionate plans.
 mode: primary
 model: opencode/claude-opus-4-8
 permission:

@@ -14,22 +14,19 @@ cross-tool contract.
 ## Delegation boundary
 
 Both session start and consolidation may delegate bounded, substantive work to
-pinned-model workers where the environment provides them — `worker-sonnet` for
-mechanical execution, `worker-opus` for independent verification — through
+the kit's role agents where the environment provides them — `execute` for
+mechanical execution, `verify` for independent verification — through
 whatever subagent primitive the tool exposes (`Agent` in Claude Code, `task` in
 OpenCode). Delegation is conditional: parallelism, specialist capability, or
 context isolation must be worth more than prompting, waiting, and review.
-Narrow local work stays with the primary agent. Workers declare their own
-model, so the tier follows the task rather than the delegating session; a
+Narrow local work stays with the primary agent. Each role declares its own
+model, so the model follows the job rather than the delegating session; a
 subagent that declares none inherits the parent's and therefore saves context
 only.
 
-Two OpenCode capabilities are deliberately not ported to Claude Code: the
+One OpenCode capability is deliberately not ported to Claude Code: the
 watchdog daemon, which enforces timeout and budget through OpenCode's own
-session-abort API and has no Claude Code equivalent; and the multi-provider
-worker roster, since `model:` selects among models the session can already
-reach and provider routing is process-level, leaving Sonnet as the one useful
-cheaper tier.
+session-abort API and has no Claude Code equivalent.
 
 Two parts of consolidation are never delegable, in any environment: gathering
 the session signal, and deciding which knowledge is current. Both depend on the
@@ -283,7 +280,7 @@ does not overwrite Codex's user-owned global `~/.codex/AGENTS.md`; outside a
 workflow that reads managed `CLAUDE.md`, ordinary Codex behavior follows the
 operator's global and project `AGENTS.md` chain. OpenCode orchestration has its
 own installed primary profiles, while Claude receives the contract from managed
-`CLAUDE.md` and from each worker agent's `description`.
+`CLAUDE.md` and from each role agent's `description`.
 
 Enforcement is layered like the living-context shape: `doc-end` creates a
 missing pair retroactively in-session (it holds the transcript that says what

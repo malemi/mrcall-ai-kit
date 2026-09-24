@@ -11,7 +11,8 @@ permission:
   list: allow
   task:
     "*": deny
-    worker-*: allow
+    execute: allow
+    verify: allow
     explore: allow
     general: allow
     scout: allow

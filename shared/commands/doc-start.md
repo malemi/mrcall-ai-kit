@@ -17,7 +17,7 @@ Never repair, add scope declarations, or bypass a mismatch inside `doc-start`.
 
 ## Delegation — trim the plumbing, never the payload
 
-Where the environment provides a pinned-model worker (Claude Code: `Agent` with `subagent_type: "worker-sonnet"`; OpenCode: `task` with the same name), delegate the mechanical checks of Phase 2 — validating the baseline and counting content-drift commits, and scanning plan frontmatter — and take back only their results. Both are git and file plumbing whose answer is a few lines; neither needs to pass through this session's context on the way, and the frontmatter scan grows with the number of plans.
+Where the environment provides the kit's role agents (Claude Code: `Agent` with `subagent_type: "execute"`; OpenCode: `task` with the same name), delegate the mechanical checks of Phase 2 — validating the baseline and counting content-drift commits, and scanning plan frontmatter — and take back only their results. Both are git and file plumbing whose answer is a few lines; neither needs to pass through this session's context on the way, and the frontmatter scan grows with the number of plans.
 
 Never delegate reading the index, `docs/README.md`, or `docs/active-context.md`. Loading those into *this* session is the whole purpose of the command, and a worker's summary of them defeats it.
 

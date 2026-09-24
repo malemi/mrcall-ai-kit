@@ -7,8 +7,8 @@ should not have to load this one.
 
 ## Session memory (opt-in model router, Claude Code only)
 
-`--features router` installs a dormant `UserPromptSubmit` hook plus `/router`
-and `worker-fable`. `/ai-help` ships with `doc-harness` instead — it lives in
+`--features router` installs a dormant `UserPromptSubmit` hook plus `/router`,
+and the role agents with their skill when `doc-harness` does not. `/ai-help` ships with `doc-harness` instead — it lives in
 `shared/commands/` alongside the other cross-tool commands, not in the
 router's Claude-only branch. Off by default: the hook checks for
 `~/.config/mrcall-ai-kit/router.on` and exits with no output when the flag is
@@ -20,13 +20,13 @@ the flag; `/router off` removes only the flag, leaving registration in place;
 The intended shape: the session model is a cheap engineering lead (Haiku) that
 answers trivial prompts and performs narrow local work itself. It delegates
 only bounded substantive work when the value of a fresh specialist context is
-greater than prompting, waiting, and review: `worker-sonnet` for execution,
-`worker-opus` for hard judgment, and `worker-fable` for explicitly requested or
-genuinely frontier-hard work. That contract reaches the session from the managed
-`CLAUDE.md` and from each worker agent's own `description`, both of which a
-session already holds; the hook does not restate it. Because a subagent starts
-with a fresh context, delegation without continuity loses whatever the previous
-worker understood — so a routed session gets a shared-memory file,
+greater than prompting, waiting, and review: `execute` for execution, `verify`
+for hard judgment, and `reviewer` for a lifecycle gate. That contract reaches
+the session from the managed `CLAUDE.md` and from each role agent's own
+`description`, both of which a session already holds; the hook does not restate
+it. Because a subagent starts with a fresh context, delegation without
+continuity loses whatever the previous worker understood — so a routed session
+gets a shared-memory file,
 `docs/sessions/<session-id>.md`, the same kind of object as
 `docs/active-context.md`: a living snapshot, never a log, same anti-drift
 discipline, same repo, readable with `cat`.

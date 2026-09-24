@@ -11,11 +11,10 @@ lead plus optional workers and a risk-proportional reviewer.
 - `agents/plan.md`: read-only planning mode with proportionate depth.
 - `commands/orchestrator.md`: launches the primary without approval ceremony.
 - `skills/orchestrator/SKILL.md`: reusable orchestration policy.
-- `agents/worker-*.md`: leaf executors with bounded scope and proportionate
-  verification.
+- `agents/execute.md`, `agents/verify.md`: the roles the leads delegate to —
+  leaf executors and judges with bounded scope and proportionate verification.
 - `agents/reviewer.md`: mandatory internal artifact and integration gate for
   substantial work; optional for the strict direct fast path.
-- `llms.md`: model metadata read only when selecting a worker.
 
 ## Control flow
 

@@ -64,7 +64,7 @@ Not worth it for "is the service up".
 ## `/router` — cheap session, expensive workers
 
 Runs the conversation itself on a cheap model that answers trivia and does
-narrow work, and delegates the substantial pieces to workers pinned to stronger
+narrow work, and delegates the substantial pieces to the role agents, which run on stronger
 models. `/router on` activates it, `/router off` stops it.
 
 It also gives a routed session a shared memory file under `docs/sessions/`, so
@@ -114,10 +114,12 @@ Reach for it when the work is large enough that getting the frame wrong is
 expensive. Skip it for a local, obvious, reversible change — the flow says so
 itself, and returns a fast path instead.
 
-<!-- capability: workers | proof: agents/worker-qwen-coder.md | covers: worker -->
-## The worker agents — one job, many models
+<!-- capability: workers | proof: agents/execute.md | covers: execute verify reviewer -->
+## The role agents — one job each
 
-Subagents that do bounded work in a fresh context and report back briefly. Their
+Subagents that do bounded work in a fresh context and report back briefly:
+`execute` carries out work whose decisions are already made, `verify` judges
+whether something is actually true, and `reviewer` runs a lifecycle gate. Their
 rules are written once in `shared/roles/` and composed into each definition by
 `shared/scripts/build-agents.py`; a gate fails if a shipped file and its source
 disagree.
@@ -126,9 +128,9 @@ Reach for one when the work is substantial and self-contained, and a fresh
 context is worth more than the cost of briefing it. Never for a trivial local
 edit: the briefing costs more than doing it.
 
-The model is a frontmatter field, not the agent's identity. Pick the tier the
-job needs, and never a cheaper one to save money — the cheap wrong answer is
-the expensive one.
+An agent is named for its job, and its model is a field of its definition,
+not its identity. Pick the role the job needs, and never a cheaper one to save
+money — the cheap wrong answer is the expensive one.
 
 <!-- capability: migrate | proof: commands/migrate-check.md | covers: migrate-check migrate-from-cc -->
 ## `/migrate-check` — moving a repository to OpenCode

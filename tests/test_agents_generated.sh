@@ -21,13 +21,20 @@ else
 fi
 
 step "2. regenerating is a no-op (the generator is deterministic)"
-BEFORE="$(git status --porcelain claude/agents opencode/agents shared/skills/kit-role-rules)"
-python3 shared/scripts/build-agents.py >/dev/null
-AFTER="$(git status --porcelain claude/agents opencode/agents shared/skills/kit-role-rules)"
-if [ "$BEFORE" = "$AFTER" ]; then
+# In a scratch copy: regenerating the checkout itself would overwrite the very
+# hand edit step 1 just reported, and then blame it on the generator.
+SCRATCH="$(mktemp -d)"
+cp -r shared claude opencode "$SCRATCH"/
+outputs() { (cd "$SCRATCH" && find claude/agents opencode/agents shared/skills/kit-role-rules -type f -exec md5sum {} + | sort); }
+python3 "$SCRATCH/shared/scripts/build-agents.py" >/dev/null
+FIRST="$(outputs)"
+python3 "$SCRATCH/shared/scripts/build-agents.py" >/dev/null
+SECOND="$(outputs)"
+rm -rf "$SCRATCH"
+if [ "$FIRST" = "$SECOND" ]; then
   echo "OK"
 else
-  echo "FAIL: running the generator changed the tree — it is not deterministic"
+  echo "FAIL: two runs of the generator wrote different files — it is not deterministic"
   FAIL=1
 fi
 
@@ -38,9 +45,9 @@ step "3. every agent carries the rules, by one route or the other"
 for f in claude/agents/*.md; do
   grep -q '^skills: kit-role-rules$' "$f" || { echo "FAIL: $f names no role skill"; FAIL=1; }
 done
-# Each OpenCode agent must still carry exactly the shared blocks it carried
-# before the extraction — recorded per agent in agents.json, so this fails if a
-# regeneration ever silently adds a rule to an agent or takes one away.
+# Each OpenCode agent must carry exactly the shared blocks agents.json records
+# for it, so this fails if a regeneration ever silently adds a rule to an agent
+# or takes one away.
 python3 - <<'PY' || FAIL=1
 import json, pathlib, sys
 m = json.loads(pathlib.Path("shared/roles/agents.json").read_text())
@@ -56,7 +63,7 @@ for b in bad:
     print(f"FAIL: {b}")
 sys.exit(1 if bad else 0)
 PY
-[ "$FAIL" -eq 0 ] && echo "OK: $(ls claude/agents/*.md | wc -l) via skill, $(ls opencode/agents/*.md | wc -l) inline, each with the blocks it had"
+[ "$FAIL" -eq 0 ] && echo "OK: $(ls claude/agents/*.md | wc -l) via skill, $(ls opencode/agents/*.md | wc -l) inline, each with the blocks agents.json records"
 
 step "4. the skill Claude preloads actually exists where install.sh ships it"
 if [ -f shared/skills/kit-role-rules/SKILL.md ]; then echo "OK"; else

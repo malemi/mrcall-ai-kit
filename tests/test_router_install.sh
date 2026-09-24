@@ -15,18 +15,23 @@ for mode in copy symlink; do
 
   hook="$test_home/.config/mrcall-ai-kit/router-hook.py"
   router_cmd="$test_home/.claude/commands/router.md"
-  worker="$test_home/.claude/agents/worker-fable.md"
   test -f "$hook"
   test -x "$hook"
   test -f "$router_cmd"
-  test -f "$worker"
+  # The roles the router delegates to, and the skill their rules arrive through.
+  for role in execute verify reviewer; do test -f "$test_home/.claude/agents/$role.md"; done
+  test -f "$test_home/.claude/skills/kit-role-rules/SKILL.md"
   if [[ "$mode" == copy ]]; then
     test ! -L "$hook"
   else
     test -L "$hook"
     test -L "$router_cmd"
-    test -L "$worker"
+    for role in execute verify reviewer; do test -L "$test_home/.claude/agents/$role.md"; done
   fi
+  # Only the router's own command: /sc would register a hook script only
+  # `--features reread` installs, and scope-guard has a feature of its own.
+  test ! -e "$test_home/.claude/commands/sc.md"
+  test ! -e "$test_home/.claude/commands/scope-guard.md"
   # doc-harness was not selected: none of its commands should be present.
   test ! -e "$test_home/.claude/commands/doc-start.md"
   # The installed file is really this hook, not another router artifact that
@@ -44,18 +49,20 @@ HOME="$test_home" "$KIT_DIR/install.sh" \
 test ! -e "$test_home/.config/mrcall-ai-kit/router-hook.py"
 echo "router feature dropped without Claude Code: PASS"
 
-# ── router + doc-harness together: worker-fable installed exactly once ─────
+# ── router + doc-harness together: each role agent installed exactly once ─
 test_home="$TEST_ROOT/combined"
 mkdir -p "$test_home"
 HOME="$test_home" "$KIT_DIR/install.sh" \
   --environment claude --features doc-harness,router \
   --mode symlink --on-exist skip --yes >/dev/null
 manifest="$test_home/.config/mrcall-ai-kit/installed.tsv"
-count=$(grep -c '\.claude/agents/worker-fable\.md' "$manifest")
-[[ "$count" -eq 1 ]] || { echo "expected exactly one worker-fable.md manifest entry, got $count" >&2; exit 1; }
+for role in execute verify reviewer; do
+  count=$(grep -c "\.claude/agents/$role\.md" "$manifest")
+  [[ "$count" -eq 1 ]] || { echo "expected exactly one $role.md manifest entry, got $count" >&2; exit 1; }
+done
 test -f "$test_home/.claude/commands/doc-start.md"
 test -f "$test_home/.claude/commands/router.md"
-echo "router + doc-harness (no duplicate worker-fable): PASS"
+echo "router + doc-harness (no duplicate role agent): PASS"
 
 # ── uninstall removes exactly the router artifacts ─────────────────────────
 test_home="$TEST_ROOT/uninstall"
@@ -66,7 +73,7 @@ HOME="$test_home" "$KIT_DIR/install.sh" \
 HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes >/dev/null
 test ! -e "$test_home/.claude/commands/router.md"
 test ! -e "$test_home/.config/mrcall-ai-kit/router-hook.py"
-test ! -e "$test_home/.claude/agents/worker-fable.md"
+for role in execute verify reviewer; do test ! -e "$test_home/.claude/agents/$role.md"; done
 echo "router uninstall: PASS"
 
 # ── the hook itself: dormant without the flag, injects with it ─────────────
@@ -82,7 +89,7 @@ out="$(HOME="$flag_home" printf '{"session_id":"t1","cwd":"/nonexistent-xyz","tr
 # The flag is on but no docs/ tree is in reach, so the hook has no path to name
 # and prints nothing at all -- not even a blank line, which would reach the model
 # as context that says nothing. The standing contract lives in the managed
-# CLAUDE.md and in each worker agent's description, not in this output.
+# CLAUDE.md and in each role agent's description, not in this output.
 # The trailing dot is the sentinel: `$( )` strips trailing newlines, so without
 # it a single blank line would be indistinguishable from no output.
 [[ "$out" == "." ]] || { echo "expected no output without a docs/ dir, got: $out" >&2; exit 1; }

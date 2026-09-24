@@ -90,8 +90,8 @@ than a mechanism: nothing prevents a model from suspending its own tools and
 checks except its willingness to follow that line.
 
 There's also a **memory** — a short, current account of a project, and of
-each session, that keeps itself up to date — and **agents**: AI helpers
-pinned to specific models, brought in automatically for particular jobs.
+each session, that keeps itself up to date — and **agents**: AI helpers,
+each named for one job, brought in automatically for that job.
 
 Want the full detail? See
 [`docs/documentation-harness.md`](docs/documentation-harness.md).

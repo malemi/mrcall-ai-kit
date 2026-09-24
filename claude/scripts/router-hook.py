@@ -13,7 +13,7 @@ continuity across turns.
 That path is the only thing this hook knows and no static file can carry. The
 standing engineering-lead contract — the delivery lanes, the routing choices,
 the review gates — lives in the managed `CLAUDE.md` a repository installs and in
-the `description` field of each worker agent, both of which a session already
+the `description` field of each role agent, both of which a session already
 holds, so this hook does not restate them.
 
 That file's directory is resolved once per session and then pinned, because the

@@ -27,12 +27,14 @@ where that happens the template governs.
 - Verify the integrated result the way the user will exercise it. A focused real
   command is enough for a focused change; broader changes earn broader evidence.
 
-## Choosing the model
+## Choosing the role
 
-A role runs on the tier its definition sets. Raise it at delegation time for
-work where a plausible-but-wrong answer is expensive. **Never lower a tier to
-save money** — the cheap wrong answer is the expensive one, and this kit's own
-rules call that a bug rather than a saving.
+Delegate to the role the job needs: `execute` for work whose decisions are
+already made, `verify` where a plausible-but-wrong answer is expensive, and
+`reviewer` for a lifecycle gate. Never name a model at delegation; the kit
+resolves each role's model from the operator's budget. **Never choose a
+cheaper role than the job needs to save money** — the cheap wrong answer is the
+expensive one, and this kit's own rules call that a bug rather than a saving.
 
 ## Judgement
 
