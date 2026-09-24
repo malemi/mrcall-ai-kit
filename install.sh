@@ -59,13 +59,30 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
                     [--activate-scope-guard RUNTIMES|all]
                     [--yes] [--dry-run] [--help]
 
+  --environment: which AI tools to install for. claude, codex, opencode, or a
+              shorthand: both = Claude Code + OpenCode, all = all three. A
+              runtime you do not have installed is harmless — the files land in
+              its config directory and nothing reads them until it exists.
+              Features that only make sense elsewhere are skipped with a note.
   --features: doc-harness, orchestration, workers, migrate, router, reread, scope-guard,
-              shortcuts (comma list, or: all)
+              shortcuts (comma list, or: all). Each is described below.
   --activate-scope-guard: explicitly register scope-guard hooks/plugins for a
               comma-separated subset of claude,codex,opencode (or: all).
               --yes and --features scope-guard alone leave it dormant.
-  --mode:     symlink = edit the kit = edit your config; copy = frozen snapshot.
+  --mode:     symlink = the installed file points at this checkout, so editing
+              the kit edits your live config — and moving or deleting the
+              checkout breaks it. copy = a frozen snapshot, unaffected by the
+              checkout afterwards; re-run the installer to pick up changes.
   --on-exist: what to do when a target file already exists.
+              skip      = leave the existing file alone and install nothing
+                          over it. Updating an existing install does nothing.
+              overwrite = replace it. This is what you want when updating.
+              backup    = move it to <file>.bak, then install. Only one
+                          generation is kept: a second run overwrites the .bak.
+  --yes:      skip the final confirmation prompt. It never enables a hook or
+              chooses a feature for you — everything else must still be a flag.
+  --dry-run:  print exactly what would be written, and write nothing.
+  --help:     this text.
 
 What gets installed
 ───────────────────
@@ -102,7 +119,16 @@ EOF
   echo "     agent:      worker-fable  (installed with doc-harness too, if selected)"
   echo "     script:     router-hook.py  (-> ~/.config/mrcall-ai-kit/, a dormant UserPromptSubmit hook)"
   echo
-  echo "  scope-guard    [cross-tool -> every selected runtime; opt-in hook/plugin]"
+  echo "  reread         [Claude Code only]
+     command:    sc  (/sc <question> — one re-read pass over that answer; on/off
+                 for every answer; opt-in, dormant until used)
+     script:     reread-hook.py  (-> ~/.config/mrcall-ai-kit/, a dormant Stop hook)
+     checklist:  reread-checklist.md  (-> ~/.config/mrcall-ai-kit/, edit to taste)
+     what:       hands a finished answer back to the session once, against the
+                 checklist, before you see it. Costs one extra model pass on
+                 answers over 500 characters; shorter ones are skipped.
+
+  scope-guard    [cross-tool -> every selected runtime; opt-in hook/plugin]"
   echo "     installs:   common engine, registration helper, runtime adapter, command/skill"
   echo "     activation: dormant by default; interactive prompt or --activate-scope-guard"
   echo
