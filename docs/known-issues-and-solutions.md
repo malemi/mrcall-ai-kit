@@ -2,27 +2,32 @@
 
 Recurring problems and their fixes.
 
-## Claude Code does not hot-reload agent files mid-session
+## Claude Code re-reads the agent directory between turns
 
-**Symptom**: an agent definition newly installed into `~/.claude/agents/`
-returns `Agent type '<name>' not found. Available agents: ...` when passed to
-the `Agent` tool as `subagent_type`, and the listed agents are exactly those
-that existed when the session started.
+**Behavior** (verified 2026-09-25, Claude Code 2.1.280): an agent file added to
+or removed from `~/.claude/agents/` during a session takes effect at that
+session's next turn.
 
-**Root cause** (verified 2026-08-04, Claude Code 2.1.220): the agent registry
-is built at session start and is not re-read when files appear later. The
-definition file itself is not at fault.
+**Verification**: a session started with the model-named workers installed.
+Mid-session, they were retired and `execute`, `verify` and `reviewer` were
+installed. At its next turn, that session delegated to `execute`, and it was
+refused `worker-opus` with `Agent type 'worker-opus' not found. Available
+agents: ... execute ... reviewer ... verify`.
 
-**Verification**: installing `worker-sonnet` / `worker-opus` mid-session made
-them unreachable in that session, while a fresh headless session started
-immediately afterwards (`claude -p "list subagent types"`) listed both. Same
-files, same paths, different session.
+**Older versions**: Claude Code 2.1.220 (verified 2026-08-04) built the
+registry once, at session start. An agent installed mid-session was not found
+until the session restarted.
 
-**Solution**: restart the Claude Code session. This is the same behavior
-OpenCode has, below.
+**Not established**: whether an edited agent file, such as one with a changed
+`model:`, takes effect mid-session. The measurement above covers files added
+and removed only. Until that is measured, restarting the session is the way
+to make an edit certain. The installer's "restart sessions" line covers that
+case.
 
-**Note**: the installer already prints "restart sessions to pick up new
-commands/skills/agents" for this reason.
+**`*.md.bak` is not an agent** (verified 2026-09-25, Claude Code 2.1.280): a
+project `.claude/agents/` holding `probe-live.md` and `probe-bak.md.bak` offers
+only `probe-live`. The `<file>.bak` that `install.sh --on-exist backup` leaves
+in an agent directory does not load.
 
 ## OpenCode does not hot-reload agent files mid-session
 
@@ -44,3 +49,17 @@ agent mid-session cannot make it available to that session.
 
 **Anti-pattern**: do not retry configuration reloads, alternate paths, or
 symlink workarounds. A restart is required.
+
+## `opencode run` hangs when stdin is not a terminal
+
+**Symptom**: `opencode run --agent <name> "<message>"` started from a script or
+from an agent's shell prints nothing and never returns. Its log
+(`~/.local/share/opencode/log/opencode.log`) ends at `message=init`, with no
+session created and no model call.
+
+**Root cause** (verified 2026-09-25, opencode 1.17.18): when stdin is not a
+terminal, `opencode run` waits to read it, and an open pipe that never closes
+keeps it waiting.
+
+**Solution**: give it an empty stdin, `opencode run ... < /dev/null`. The same
+command then delegated from `build` to `execute` and returned within seconds.
