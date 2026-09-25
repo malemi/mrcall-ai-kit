@@ -11,11 +11,13 @@ job.
 Argument: `$ARGUMENTS` — `low`, `medium` or `high` to switch this machine's
 budget, empty to show it.
 
-!`python3 "$HOME/.config/mrcall-ai-kit/ai-budget.py" $ARGUMENTS`
+!`python3 "$HOME/.config/mrcall-ai-kit/ai-budget.py" --report $ARGUMENTS`
 
-If the block above is empty or reports a missing script, the kit is not
-installed for this runtime: point at `./install.sh` in the mrcall-ai-kit repo
-and say nothing else.
+The script prints something for every outcome, a refusal included, and a
+refusal says that nothing was changed. If the block above is empty or reports a
+missing script, the script did not run: the kit is not installed for this
+runtime, so point at `./install.sh` in the mrcall-ai-kit repo and say nothing
+else.
 
 The budget is the only knob. Never choose a level for the user, and never name
 a model to use instead: the kit chose each role's model for each budget.

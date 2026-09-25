@@ -83,6 +83,30 @@ keeps it waiting.
 **Solution**: give it an empty stdin, `opencode run ... < /dev/null`. The same
 command then delegated from `build` to `execute` and returned within seconds.
 
+## `opencode debug` output stops at 64 KiB when stdout is a pipe
+
+**Symptom** (verified 2026-09-25, opencode 1.17.18): `opencode debug skill |
+<anything>` delivers exactly 65536 bytes, cut mid-JSON, while the same command
+writing to a file delivers all of it (218128 bytes on the maintainer machine).
+A check that counts skills through a pipe reads a truncated list: it can miss
+the skill it looks for, or a duplicate of it.
+
+**Solution**: write the output to a file and read the file, as
+`tests/test_role_migration.sh` does.
+
+## `/ai-budget` on OpenCode shows only what the script prints on stdout
+
+**Behavior** (verified 2026-09-25, opencode 1.17.18): a command's `!` shell line
+is replaced by that line's stdout; stderr is dropped and the exit status is
+ignored. So `/ai-budget` runs `ai-budget.py --report`, which prints every
+outcome, a refusal included, on stdout and exits 0. An empty block therefore
+means the script did not run.
+
+**Verification**: a temporary home whose only OpenCode provider was a local
+stand-in endpoint that records requests; no model ran. `/ai-budget extreme` and
+a refused switch each reached the recorded prompt with the script's message in
+the block.
+
 ## A Claude role agent runs without its shared rules when its skill is missing
 
 **Symptom** (2026-09-22 to 2026-09-24, on this kit's maintainer machine): the

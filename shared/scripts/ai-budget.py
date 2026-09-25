@@ -18,6 +18,12 @@ rendering that is missing, changes nothing.
 
 It never resolves a model and never needs a network, a key or the checkout's
 sources: the models were chosen when the kit's maintainer refreshed them.
+
+`--report`, which `/ai-budget` passes, prints every outcome on stdout and exits
+0, a refusal included: OpenCode hands a command only the stdout of its shell
+line and ignores the exit status, so a message on stderr would never reach the
+reader. Run directly, the script keeps stderr and its exit status (2 for a bad
+argument, 1 for a refusal).
 """
 from __future__ import annotations
 
@@ -204,9 +210,17 @@ def show(found: list[dict], budget: str) -> list[str]:
 
 
 def main(argv: list[str]) -> int:
+    report = bool(argv) and argv[0] == "--report"
+    if report:
+        argv = argv[1:]
+    errors = sys.stdout if report else sys.stderr
+
+    def failed(code: int) -> int:
+        return 0 if report else code
+
     if len(argv) > 1:
-        print("usage: ai-budget [low|medium|high]", file=sys.stderr)
-        return 2
+        print("usage: ai-budget [low|medium|high]", file=errors)
+        return failed(2)
     found = agents(installed())
     budget, source = current_budget()
 
@@ -217,18 +231,18 @@ def main(argv: list[str]) -> int:
         lines = show(found, budget if valid else DEFAULT)
         print("\n".join(lines) if lines else
               "No kit agents are installed; the next install places this budget's renderings.")
-        return 0 if valid else 1
+        return 0 if valid else failed(1)
 
     level = argv[0]
     if level not in BUDGETS:
         print(f"ai-budget: '{level}' is not a budget; use one of {', '.join(BUDGETS)}. "
-              "Nothing was changed.", file=sys.stderr)
-        return 2
+              "Nothing was changed.", file=errors)
+        return failed(2)
     try:
         moves = plan(level, found)
     except Refused as err:
-        print(f"ai-budget: {err}", file=sys.stderr)
-        return 1
+        print(f"ai-budget: {err}", file=errors)
+        return failed(1)
 
     KIT.mkdir(parents=True, exist_ok=True)
     with MANIFEST.open("a", encoding="utf-8") as log:

@@ -406,6 +406,8 @@ Depends on: M5. Owner: the lead. The operator decides when to merge.
   same name wins. The real names are checked live after the merge.
 - **Other machines.** Their install state and providers are not checked.
 - **A session already running** was measured in M5, not assumed: Claude Code
-  applies a switch from its next delegation, and OpenCode from its next start,
-  as `docs/known-issues-and-solutions.md` records; the command says each.
+  applies an edit to a project agent from its next delegation, and OpenCode a
+  switch from its next start, as `docs/known-issues-and-solutions.md` records.
+  That Claude Code does the same for a user-level agent, which is what
+  `/ai-budget` edits, is inferred, and that entry says so.
 - **Codex** is out of scope: the kit ships no Codex agents.

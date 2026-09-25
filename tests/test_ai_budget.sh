@@ -150,6 +150,32 @@ for mode in copy symlink; do
 done
 echo "after a switch, uninstall still restores what a backup install moved aside: PASS"
 
+# ── the command's form puts every outcome on stdout ───────────────────────
+# OpenCode hands a command only the stdout of its shell line, and ignores the
+# exit status, so the form /ai-budget runs must say everything there.
+home="$TEST_ROOT/report-home" ; mkdir -p "$home"
+install_kit "$home" symlink "$KIT_DIR"
+for runtime_dir in .claude/commands .config/opencode/commands; do
+  grep -qF 'ai-budget.py" --report $ARGUMENTS`' "$home/$runtime_dir/ai-budget.md" \
+    || fail "the installed $runtime_dir/ai-budget.md does not run the script with --report"
+done
+before="$(state "$home")"
+report() { # $1=what, then the arguments → stdout must say it, stderr stay empty, exit 0
+  local what="$1"; shift
+  ai_budget "$home" --report "$@" > "$TEST_ROOT/out" 2> "$TEST_ROOT/err" || fail "--report $*: exited non-zero"
+  [[ ! -s "$TEST_ROOT/err" ]] || fail "--report $*: wrote to stderr"
+  grep -q "$what" "$TEST_ROOT/out" || fail "--report $*: stdout does not say '$what'"
+}
+report "'extreme' is not a budget; use one of low, medium, high. Nothing was changed." extreme
+report "usage: ai-budget" low high
+mv "$home/.config/mrcall-ai-kit/agents/opencode/high/plan.md" "$TEST_ROOT/parked"
+report "plan.md: no high rendering" high
+grep -q -- "--on-exist overwrite" "$TEST_ROOT/out" || fail "--report: the refusal's advice is missing"
+mv "$TEST_ROOT/parked" "$home/.config/mrcall-ai-kit/agents/opencode/high/plan.md"
+[[ "$(state "$home")" == "$before" ]] || fail "--report: a refused switch changed something"
+report "^Budget: medium"
+echo "the command's form reports every outcome on stdout: PASS"
+
 # ── the status ─────────────────────────────────────────────────────────────
 home="$TEST_ROOT/status-home" ; mkdir -p "$home"
 install_kit "$home" symlink "$KIT_DIR"
