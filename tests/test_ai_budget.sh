@@ -174,6 +174,9 @@ grep -q -- "--on-exist overwrite" "$TEST_ROOT/out" || fail "--report: the refusa
 mv "$TEST_ROOT/parked" "$home/.config/mrcall-ai-kit/agents/opencode/high/plan.md"
 [[ "$(state "$home")" == "$before" ]] || fail "--report: a refused switch changed something"
 report "^Budget: medium"
+echo lavish > "$home/.config/mrcall-ai-kit/budget"
+report "says 'lavish', which is not one of low, medium, high"
+rm "$home/.config/mrcall-ai-kit/budget"
 echo "the command's form reports every outcome on stdout: PASS"
 
 # ── the status ─────────────────────────────────────────────────────────────
