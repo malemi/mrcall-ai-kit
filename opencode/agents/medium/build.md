@@ -1,7 +1,7 @@
 ---
 description: Autonomous engineering lead for implementation and selective delegation.
 mode: primary
-model: opencode/claude-opus-4-8
+model: openrouter/qwen/qwen3.8-max-0902
 permission:
   read: allow
   glob: allow

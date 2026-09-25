@@ -8,7 +8,7 @@
     "name": "execute",
     "role": "execute",
     "runtime": "claude",
-    "src": "claude/agents/execute.md"
+    "src": "claude/agents/{budget}/execute.md"
   },
   "claude--reviewer": {
     "blocks": [
@@ -19,7 +19,7 @@
     "name": "reviewer",
     "role": "review",
     "runtime": "claude",
-    "src": "claude/agents/reviewer.md"
+    "src": "claude/agents/{budget}/reviewer.md"
   },
   "claude--verify": {
     "blocks": [
@@ -30,14 +30,14 @@
     "name": "verify",
     "role": "verify",
     "runtime": "claude",
-    "src": "claude/agents/verify.md"
+    "src": "claude/agents/{budget}/verify.md"
   },
   "opencode--build": {
     "blocks": [],
     "name": "build",
     "role": "orchestrate",
     "runtime": "opencode",
-    "src": "opencode/agents/build.md"
+    "src": "opencode/agents/{budget}/build.md"
   },
   "opencode--execute": {
     "blocks": [
@@ -48,21 +48,21 @@
     "name": "execute",
     "role": "execute",
     "runtime": "opencode",
-    "src": "opencode/agents/execute.md"
+    "src": "opencode/agents/{budget}/execute.md"
   },
   "opencode--orchestrator": {
     "blocks": [],
     "name": "orchestrator",
     "role": "orchestrate",
     "runtime": "opencode",
-    "src": "opencode/agents/orchestrator.md"
+    "src": "opencode/agents/{budget}/orchestrator.md"
   },
   "opencode--plan": {
     "blocks": [],
     "name": "plan",
     "role": "plan",
     "runtime": "opencode",
-    "src": "opencode/agents/plan.md"
+    "src": "opencode/agents/{budget}/plan.md"
   },
   "opencode--reviewer": {
     "blocks": [
@@ -73,7 +73,7 @@
     "name": "reviewer",
     "role": "review",
     "runtime": "opencode",
-    "src": "opencode/agents/reviewer.md"
+    "src": "opencode/agents/{budget}/reviewer.md"
   },
   "opencode--verify": {
     "blocks": [
@@ -84,6 +84,6 @@
     "name": "verify",
     "role": "verify",
     "runtime": "opencode",
-    "src": "opencode/agents/verify.md"
+    "src": "opencode/agents/{budget}/verify.md"
   }
 }

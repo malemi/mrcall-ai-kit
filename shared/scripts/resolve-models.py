@@ -26,8 +26,9 @@ model ids (`anthropic/claude-opus-5.5` becomes `claude-opus-5-5`). OpenCode's
 are every entry, written `openrouter/<id>`; when `opencode` is on the PATH, only
 the routes `opencode models` lists are candidates.
 
-The run prints, for every agent in `shared/roles/agents.json`, the model its
-generated file names now, the model resolved for it, and both prices. It writes
+The run prints, for every agent in `shared/roles/agents.json` and every budget,
+the model its rendering names now, the model resolved for it, and both prices.
+It writes
 `shared/roles/models.json` only with `--apply`. It degrades rather than
 guesses: when a source cannot be read, or a role has no candidate at any price,
 it exits 1 and leaves `models.json` as it was.
@@ -138,8 +139,9 @@ def load_agents(req: dict, path: pathlib.Path = MANIFEST) -> list[dict]:
 
 
 def current_model(entry: dict, budget: str) -> str | None:
-    """The model an agent's generated file names now: what it runs today."""
-    path = ROOT / entry["src"]
+    """The model an agent's rendering for a budget names now: what that
+    budget runs today."""
+    path = ROOT / entry["src"].format(budget=budget)
     if not path.is_file():
         return None
     lines = path.read_text(encoding="utf-8").splitlines()

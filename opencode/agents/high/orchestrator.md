@@ -2,7 +2,7 @@
 name: orchestrator
 description: Autonomous engineering lead — resolves, implements, delegates selectively, and verifies proportionately.
 mode: primary
-model: opencode/big-pickle
+model: openrouter/anthropic/claude-fable-5.1
 permission:
   question: allow
   read: allow

@@ -1,7 +1,6 @@
 ---
 description: Carries out work whose decisions are already made — implements, verifies and reports. Not for deciding what should change.
 mode: subagent
-model: opencode/claude-sonnet-5
 temperature: 0.2
 permission:
   read: allow

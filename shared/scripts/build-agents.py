@@ -5,9 +5,12 @@ The rules an agent obeys live in `shared/roles/`, once: the text of its role
 (`execute.md`, `verify.md`, `review.md`), the non-negotiable rules every role
 shares (`common.md`), three shared blocks, and the report format
 (`worker-report.md`). The variance between agents is its frontmatter — a name,
-a description, a model, a permission block — plus, for the OpenCode leads that
-play no role file, their own text. That is all a per-agent stub under
-`shared/roles/agents/` contains. This script joins them.
+a description, a permission block — plus, for the OpenCode leads that play no
+role file, their own text. That is all a per-agent stub under
+`shared/roles/agents/` contains. No stub names a model: each agent is rendered
+once per budget, into `<runtime>/agents/<budget>/<name>.md`, with the model
+`shared/roles/models.json` holds for its runtime, budget and role. This script
+joins them.
 
 Why a generator at all, when the whole point is not to copy text: Claude Code
 has a real include (`skills:` preloads a skill's full body into a subagent at
@@ -19,8 +22,10 @@ a model. So OpenCode's bodies are composed here, and Claude Code's are not: its
 agents carry only their role, and the shared rules reach them through the skill
 this script also writes.
 
-Run it after editing anything under `shared/roles/`. `--check` verifies that
-what is on disk matches what would be generated, and is what the gate runs.
+Run it after editing anything under `shared/roles/`, including a refresh of
+`models.json`. `--check` verifies that what is on disk matches what would be
+generated, and that no other agent file sits beside the renderings; it is what
+the gate runs.
 """
 from __future__ import annotations
 
@@ -32,7 +37,10 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 ROLES = ROOT / "shared" / "roles"
 STUBS = ROLES / "agents"
+MODELS = ROLES / "models.json"
 SKILL = ROOT / "shared" / "skills" / "kit-role-rules" / "SKILL.md"
+# Where the renderings live, one directory per runtime.
+AGENT_DIRS = (ROOT / "claude" / "agents", ROOT / "opencode" / "agents")
 
 # The blocks that were byte-identical across nineteen agent files — 836 of the
 # 2281 lines in the layer. Which of them an agent carries is recorded per agent
@@ -74,6 +82,28 @@ def load_manifest() -> dict:
     return json.loads((ROLES / "agents.json").read_text(encoding="utf-8"))
 
 
+def load_models() -> dict:
+    """Per runtime and budget, each role's model, as the refresh wrote it."""
+    selection = json.loads(MODELS.read_text(encoding="utf-8"))
+    return {runtime: {budget: {role: pick["model"] for role, pick in outcome["roles"].items()}
+                      for budget, outcome in budgets.items()}
+            for runtime, budgets in selection["runtimes"].items()}
+
+
+def with_model(stub: str, model: str, where: str) -> str:
+    """The stub with `model:` added to its frontmatter, after `mode:` when the
+    agent has one and after `description:` otherwise."""
+    lines = stub.split("\n")
+    end = lines.index("---", 1)
+    if any(line.startswith("model:") for line in lines[1:end]):
+        raise SystemExit(f"{where} names a model; models.json holds every agent's model")
+    anchor = next((i for i in range(1, end) if lines[i].startswith("mode:")), None)
+    if anchor is None:
+        anchor = next(i for i in range(1, end) if lines[i].startswith("description:"))
+    lines.insert(anchor + 1, f"model: {model}")
+    return "\n".join(lines)
+
+
 def skill_body() -> str:
     """What every Claude Code role shares: the non-negotiable rules, the three
     blocks and the report format. Each role's own text stays in its agent file."""
@@ -87,9 +117,9 @@ def skill_body() -> str:
     ]) + "\n"
 
 
-def agent_body(entry: dict) -> str:
-    """One agent file: its stub, then the text of the role it plays, then what
-    every role shares.
+def agent_body(entry: dict, model: str) -> str:
+    """One agent file: its stub with the model for one budget, then the text
+    of the role it plays, then what every role shares.
 
     The stub holds what is genuinely this agent's: its frontmatter, and for a
     lead whose role has no composed text, its own text. A role agent's text is
@@ -101,7 +131,7 @@ def agent_body(entry: dict) -> str:
     recorded for it, which today is none.
     """
     key = f"{entry['runtime']}--{entry['name']}"
-    stub = read(STUBS / f"{key}.md")
+    stub = with_model(read(STUBS / f"{key}.md"), model, f"shared/roles/agents/{key}.md")
     role = entry.get("role")
     composed = role in ROLE_FILES
     parts = [stub]
@@ -129,9 +159,17 @@ def agent_body(entry: dict) -> str:
 
 def targets() -> dict[pathlib.Path, str]:
     out = {SKILL: skill_body()}
+    models = load_models()
     for entry in load_manifest().values():
-        out[ROOT / entry["src"]] = agent_body(entry)
+        for budget, roles in models[entry["runtime"]].items():
+            out[ROOT / entry["src"].format(budget=budget)] = agent_body(entry, roles[entry["role"]])
     return out
+
+
+def strays(expected: dict[pathlib.Path, str]) -> list[pathlib.Path]:
+    """Agent files under the runtimes' agent directories that no source renders."""
+    return sorted(path for base in AGENT_DIRS if base.is_dir()
+                  for path in base.rglob("*.md") if path not in expected)
 
 
 def main() -> int:
@@ -140,8 +178,9 @@ def main() -> int:
                     help="exit 1 if any file differs from what would be generated")
     args = ap.parse_args()
 
+    expected = targets()
     drift = []
-    for path, content in sorted(targets().items()):
+    for path, content in sorted(expected.items()):
         rel = path.relative_to(ROOT)
         if args.check:
             current = path.read_text(encoding="utf-8") if path.exists() else None
@@ -151,17 +190,26 @@ def main() -> int:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(content, encoding="utf-8")
 
+    stray = strays(expected)
     if args.check:
-        if drift:
-            print("AGENT DRIFT — these do not match shared/roles/:", file=sys.stderr)
-            for rel in drift:
-                print(f"  {rel}", file=sys.stderr)
+        if drift or stray:
+            if drift:
+                print("AGENT DRIFT — these do not match shared/roles/:", file=sys.stderr)
+                for rel in drift:
+                    print(f"  {rel}", file=sys.stderr)
+            if stray:
+                print("NOT RENDERED — no source in shared/roles/ produces these:", file=sys.stderr)
+                for path in stray:
+                    print(f"  {path.relative_to(ROOT)}", file=sys.stderr)
             print("\nRegenerate with: python3 shared/scripts/build-agents.py", file=sys.stderr)
             return 1
-        print(f"agents in sync with shared/roles/ ({len(targets())} files)")
+        print(f"agents in sync with shared/roles/ ({len(expected)} files)")
         return 0
 
-    print(f"generated {len(targets())} files from shared/roles/")
+    for path in stray:
+        path.unlink()
+        print(f"removed {path.relative_to(ROOT)}: no source in shared/roles/ renders it")
+    print(f"generated {len(expected)} files from shared/roles/")
     return 0
 
 

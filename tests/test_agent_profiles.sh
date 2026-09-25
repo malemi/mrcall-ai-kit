@@ -7,8 +7,10 @@ trap 'rm -rf "$TEST_ROOT"' EXIT
 
 fail() { echo "$1" >&2; exit 1; }
 
-# The role agents that report to a delegating session, on both runtimes.
-roles=("$KIT_DIR"/claude/agents/{execute,verify,reviewer}.md "$KIT_DIR"/opencode/agents/{execute,verify,reviewer}.md)
+# The role agents that report to a delegating session, on both runtimes, in
+# every budget's rendering.
+roles=("$KIT_DIR"/claude/agents/{low,medium,high}/{execute,verify,reviewer}.md
+       "$KIT_DIR"/opencode/agents/{low,medium,high}/{execute,verify,reviewer}.md)
 for role in "${roles[@]}"; do [[ -f "$role" ]] || fail "missing role agent: $role"; done
 
 # The contract must REACH every role agent; which route it takes is the runtime's
@@ -36,10 +38,12 @@ for role in "${roles[@]}"; do
 done
 echo "all role agents reach the proportional-execution contract: PASS"
 
-primary="$KIT_DIR/opencode/agents/orchestrator.md"
-build="$KIT_DIR/opencode/agents/build.md"
-planner="$KIT_DIR/opencode/agents/plan.md"
-reviewer="$KIT_DIR/opencode/agents/reviewer.md"
+# The renderings of one agent differ only in their model line
+# (test_agents_generated.sh), so one budget's text stands for all three.
+primary="$KIT_DIR/opencode/agents/medium/orchestrator.md"
+build="$KIT_DIR/opencode/agents/medium/build.md"
+planner="$KIT_DIR/opencode/agents/medium/plan.md"
+reviewer="$KIT_DIR/opencode/agents/medium/reviewer.md"
 command="$KIT_DIR/opencode/commands/orchestrator.md"
 skill="$KIT_DIR/opencode/skills/orchestrator/SKILL.md"
 architecture="$KIT_DIR/opencode/skills/orchestrator/ARCHITECTURE.md"

@@ -27,7 +27,8 @@ while IFS= read -r proof; do
     name="$(basename "$proof" .md)"
     [ -e "$base/$proof" ] && found=1
     [ -e "$base/skills/$name/SKILL.md" ] && found=1
-    [ -e "$base/agents/$(basename "$proof")" ] && found=1
+    # an agent ships once per budget, as agents/<budget>/<name>.md
+    compgen -G "$base/agents/*/$(basename "$proof")" >/dev/null && found=1
   done
   if [ "$found" -eq 0 ]; then
     echo "FAIL: section proof '$proof' matches nothing the kit ships"; FAIL=1

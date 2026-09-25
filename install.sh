@@ -39,8 +39,11 @@ KIT_GLOBAL="$HOME/.config/mrcall-ai-kit"   # tool-independent home for doc-check
 MANIFEST="$KIT_GLOBAL/installed.tsv"       # append-only install log, read by ./uninstall.sh
 BACKUPS="$KIT_GLOBAL/backups"              # --on-exist backup of a directory, outside every scan path
 RETIRED_LIST="$SCRIPT_DIR/shared/roles/retired.txt"  # files the kit shipped under names it has retired
-CC_ROLES="execute verify reviewer"          # Claude Code role agents (claude/agents/)
+CC_ROLES="execute verify reviewer"          # Claude Code role agents (claude/agents/<budget>/)
 OC_ROLES="execute verify"                   # OpenCode role agents the leads delegate to
+BUDGETS="low medium high"                   # one rendering of every agent per budget
+BUDGET_FILE="$KIT_GLOBAL/budget"            # this machine's budget; medium when absent
+AGENT_HOME="$KIT_GLOBAL/agents"             # every budget's rendering, installed: <runtime>/<budget>/<name>.md
 
 ENVIRONMENT="" ; FEATURES="" ; MODE="" ; ON_EXIST="" ; ACTIVATE_SCOPE=""
 ASSUME_YES=false ; DRY_RUN=false
@@ -107,7 +110,7 @@ EOF
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
   echo "     scripts:    doc-check.py + CLAUDE.template.md  (-> ~/.config/mrcall-ai-kit/)"
-  echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents")  [Claude Code only — the role"
+  echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
   echo
   echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
@@ -146,6 +149,10 @@ EOF
   echo "     activation: dormant by default; interactive prompt or --activate-scope-guard"
   echo
   echo "Destinations: Claude Code -> ~/.claude/{commands,skills,agents}/ ; Codex -> ~/.agents/skills/ ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
+  echo "Agents: every kit agent is rendered once per budget (low, medium, high), each with the"
+  echo "        models the kit resolved for it. All three renderings go to ~/.config/mrcall-ai-kit/agents/;"
+  echo "        the runtime gets the one for this machine's budget, read from ~/.config/mrcall-ai-kit/budget"
+  echo "        (medium when that file is absent)."
   echo "Environment alias: both = Claude Code + OpenCode; all = all three tools."
   echo "Global install only. A repo's own docs/ is bootstrapped separately by invoking the doc-create workflow."
 }
@@ -298,8 +305,16 @@ $WANT_OC || ACTIVATE_OC=false
 case "$MODE" in symlink|copy) ;; *) echo "--mode must be symlink|copy" >&2; exit 1 ;; esac
 case "$ON_EXIST" in skip|overwrite|backup) ;; *) echo "--on-exist must be skip|overwrite|backup" >&2; exit 1 ;; esac
 
+# ── Budget: which rendering of each agent the runtimes read ────────────────
+# Checked where an agent is planned, so a run that places no agent does not
+# depend on it.
+BUDGET=medium ; BUDGET_FROM="the default, $BUDGET_FILE is absent"
+if [[ -f "$BUDGET_FILE" ]]; then
+  BUDGET="$(tr -d '[:space:]' < "$BUDGET_FILE")" ; BUDGET_FROM="$BUDGET_FILE"
+fi
+
 # ── Build the plan: arrays of "src|dst" ────────────────────────────────────
-PLAN_SRC=() ; PLAN_DST=()
+PLAN_SRC=() ; PLAN_DST=() ; AGENTS_PLANNED=false
 add_dir() { # $1=src dir  $2=dst dir  — one entry per top-level item
   local src="$1" dst="$2" entry name
   [[ -d "$src" ]] || return 0
@@ -312,6 +327,17 @@ add_dir() { # $1=src dir  $2=dst dir  — one entry per top-level item
 add_one() { # $1=source item $2=destination — required sources fail before writes
   [[ -e "$1" ]] || { echo "Missing install source: $1" >&2; exit 1; }
   PLAN_SRC+=("$1"); PLAN_DST+=("$2")
+}
+add_agent() { # $1=runtime (claude|opencode) $2=agent name $3=the runtime's agents directory
+  # The runtime reads the rendering for this machine's budget. Every budget's
+  # rendering goes beside the kit, where a budget switch finds it without the
+  # checkout.
+  local b
+  [[ " $BUDGETS " == *" $BUDGET "* ]] \
+    || { echo "$BUDGET_FILE says '$BUDGET'; a budget is one of: $BUDGETS" >&2; exit 1; }
+  add_one "$SCRIPT_DIR/$1/agents/$BUDGET/$2.md" "$3/$2.md"
+  for b in $BUDGETS; do add_one "$SCRIPT_DIR/$1/agents/$b/$2.md" "$AGENT_HOME/$1/$b/$2.md"; done
+  AGENTS_PLANNED=true
 }
 
 if $DO_DOC; then
@@ -331,7 +357,10 @@ if $DO_DOC; then
   add_one "$SCRIPT_DIR/shared/tutorial.md" "$KIT_GLOBAL/tutorial.md"
   # The doc-* commands delegate to the role agents, so those agents are part of
   # doc-harness rather than an opt-out: without them the delegation dies.
-  $WANT_CC && { add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"; add_dir "$SCRIPT_DIR/claude/agents" "$CC_DIR/agents"; }
+  if $WANT_CC; then
+    add_dir "$SCRIPT_DIR/shared/commands" "$CC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$CC_DIR/skills"
+    for agent in "$SCRIPT_DIR/claude/agents/$BUDGET"/*.md; do add_agent claude "$(basename "$agent" .md)" "$CC_DIR/agents"; done
+  fi
   if $WANT_CODEX; then
     for command in doc-create doc-start doc-end; do
       # Codex discovers a symlinked skill directory, but not a real directory
@@ -350,12 +379,12 @@ if $DO_ROUTER; then
   # own feature: /sc registers a hook script only `--features reread` ships.
   add_one "$SCRIPT_DIR/claude/commands/router.md" "$CC_DIR/commands/router.md"
   # The role agents the router delegates to ride with doc-harness's
-  # claude/agents sweep when both are selected; add them alone only when
+  # claude/agents/<budget> sweep when both are selected; add them alone only when
   # doc-harness was skipped. Their rules arrive through the preloaded
   # kit-role-rules skill, so that ships with them — without doc-harness nothing
   # else installs shared/skills.
   if ! $DO_DOC; then
-    for r in $CC_ROLES; do add_one "$SCRIPT_DIR/claude/agents/$r.md" "$CC_DIR/agents/$r.md"; done
+    for r in $CC_ROLES; do add_agent claude "$r" "$CC_DIR/agents"; done
     add_one "$SCRIPT_DIR/shared/skills/kit-role-rules" "$CC_DIR/skills/kit-role-rules"
   fi
 fi
@@ -387,12 +416,10 @@ if $WANT_OC; then
   if $DO_ORCH; then
     add_one "$SCRIPT_DIR/opencode/commands/orchestrator.md" "$OC_DIR/commands/orchestrator.md"
     add_one "$SCRIPT_DIR/opencode/skills/orchestrator" "$OC_DIR/skills/orchestrator"
-    for a in build plan reviewer orchestrator; do
-      add_one "$SCRIPT_DIR/opencode/agents/$a.md" "$OC_DIR/agents/$a.md"
-    done
+    for a in build plan reviewer orchestrator; do add_agent opencode "$a" "$OC_DIR/agents"; done
   fi
   if $DO_WORKERS; then
-    for r in $OC_ROLES; do add_one "$SCRIPT_DIR/opencode/agents/$r.md" "$OC_DIR/agents/$r.md"; done
+    for r in $OC_ROLES; do add_agent opencode "$r" "$OC_DIR/agents"; done
   fi
   if $DO_MIGRATE; then
     add_one "$SCRIPT_DIR/opencode/commands/migrate-check.md" "$OC_DIR/commands/migrate-check.md"
@@ -651,6 +678,7 @@ fi
 $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills/agents."
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/.agents/skills."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
+$AGENTS_PLANNED && echo "  Agents: the runtimes read the $BUDGET budget's renderings ($BUDGET_FROM)."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."
 $DO_REREAD && echo "  Re-read guard installed but dormant: run /sc on to activate."

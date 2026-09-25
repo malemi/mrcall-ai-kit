@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Independent lifecycle reviewer — judges a brief, plan, milestone or final integration read-only and returns exactly one verdict.
-model: opus
+model: claude-opus-5-5
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 skills: kit-role-rules
 ---

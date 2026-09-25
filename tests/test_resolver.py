@@ -54,16 +54,17 @@ REQUIREMENTS = {
 
 AGENTS = {
     "claude--execute": {"runtime": "claude", "name": "execute", "role": "execute",
-                        "src": "claude/agents/execute.md", "blocks": []},
+                        "src": "claude/agents/{budget}/execute.md", "blocks": []},
     "claude--verify": {"runtime": "claude", "name": "verify", "role": "verify",
-                       "src": "claude/agents/verify.md", "blocks": []},
+                       "src": "claude/agents/{budget}/verify.md", "blocks": []},
     "opencode--execute": {"runtime": "opencode", "name": "execute", "role": "execute",
-                          "src": "opencode/agents/execute.md", "blocks": []},
+                          "src": "opencode/agents/{budget}/execute.md", "blocks": []},
     "opencode--plan": {"runtime": "opencode", "name": "plan", "role": "plan",
-                       "src": "opencode/agents/plan.md", "blocks": []},
+                       "src": "opencode/agents/{budget}/plan.md", "blocks": []},
     "opencode--verify": {"runtime": "opencode", "name": "verify", "role": "verify",
-                         "src": "opencode/agents/verify.md", "blocks": []},
+                         "src": "opencode/agents/{budget}/verify.md", "blocks": []},
 }
+BUDGETS = ("low", "medium", "high")
 
 # (catalogue id, $ per million output tokens, intelligence, coding, agentic)
 #
@@ -128,6 +129,8 @@ class Kit:
 
     def __init__(self, base: Path, requirements: dict = REQUIREMENTS, agents: dict = AGENTS,
                  models: dict | None = None) -> None:
+        """`models` gives an agent's current model, one for every budget or a
+        dict per budget; an agent it does not name runs `old-model`."""
         self.root = base / "kit"
         (self.root / "shared" / "scripts").mkdir(parents=True)
         (self.root / "shared" / "roles").mkdir(parents=True)
@@ -136,9 +139,12 @@ class Kit:
         self.write_json("shared/roles/agents.json", agents)
         for agent in agents.values():
             model = (models or {}).get(f"{agent['runtime']}--{agent['name']}", "old-model")
-            path = self.root / agent["src"]
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(f"---\ndescription: test\nmodel: {model}\n---\n\nbody\n", encoding="utf-8")
+            for budget in BUDGETS:
+                current = model[budget] if isinstance(model, dict) else model
+                path = self.root / agent["src"].format(budget=budget)
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(f"---\ndescription: test\nmodel: {current}\n---\n\nbody\n",
+                                encoding="utf-8")
         self.models = self.root / "shared" / "roles" / "models.json"
 
     def write_json(self, rel: str, data) -> None:
@@ -550,6 +556,23 @@ class Diff(ResolverCase):
         # a route the catalogue does not price
         self.assertEqual(row("opencode / high", "plan")[3:5], ["opencode/big-pickle", "($?)"])
         self.assertIn("nothing written", run.stdout)
+
+    def test_the_old_side_is_each_budget_own_rendering(self) -> None:
+        kit = Kit(self.base / "per-budget", models={"opencode--verify": {
+            "low": "openrouter/vendor/cheap-coder", "medium": "openrouter/vendor/agent-max",
+            "high": "opencode/big-pickle"}})
+        catalogue, benchmarks = world()
+        fixture = write_fixture(self.base / "fx", catalogue, benchmarks)
+        run = kit.run("--fixture", str(fixture))
+        self.assertEqual(run.returncode, 0, run.stderr)
+        olds, block = {}, None
+        for line in run.stdout.splitlines():
+            if " / " in line and not line.startswith(" "):
+                block = line.split(":")[0]            # e.g. "opencode / low"
+            elif block and block.startswith("opencode / ") and line.split()[1:2] == ["verify"]:
+                olds[block.split(" / ")[1]] = line.split()[3]
+        self.assertEqual(olds, {"low": "openrouter/vendor/cheap-coder",
+                                "medium": "openrouter/vendor/agent-max", "high": "opencode/big-pickle"})
 
 
 class VerifyNeverBelowExecute(ResolverCase):

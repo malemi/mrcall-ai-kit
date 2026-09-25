@@ -1,7 +1,7 @@
 ---
 description: Read-only planner that produces decision-ready, proportionate plans.
 mode: primary
-model: opencode/claude-opus-4-8
+model: openrouter/z-ai/glm-5.3
 permission:
   read: allow
   glob: allow
