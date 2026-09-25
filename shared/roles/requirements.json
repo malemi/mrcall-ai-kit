@@ -1,0 +1,67 @@
+{
+  "common": {
+    "tools": true,
+    "min_context": 200000,
+    "excluded_variants": [
+      ":batch",
+      ":free"
+    ],
+    "required_scores": [
+      "intelligence"
+    ]
+  },
+  "runtimes": {
+    "claude": {
+      "ceilings": {
+        "low": 10,
+        "medium": 20,
+        "high": null
+      },
+      "roles": {
+        "execute": {
+          "floor": 73,
+          "index": "coding",
+          "rule": "satisfice"
+        },
+        "review": {
+          "index": "intelligence",
+          "rule": "maximise"
+        },
+        "verify": {
+          "index": "intelligence",
+          "rule": "maximise"
+        }
+      }
+    },
+    "opencode": {
+      "ceilings": {
+        "low": 5,
+        "medium": 20,
+        "high": null
+      },
+      "roles": {
+        "execute": {
+          "floor": 73,
+          "index": "coding",
+          "rule": "satisfice"
+        },
+        "orchestrate": {
+          "index": "agentic",
+          "rule": "maximise"
+        },
+        "plan": {
+          "index": "agentic",
+          "rule": "maximise"
+        },
+        "review": {
+          "index": "intelligence",
+          "rule": "maximise"
+        },
+        "verify": {
+          "index": "intelligence",
+          "rule": "maximise"
+        }
+      }
+    }
+  }
+}
