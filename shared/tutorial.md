@@ -132,6 +132,27 @@ An agent is named for its job, and its model is a field of its definition,
 not its identity. Pick the role the job needs, and never a cheaper one to save
 money — the cheap wrong answer is the expensive one.
 
+<!-- capability: ai-budget | proof: commands/ai-budget.md | covers: ai-budget -->
+## `/ai-budget` — how much the role agents may cost
+
+One knob for this machine: `low`, `medium` or `high`. For every role and every
+budget, the kit has already chosen the model that meets the role's requirements
+under that budget's price ceiling; `/ai-budget low` switches the installed
+agents to the low choices, and so on. With no argument it shows the budget and
+each agent's model. A machine that never runs it runs medium.
+
+`high` sets no ceiling. It does not mean "prefer expensive": each role still
+gets the best model for its job, and past that there is nothing better to buy.
+
+Reach for it when the bill matters more than the last point of capability, or
+the other way round. Never to pick a model: there is none to pick. When a chosen
+model disappoints, the recourse is the budget, or a change to the role's
+requirements in the kit.
+
+Claude Code uses the new models from its next delegation, in sessions already
+open too. OpenCode reads its agents when it starts, so a running OpenCode keeps
+its models until it is restarted.
+
 <!-- capability: migrate | proof: commands/migrate-check.md | covers: migrate-check migrate-from-cc -->
 ## `/migrate-check` — moving a repository to OpenCode
 

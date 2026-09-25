@@ -109,7 +109,8 @@ EOF
   echo "  doc-harness    [cross-tool → Claude Code + Codex + OpenCode]"
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
-  echo "     scripts:    doc-check.py + CLAUDE.template.md  (-> ~/.config/mrcall-ai-kit/)"
+  echo "     scripts:    doc-check.py + CLAUDE.template.md, and the scripts of ai-help, ai-tutorial and"
+  echo "                 ai-budget  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
   echo
@@ -152,7 +153,8 @@ EOF
   echo "Agents: every kit agent is rendered once per budget (low, medium, high), each with the"
   echo "        models the kit resolved for it. All three renderings go to ~/.config/mrcall-ai-kit/agents/;"
   echo "        the runtime gets the one for this machine's budget, read from ~/.config/mrcall-ai-kit/budget"
-  echo "        (medium when that file is absent)."
+  echo "        (medium when that file is absent). /ai-budget low|medium|high, installed with doc-harness,"
+  echo "        switches them without the checkout."
   echo "Environment alias: both = Claude Code + OpenCode; all = all three tools."
   echo "Global install only. A repo's own docs/ is bootstrapped separately by invoking the doc-create workflow."
 }
@@ -355,6 +357,9 @@ if $DO_DOC; then
   # with it rather than be read out of a checkout that may not be there.
   add_one "$SCRIPT_DIR/shared/scripts/ai-tutorial.sh" "$KIT_GLOBAL/ai-tutorial.sh"
   add_one "$SCRIPT_DIR/shared/tutorial.md" "$KIT_GLOBAL/tutorial.md"
+  # /ai-budget switches the installed agents between the renderings installed
+  # beside the kit, so it needs neither the checkout nor a network.
+  add_one "$SCRIPT_DIR/shared/scripts/ai-budget.py" "$KIT_GLOBAL/ai-budget.py"
   # The doc-* commands delegate to the role agents, so those agents are part of
   # doc-harness rather than an opt-out: without them the delegation dies.
   if $WANT_CC; then
