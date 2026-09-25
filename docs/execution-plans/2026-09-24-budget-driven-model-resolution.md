@@ -405,6 +405,7 @@ Depends on: M5. Owner: the lead. The operator decides when to merge.
   project-level agents under a renamed skill, because a personal skill of the
   same name wins. The real names are checked live after the merge.
 - **Other machines.** Their install state and providers are not checked.
-- **A session already running.** Whether it picks up a switched model is not
-  tested. Both runtimes load agents at session start, and the command says so.
+- **A session already running** was measured in M5, not assumed: Claude Code
+  applies a switch from its next delegation, and OpenCode from its next start,
+  as `docs/known-issues-and-solutions.md` records; the command says each.
 - **Codex** is out of scope: the kit ships no Codex agents.

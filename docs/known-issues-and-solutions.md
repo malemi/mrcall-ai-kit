@@ -82,3 +82,25 @@ keeps it waiting.
 
 **Solution**: give it an empty stdin, `opencode run ... < /dev/null`. The same
 command then delegated from `build` to `execute` and returned within seconds.
+
+## A Claude role agent runs without its shared rules when its skill is missing
+
+**Symptom** (2026-09-22 to 2026-09-24, on this kit's maintainer machine): the
+Claude Code role agents ran without the shared blocks — proportional
+execution, the report budget, the delivery contract. Asked for its report
+limit, a worker answered NONE.
+
+**Root cause**: since `33c3b18` a Claude agent file carries only its role text
+and preloads the shared rules with `skills: kit-role-rules`. The machine's
+agents were links into the checkout, so they took the new bodies, but nothing
+had installed `~/.claude/skills/kit-role-rules`. A preloaded skill that is not
+installed fails silently: the agent loads and runs without it.
+
+**Fix** (2026-09-24): the skill was linked as `install.sh` links it, with an
+install-log line, and the same probe answered 20. A fresh install always
+installs the skill with the agents: `tests/test_agent_profiles.sh:156-162`
+fails when an installed agent preloads a skill that is not installed, in copy
+and in symlink mode.
+
+**Not covered**: a machine installed before an agent gained its `skills:` line
+is not checked; see [`harness-backlog.md`](harness-backlog.md).

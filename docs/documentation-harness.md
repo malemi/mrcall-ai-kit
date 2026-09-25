@@ -19,10 +19,11 @@ mechanical execution, `verify` for independent verification — through
 whatever subagent primitive the tool exposes (`Agent` in Claude Code, `task` in
 OpenCode). Delegation is conditional: parallelism, specialist capability, or
 context isolation must be worth more than prompting, waiting, and review.
-Narrow local work stays with the primary agent. Each role declares its own
-model, so the model follows the job rather than the delegating session; a
-subagent that declares none inherits the parent's and therefore saves context
-only.
+Narrow local work stays with the primary agent. Each role's definition names
+the model the kit chose for that role at the machine's budget (`/ai-budget`),
+so the model follows the job rather than the delegating session, which never
+names one; a subagent that names none inherits the parent's and therefore saves
+context only.
 
 One OpenCode capability is deliberately not ported to Claude Code: the
 watchdog daemon, which enforces timeout and budget through OpenCode's own

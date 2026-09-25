@@ -21,12 +21,13 @@ The intended shape: the session model is a cheap engineering lead (Haiku) that
 answers trivial prompts and performs narrow local work itself. It delegates
 only bounded substantive work when the value of a fresh specialist context is
 greater than prompting, waiting, and review: `execute` for execution, `verify`
-for hard judgment, and `reviewer` for a lifecycle gate. That contract reaches
-the session from the managed `CLAUDE.md` and from each role agent's own
-`description`, both of which a session already holds; the hook does not restate
-it. Because a subagent starts with a fresh context, delegation without
-continuity loses whatever the previous worker understood — so a routed session
-gets a shared-memory file,
+for hard judgment, and `reviewer` for a lifecycle gate. Each runs the model
+the kit chose for its role at the machine's budget; the session names none.
+That contract reaches the session from the managed `CLAUDE.md` and from each
+role agent's own `description`, both of which a session already holds; the hook
+does not restate it. Because a subagent starts with a fresh context, delegation
+without continuity loses whatever the previous worker understood — so a routed
+session gets a shared-memory file,
 `docs/sessions/<session-id>.md`, the same kind of object as
 `docs/active-context.md`: a living snapshot, never a log, same anti-drift
 discipline, same repo, readable with `cat`.

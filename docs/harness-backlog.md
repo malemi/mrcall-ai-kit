@@ -13,6 +13,29 @@ someone checks, a worker that stops one step short costs a full re-run. The
 check is cheap and it settles whether this is a gap in the protocol or a limit
 of the platform.
 
+## OPEN — nothing checks an installed machine for an agent whose preloaded skill is missing
+
+**Logged**: 2026-09-25. A Claude Code agent that preloads a skill runs without
+it, silently, when the skill is not installed
+([known issue](known-issues-and-solutions.md#a-claude-role-agent-runs-without-its-shared-rules-when-its-skill-is-missing)).
+`tests/test_agent_profiles.sh` checks a fresh install in a temporary home, which
+always installs the skill. It does not check a machine whose install predates
+the agent's `skills:` line, and neither does anything else: `/ai-help` lists
+agents and skills side by side without saying that an agent names a skill that
+is absent. The cheapest closing check is `ai-help.sh` flagging such an agent.
+
+## OPEN — a later install with `--on-exist overwrite` forgets a recorded backup
+
+**Logged**: 2026-09-25. `uninstall.sh --restore-backups` restores the backup
+recorded on a path's last install-log line. A later `install.sh --on-exist
+overwrite` writes a line with an empty backup column for the same path, so an
+operator's file that an earlier `--on-exist backup` install moved aside stays
+at its backup path after an uninstall. `/ai-budget` keeps the recorded backup
+when it rewrites a line; the installer does not. Found by the M5 review of the
+budget-driven model resolution plan. Closing it: `uninstall.sh` looks back to
+the last recorded backup for the path, or an overwrite install carries it
+forward.
+
 ## Oversized docs — reviewed
 
 One line per document the gate's oversized advisory has named, with the verdict

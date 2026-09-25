@@ -12,6 +12,8 @@ Powerful. Easy to install, easier to use.
 
 - Claude wants to go on credits? Shift to OpenCode or Codex
 - Setup a simple LLM router which decides which model should be used for each query
+- One knob for what the agents cost — `/ai-budget low|medium|high` — and never a
+  model name to pick: the kit chooses each role's model from price and benchmark data
 - Different agents can work together on a shared memory
 - You never start from stale documentation
 - You never end a session with documentation half-updated
@@ -48,7 +50,8 @@ From there the routine is two commands: `doc-start` when you sit down,
 ```
 
 Reads the installer's own log and removes every file it put there — symlinks
-and copies alike.
+and copies alike. It keeps `~/.config/mrcall-ai-kit/budget`, the budget
+`/ai-budget` set, so a later install places that budget's agents and says so.
 
 ## Commands
 
@@ -66,6 +69,9 @@ and copies alike.
   on/off/status/sweep/unregister.
 - **`/ai-help`** (Claude Code) — the current, accurate list of everything
   installed.
+- **`/ai-budget`** (Claude Code, OpenCode) — set how much the role agents may
+  cost, `low`, `medium` or `high`; with no argument, show the budget and each
+  agent's model. A machine that never runs it runs `medium`.
 - **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
   directly or delegates bounded work when coordination pays off.
 - **`/migrate-check`** (OpenCode) — checks a move over from Claude Code.
@@ -91,7 +97,9 @@ checks except its willingness to follow that line.
 
 There's also a **memory** — a short, current account of a project, and of
 each session, that keeps itself up to date — and **agents**: AI helpers,
-each named for one job, brought in automatically for that job.
+each named for one job, brought in automatically for that job. Each one runs
+the model the kit chose for its job at your budget; see
+[`shared/roles/README.md`](shared/roles/README.md).
 
 Want the full detail? See
 [`docs/documentation-harness.md`](docs/documentation-harness.md).

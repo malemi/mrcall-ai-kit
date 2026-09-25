@@ -46,6 +46,20 @@ mechanism — and declares `$nr` or `$av` at the head of a message as its trigge
 which on Codex is the only form there is. Both were exercised in all three real
 clients, including the refusal paths and the bare no-argument case.
 
+Agents are named for their job, and their models are data. Each role's needs
+per runtime are in `shared/roles/requirements.json`. The refresh,
+`shared/scripts/resolve-models.py`, run by the maintainer with
+`OPENROUTER_API_KEY`, reads OpenRouter's catalogue and benchmarks, prints what
+would change, and with `--apply` writes the choice for every runtime, budget and
+role to `shared/roles/models.json`; `build-agents.py` renders each agent once
+per budget. An install puts every budget's rendering in
+`~/.config/mrcall-ai-kit/agents/` and the machine's budget (the `budget` file
+there, medium when absent) at the runtime paths. `/ai-budget low|medium|high`
+switches between those renderings without the checkout: Claude Code runs the
+new models from its next delegation, OpenCode from its next start. The kit's
+OpenCode agents run on OpenRouter routes, so an OpenCode without an OpenRouter
+provider cannot run them.
+
 `/ai-help` reads the filesystem and shows the runtime it is running in, with
 `all` for every runtime installed. Its listing comes from
 `shared/scripts/ai-help.sh`, installed beside `doc-check.py` in the kit-global
@@ -90,7 +104,23 @@ remain unverified.
   managed harness contract explicitly, while general sessions remain governed
   by Codex's user-owned global and project `AGENTS.md` chain.
 
+- On Claude Code, `execute` runs `claude-sonnet-5` at low and medium, marked
+  below its coding floor of 73, until a Claude model priced at or under the
+  ceiling scores 73 or more.
+- A scored model priced at $0 that is not a `:free` variant passes the
+  resolver's filter, and `execute` would take it at every budget. None is
+  scored today.
+- The public catalogue carries the same Artificial Analysis scores as the keyed
+  benchmarks endpoint (190 of 190 agreed on 2026-09-25), so a refresh could run
+  without a key. The refresh reads the keyed endpoint.
+- Whether a resolved model does its role's job well is not measured, and other
+  machines' installs and OpenCode providers are not checked.
+
 ## Next
+
+- Refresh the models when prices or scores move: run
+  `shared/scripts/resolve-models.py` with `OPENROUTER_API_KEY`, read the diff,
+  then `--apply`, `build-agents.py`, the gate, and a commit.
 
 - Remove the stale Claude API-key configuration at its owning shell-config
   source, so non-interactive client runs stop needing the variable cleared for

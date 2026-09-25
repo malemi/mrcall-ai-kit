@@ -420,14 +420,10 @@ line. Claude's three agents take the blocks from a preloaded skill — proven
 end-to-end with a real session — and OpenCode's twenty carry them inline,
 because that runtime has no include.
 
-**Deliberately not done: the rename.** Five roles replacing 23 model-named
-agents renames files that `install.sh:93-95,325,330`, `llms.md:23-27`, both test
-scripts and `build.md`'s `task: worker-*: allow` permission pattern all refer to
-by name — thirteen live references, not twelve; the permission pattern was
-missed in the earlier count. Doing it is now cheap, because every agent file is
-generated from one place, and it can be a single reviewable change instead of
-being tangled with the deduplication. `shared/roles/` carries the target
-taxonomy unwired, and its README says plainly that it is unwired.
+**The rename is done**, in
+[`2026-09-24-budget-driven-model-resolution.md`](2026-09-24-budget-driven-model-resolution.md):
+`execute`, `verify` and `reviewer` replace the model-named workers (M1,
+`1eb844b`), and an installed machine retires them (M2, `888a1da`).
 
 Item 4 (the hook guard) follows, in its own session and with its own
 verification: it runs in every session on this machine, and the Codex and
