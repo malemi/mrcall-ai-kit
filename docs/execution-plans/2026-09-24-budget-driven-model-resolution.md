@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 ---
 
 # Execution plan: roles, then a budget that resolves their models
