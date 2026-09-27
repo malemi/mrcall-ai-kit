@@ -4,7 +4,7 @@ Keep up with AI-speed coding.
 
 Use **Claude Code**, **Codex**, and **OpenCode**, collaborate with other
 developers: AI-Kit memorizes intra and inter-sessions, allows you to setup
-orchestrators, and it comes with specialized agents.
+orchestrators, and it comes with specialized agents named for their job.
 
 Powerful. Easy to install, easier to use.
 
@@ -12,13 +12,13 @@ Powerful. Easy to install, easier to use.
 
 - Claude wants to go on credits? Shift to OpenCode or Codex
 - Setup a simple LLM router which decides which model should be used for each query
-- One knob for what the agents cost — `/ai-budget low|medium|high` — and never a
-  model name to pick: the kit chooses each role's model from price and benchmark data
+- One knob for what the agents cost — `/ai-budget low|medium|high` — shows each agent's model chosen from price and benchmark data
 - Different agents can work together on a shared memory
 - You never start from stale documentation
 - You never end a session with documentation half-updated
 - Each routing document can declare its exact purpose and boundary in a
   mechanically checked scope block
+- Agent roles are defined in `shared/roles/` — name your agent for its job, not its model
 
 ## Install
 
@@ -43,16 +43,6 @@ Then:
 From there the routine is two commands: `doc-start` when you sit down,
 `doc-end` when you stop.
 
-## Uninstall
-
-```bash
-./uninstall.sh
-```
-
-Reads the installer's own log and removes every file it put there — symlinks
-and copies alike. It keeps `~/.config/mrcall-ai-kit/budget`, the budget
-`/ai-budget` set, so a later install places that budget's agents and says so.
-
 ## Commands
 
 - **`doc-create`** — set up a project's notes, once.
@@ -75,6 +65,8 @@ and copies alike. It keeps `~/.config/mrcall-ai-kit/budget`, the budget
 - **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
   directly or delegates bounded work when coordination pays off.
 - **`/migrate-check`** (OpenCode) — checks a move over from Claude Code.
+- **`/sc`** (Claude Code) — answer with a re-read pass before the answer reaches you
+- **`/ai-tutorial`** (Claude Code) — list what this kit has installed for your runtime
 
 `nr` and `av` are typed slash commands on Claude Code and OpenCode (`/nr`,
 `/av`). On Codex they ship as model-invoked skills instead, because Codex
@@ -86,8 +78,8 @@ offers every installed command to the model as something it may invoke on its
 own judgement, using the command's own description, so on Claude Code both are
 reachable without the operator typing anything. On Codex that is the only way
 they work at all. OpenCode 1.17.18 does not expose a typed command to the model
-— but it reads `~/.agents/skills/`, the directory the Codex install writes to, so an
-operator who installed for Codex as well as OpenCode gets the model-invocable
+— but it reads `~/.agents/skills/`, the directory the Codex install writes to,
+so an operator who installed for Codex as well as OpenCode gets the model-invocable
 form there too.
 
 Both descriptions therefore instruct the model to run them only on an explicit
