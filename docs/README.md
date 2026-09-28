@@ -26,6 +26,8 @@ Do not duplicate that inventory here.
   plan states, baseline semantics, and living-document rules.
 - [`scope-guard.md`](scope-guard.md) — scope declaration format, runtime guard
   behavior, capability levels, and known bypasses.
+- [`reread-guard.md`](reread-guard.md) — per-runtime re-read behavior and
+  installed-client verification status.
 - [`model-router.md`](model-router.md) — the opt-in model router: session
   memory, rotation and hand-off, and the worker-report budget.
 - [`known-issues-and-solutions.md`](known-issues-and-solutions.md) — recurring

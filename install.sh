@@ -136,14 +136,16 @@ EOF
   echo "     agents:     $CC_ROLES + the kit-role-rules skill  (installed with doc-harness too, if selected)"
   echo "     script:     router-hook.py  (-> ~/.config/mrcall-ai-kit/, a dormant UserPromptSubmit hook)"
   echo
-  echo "  reread         [Claude Code only]
-     command:    sc  (/sc <question> — one re-read pass over that answer; on/off
-                 for every answer; opt-in, dormant until used)
-     script:     reread-hook.py  (-> ~/.config/mrcall-ai-kit/, a dormant Stop hook)
+  echo "  reread         [cross-tool; guarantee differs by runtime]
+     Claude Code: /sc <question> uses a Stop hook before delivery; /sc on/off
+                 controls every answer. Answers under SC_MIN_CHARS (500 by default)
+                 skip the pass.
+     OpenCode:   /sc <question> instructs one in-turn pass, even on short answers.
+     Codex:      \$sc <question> is a model-invoked skill for the same in-turn pass.
      checklist:  reread-checklist.md  (-> ~/.config/mrcall-ai-kit/, edit to taste)
-     what:       hands a finished answer back to the session once, against the
-                 checklist, before you see it. Costs one extra model pass on
-                 answers over 500 characters; shorter ones are skipped.
+     limit:      OpenCode and Codex have no enforced pre-delivery interception
+                 or always-on mode. Their pass depends on the model following
+                 the instruction.
 
   scope-guard    [cross-tool -> every selected runtime; opt-in hook/plugin]"
   echo "     installs:   common engine, registration helper, runtime adapter, command/skill"
@@ -248,8 +250,8 @@ else
   fi
   if $WANT_CC; then
     ask_yn "Install the opt-in model router (Haiku session as classifier + the role agents)? [Claude Code only, dormant until /router on]" n && DO_ROUTER=true
-    ask_yn "Install the re-read guard (hands each finished answer back once against a checklist)? [Claude Code only, dormant until /sc on]" n && DO_REREAD=true
   fi
+  ask_yn "Install the re-read pass (Claude Stop hook; OpenCode /sc; Codex \$sc skill)? [GLOBAL, cross-tool]" n && DO_REREAD=true
   ask_yn "Install scope guard (dormant unless activated separately)? [GLOBAL, cross-tool]" n && DO_SCOPE=true
   ask_yn "Install shortcuts (nr, av — on-demand instruction overrides; typed commands on Claude Code/OpenCode, a model-invoked skill on Codex)? [GLOBAL, cross-tool]" n && DO_SHORTCUTS=true
 fi
@@ -263,12 +265,6 @@ if ! $WANT_CC && $DO_ROUTER; then
   echo "router is Claude Code-only; ignoring it (Claude Code not selected)." >&2
   DO_ROUTER=false
 fi
-# The re-read guard is a Claude Code Stop hook, so it is Claude Code-only too.
-if ! $WANT_CC && $DO_REREAD; then
-  echo "reread is Claude Code-only; ignoring it (Claude Code not selected)." >&2
-  DO_REREAD=false
-fi
-
 # Scope-guard activation is always a separate opt-in. `--yes` only skips the
 # final installer confirmation and never enables a hook by itself.
 ACTIVATE_CC=false ; ACTIVATE_CODEX=false ; ACTIVATE_OC=false
@@ -394,12 +390,18 @@ if $DO_ROUTER; then
   fi
 fi
 if $DO_REREAD; then
-  # Claude Code-only; dormant until `/sc on` creates the flag. The checklist is
-  # a separate file on purpose: an operator tunes the list without touching code,
-  # and the hook fails open when it is missing.
-  add_one "$SCRIPT_DIR/claude/scripts/reread-hook.py" "$KIT_GLOBAL/reread-hook.py"
+  # Shared checklist and in-turn procedure belong to this feature, not to the
+  # doc-harness directory sweep. Add each shared destination exactly once.
   add_one "$SCRIPT_DIR/shared/roles/reread-checklist.md" "$KIT_GLOBAL/reread-checklist.md"
-  add_one "$SCRIPT_DIR/claude/commands/sc.md" "$CC_DIR/commands/sc.md"
+  if $WANT_OC || $WANT_CODEX; then
+    add_one "$SCRIPT_DIR/shared/shortcuts/sc-core.md" "$KIT_GLOBAL/sc-core.md"
+  fi
+  if $WANT_CC; then
+    add_one "$SCRIPT_DIR/claude/scripts/reread-hook.py" "$KIT_GLOBAL/reread-hook.py"
+    add_one "$SCRIPT_DIR/claude/commands/sc.md" "$CC_DIR/commands/sc.md"
+  fi
+  $WANT_OC && add_one "$SCRIPT_DIR/opencode/commands/sc.md" "$OC_DIR/commands/sc.md"
+  $WANT_CODEX && add_one "$SCRIPT_DIR/codex/skills/sc" "$CODEX_SKILLS_DIR/sc"
 fi
 if $DO_SCOPE; then
   add_one "$SCRIPT_DIR/shared/scripts/scope_guard.py" "$KIT_GLOBAL/scope-guard/scope_guard.py"
@@ -686,7 +688,11 @@ $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills
 $AGENTS_PLANNED && echo "  Agents: the runtimes read the $BUDGET budget's renderings ($BUDGET_FROM)."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."
-$DO_REREAD && echo "  Re-read guard installed but dormant: run /sc on to activate."
+if $DO_REREAD; then
+  $WANT_CC && echo "  Claude re-read guard installed but dormant: use /sc <question> or /sc on."
+  $WANT_OC && echo "  OpenCode re-read pass installed: use /sc <question> (instruction-based)."
+  $WANT_CODEX && echo "  Codex re-read pass installed: ask for the \$sc skill with a question (instruction-based)."
+fi
 if $DO_SCOPE; then
   if $WANT_CC && ! $ACTIVATE_CC; then echo "  Claude scope guard installed but dormant: run /scope-guard on to activate."; fi
   if $WANT_CODEX && ! $ACTIVATE_CODEX; then echo "  Codex scope guard installed but dormant: invoke the scope-guard skill to activate."; fi

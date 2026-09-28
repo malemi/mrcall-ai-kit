@@ -65,7 +65,12 @@ From there the routine is two commands: `doc-start` when you sit down,
 - **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
   directly or delegates bounded work when coordination pays off.
 - **`/migrate-check`** (OpenCode) — checks a move over from Claude Code.
-- **`/sc`** (Claude Code) — answer with a re-read pass before the answer reaches you
+- **`sc`** — re-read one answer against the installed checklist: `/sc <question>`
+  on Claude Code and OpenCode, `$sc <question>` as a Codex skill. Claude Code's
+  Stop hook can return a long answer for correction before delivery. OpenCode
+  and Codex instruct the answering model to make the pass in the current turn;
+  they have no pre-delivery enforcement or always-on mode. The
+  [runtime support matrix](docs/reread-guard.md) records what has been tested.
 - **`/ai-tutorial`** (Claude Code) — list what this kit has installed for your runtime
 
 `nr` and `av` are typed slash commands on Claude Code and OpenCode (`/nr`,

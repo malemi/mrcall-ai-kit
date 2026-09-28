@@ -40,25 +40,24 @@ whether the hook-backed features are dormant or live, which the file listing
 alone cannot tell you.
 
 <!-- capability: sc | proof: commands/sc.md | covers: sc -->
-## `/sc` — a re-read pass over the answer
+## `sc` — a re-read pass over one answer
 
-`/sc <your question>` answers normally, then hands the finished answer back to
-the session once, against a short checklist, before you see it. The model fixes
-what fails and you get the corrected version.
+Reach for it when an answer needs a deliberate check against the installed
+checklist: an explanation, a design decision, or a short answer where wording
+matters. The checklist is `~/.config/mrcall-ai-kit/reread-checklist.md` and you
+can edit it.
 
-It exists because the rules about how to answer — run the check you just named,
-say what a thing is before naming it, one idea per sentence — are already
-written and get forgotten anyway, since by the end of a long turn they sit
-thousands of tokens behind. The hook does not judge and calls no model: it puts
-the list back in front at the one moment it can still be acted on.
+On Claude Code, `/sc <question>` arms a Stop hook. For an answer of at least
+`SC_MIN_CHARS` characters (500 by default), the runtime hands the finished
+answer back once with the checklist before delivery. A shorter answer skips
+the pass and spends the one-shot arming. `/sc on` and `/sc off` control the
+persistent mode on Claude Code only.
 
-Reach for it when the answer matters and is going to be long: a design question,
-an explanation you will act on, anything you would otherwise have to read twice.
-Not worth it for "is the service up".
-
-`/sc on` makes every answer take the pass, `/sc off` stops it. The checklist is
-`~/.config/mrcall-ai-kit/reread-checklist.md` and you can edit it. Answers under
-500 characters are skipped, because the pass costs a full extra model turn.
+On OpenCode, `/sc <question>` instructs the model to read the checklist and
+re-read its answer in the current turn. On Codex, ask for the `$sc <question>`
+skill to do the same. Both include short answers. Their pass depends on the
+model following the instruction; neither runtime offers the Claude Stop-hook
+guarantee or an always-on mode.
 
 <!-- capability: router | proof: commands/router.md | covers: router -->
 ## `/router` — cheap session, expensive workers

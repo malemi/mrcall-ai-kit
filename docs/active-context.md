@@ -46,6 +46,18 @@ mechanism — and declares `$nr` or `$av` at the head of a message as its trigge
 which on Codex is the only form there is. Both were exercised in all three real
 clients, including the refusal paths and the bare no-argument case.
 
+The re-read feature extends Claude Code's existing `/sc` to OpenCode and Codex.
+The `2026-09-27-reread-guard-cross-runtime` plan is completed. OpenCode's typed
+`/sc` inserts the installed procedure and checklist into its prompt; Codex's
+`$sc` skill reads them in-turn. Isolated real-client checks on OpenCode 1.18.32
+and Codex CLI 0.157.1 observed checklist use on short and long answers, missing
+file errors, and the one-shot command boundaries. Both paths are instruction
+based. Claude's existing Stop-hook test passes. Live Claude Code 2.1.280 could
+not run `/sc` because the client reported a weekly usage limit. The operator
+said the existing command worked before this port and waived a repeat live
+check; this trace establishes no new Claude client behavior. Independent
+milestone and final integration reviews approved the port.
+
 Agents are named for their job, and their models are data. Each role's needs
 per runtime are in `shared/roles/requirements.json`. The refresh,
 `shared/scripts/resolve-models.py`, run by the maintainer with
@@ -103,7 +115,6 @@ remain unverified.
 - Codex has no kit-installed global primary profile. Its doc workflows load the
   managed harness contract explicitly, while general sessions remain governed
   by Codex's user-owned global and project `AGENTS.md` chain.
-
 - On Claude Code, `execute` runs `claude-sonnet-5` at low and medium, marked
   below its coding floor of 73, until a Claude model priced at or under the
   ceiling scores 73 or more.
