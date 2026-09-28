@@ -55,17 +55,14 @@ rendering in `~/.config/mrcall-ai-kit/agents/`.
 
 **Claude Code has a real include.** `skills:` preloads a skill's full body into
 a subagent at startup, so each role names `kit-role-rules` — the rules, the
-blocks and the report format — and its file ends at its role text. Verified
-end-to-end rather than assumed: a worker whose body no longer contains a rule
-quoted it verbatim, with zero tool calls. A personal skill in
+blocks and the report format — and its file ends at its role text. A personal skill in
 `~/.claude/skills/` wins over a project skill of the same name, so a changed
 skill can be tried in a project only under another name.
 
 **OpenCode has none**, so its role agents carry the same parts inline. A
 markdown agent there has no `prompt:` field — the body is always the prompt —
 and `{file:}` belongs to `opencode.json`, passing through a markdown body as
-literal text. Both established by probe on 1.17.18 with `opencode debug agent`,
-which resolves an agent without calling a model. The documented frontmatter
+literal text in the inspected OpenCode 1.17.18. The documented frontmatter
 fields are `description`, `mode`, `model`, `temperature` and `permission`;
 `tools:` is honoured too, so treat that list as documented rather than
 exhaustive.

@@ -57,7 +57,7 @@ From there the routine is two commands: `doc-start` when you sit down,
   of a session that has a `docs/` tree in reach — so the session and any worker
   it delegates to keep the same living snapshot. Toggle with
   on/off/status/sweep/unregister.
-- **`/ai-help`** (Claude Code) — the current, accurate list of everything
+- **`/ai-help`** (Claude Code, OpenCode) — the current, accurate list of everything
   installed.
 - **`/ai-budget`** (Claude Code, OpenCode) — set how much the role agents may
   cost, `low`, `medium` or `high`; with no argument, show the budget and each
@@ -71,7 +71,7 @@ From there the routine is two commands: `doc-start` when you sit down,
   and Codex instruct the answering model to make the pass in the current turn;
   they have no pre-delivery enforcement or always-on mode. The
   [runtime support matrix](docs/reread-guard.md) records what has been tested.
-- **`/ai-tutorial`** (Claude Code) — list what this kit has installed for your runtime
+- **`/ai-tutorial`** (Claude Code, OpenCode) — list what this kit has installed for your runtime
 
 `nr` and `av` are typed slash commands on Claude Code and OpenCode (`/nr`,
 `/av`). On Codex they ship as model-invoked skills instead, because Codex

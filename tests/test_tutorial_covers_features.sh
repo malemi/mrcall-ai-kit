@@ -80,12 +80,20 @@ sys.exit(1 if bad else 0)
 PY
 [ $? -eq 0 ] && echo "OK"
 
-step "5. the script prints a named section, and refuses an unknown one"
-cp "$SRC" "$ROOT/shared/scripts/tutorial.md"
-trap 'rm -f "$ROOT/shared/scripts/tutorial.md"' EXIT
-OUT="$(bash shared/scripts/ai-tutorial.sh sc 2>&1)"
+step "5. the script checks proof for named sections and refuses an unknown one"
+test_home="$(mktemp -d)"
+trap 'rm -rf "$test_home"' EXIT
+OUT="$(env -u CLAUDECODE -u OPENCODE -u OPENCODE_BIN_PATH \
+  HOME="$test_home" bash shared/scripts/ai-tutorial.sh sc 2>&1)"
+echo "$OUT" | grep -q "Section 'sc' is not installed for Codex" \
+  || { echo "FAIL: absent capability was taught"; FAIL=1; }
+mkdir -p "$test_home/.agents/skills/sc"
+touch "$test_home/.agents/skills/sc/SKILL.md"
+OUT="$(env -u CLAUDECODE -u OPENCODE -u OPENCODE_BIN_PATH \
+  HOME="$test_home" bash shared/scripts/ai-tutorial.sh sc 2>&1)"
 echo "$OUT" | grep -q '^## ' || { echo "FAIL: a known capability printed nothing"; FAIL=1; }
-OUT="$(bash shared/scripts/ai-tutorial.sh no-such-thing 2>&1)"
+OUT="$(env -u CLAUDECODE -u OPENCODE -u OPENCODE_BIN_PATH \
+  HOME="$test_home" bash shared/scripts/ai-tutorial.sh no-such-thing 2>&1)"
 STEP5=0
 echo "$OUT" | grep -q "No section named" || { echo "FAIL: an unknown name did not say so"; STEP5=1; FAIL=1; }
 [ "$STEP5" -eq 0 ] && echo "OK"

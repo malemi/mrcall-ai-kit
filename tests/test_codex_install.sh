@@ -24,9 +24,12 @@ for mode in copy symlink; do
 
   template="$test_home/.config/mrcall-ai-kit/CLAUDE.template.md"
   checker="$test_home/.config/mrcall-ai-kit/doc-check.py"
+  keywords="$test_home/.config/mrcall-ai-kit/doc-keywords.py"
   manifest="$test_home/.config/mrcall-ai-kit/installed.tsv"
   test -f "$template"
   test -f "$checker"
+  test -f "$keywords"
+  (cd "$test_home" && python3 "$keywords" --repo "$KIT_DIR" --json >/dev/null)
   # /ai-help calls this from the kit-global home; without it the command is dead.
   test -f "$test_home/.config/mrcall-ai-kit/ai-help.sh"
   cmp "$KIT_DIR/shared/templates/CLAUDE.md" "$template"
@@ -36,12 +39,20 @@ for mode in copy symlink; do
     echo "expected one managed-template manifest entry, got $count" >&2
     exit 1
   }
+  count="$(awk -F '\t' -v dest="$keywords" \
+    '$3 == dest { count++ } END { print count + 0 }' "$manifest")"
+  [[ "$count" -eq 1 ]] || {
+    echo "expected one keyword-checker manifest entry, got $count" >&2
+    exit 1
+  }
   if [[ "$mode" == copy ]]; then
     test ! -L "$template"
     test ! -L "$checker"
+    test ! -L "$keywords"
   else
     test -L "$template"
     test -L "$checker"
+    test -L "$keywords"
     test "$(readlink "$template")" = "$KIT_DIR/shared/templates/CLAUDE.md"
   fi
 
@@ -67,6 +78,8 @@ for mode in copy symlink; do
   test ! -L "$template"
   test ! -e "$checker"
   test ! -L "$checker"
+  test ! -e "$keywords"
+  test ! -L "$keywords"
   test ! -e "$test_home/.claude/commands/doc-create.md"
   test ! -e "$test_home/.agents/skills/doc-create"
   test ! -L "$test_home/.agents/skills/doc-create"
@@ -85,6 +98,8 @@ test ! -e "$non_doc_home/.config/mrcall-ai-kit/CLAUDE.template.md"
 test ! -L "$non_doc_home/.config/mrcall-ai-kit/CLAUDE.template.md"
 test ! -e "$non_doc_home/.config/mrcall-ai-kit/doc-check.py"
 test ! -L "$non_doc_home/.config/mrcall-ai-kit/doc-check.py"
+test ! -e "$non_doc_home/.config/mrcall-ai-kit/doc-keywords.py"
+test ! -L "$non_doc_home/.config/mrcall-ai-kit/doc-keywords.py"
 echo "managed template excluded without doc-harness: PASS"
 
 # A missing required source must stop during plan construction. In particular,
@@ -93,6 +108,7 @@ missing_kit="$TEST_ROOT/missing-kit"
 mkdir -p "$missing_kit/shared/scripts"
 cp "$KIT_DIR/install.sh" "$missing_kit/install.sh"
 cp "$KIT_DIR/shared/scripts/doc-check.py" "$missing_kit/shared/scripts/doc-check.py"
+cp "$KIT_DIR/shared/scripts/doc-keywords.py" "$missing_kit/shared/scripts/doc-keywords.py"
 missing_home="$TEST_ROOT/missing-home"
 mkdir -p "$missing_home"
 if output="$(HOME="$missing_home" "$missing_kit/install.sh" \

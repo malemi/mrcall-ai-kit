@@ -25,23 +25,23 @@ port has to be redone from the mechanism up.
 `claude/commands/sc.md` arms a flag (`reread.once` one-shot, `reread.on`
 persistent); the Stop hook `claude/scripts/reread-hook.py`, registered in
 `~/.claude/settings.json`, intercepts the finished answer, spends the flag, and
-returns `decision: block` with the checklist — the session fixes what fails,
+returns `decision: block` with the checklist — the session is asked to fix what fails,
 the second pass (`stop_hook_active`) is let through, answers under
 `SC_MIN_CHARS` (500) skip the pass. These paths are tested by the eight
 numbered checks in `tests/test_reread_guard.sh`: opt-in, fires once, never
 loops, fails open when the checklist is missing, and spends the arming even
 when a short answer is skipped. A malformed JSON payload also fails open, but
 that early return does not spend `reread.once`.
-The guarantee is **runtime-enforced and pre-delivery**: the pass happens
-whether or not the model remembers to, and before the answer is shown.
+The runtime-enforced, pre-delivery guarantee is the block and presentation of
+the checklist before a replacement answer. Whether the model applies every
+checklist item still depends on its response to that block.
 
 ## Verified mechanism landscape
 
 **OpenCode — no verified Stop-equivalent control in the inspected version.**
-- The kit's `opencode/plugins/scope-guard.ts` uses `tool.execute.before/after`
-  and `event`. Its comments record that the inspected stable v1 API provides
-  no supported way to block a completed answer and hand it back to the model
-  for another pass. This file is evidence about this adapter, not an inventory
+- The kit's `opencode/plugins/scope-guard.ts` uses `tool.execute.before` and
+  `event`. Its comments describe the limit on injecting context from a
+  tool-before hook; this file is evidence about this adapter, not an inventory
   of every OpenCode hook. The installed `@opencode-ai/plugin` 1.17.17 type
   declaration also exposes `experimental.text.complete`, which can mutate a
   completed text part. Its declared input has session, message, and part IDs;
@@ -51,8 +51,8 @@ whether or not the model remembers to, and before the answer is shown.
 - Third-party `opencode-claude-hooks` 0.1.0 (already enabled in the operator's
   `opencode.json`): its README maps Claude `Stop` to `session.idle` as
   "Partial", but the shipped `dist/index.js` never calls its own `handleStop` —
-  `Stop` support is dead code. Even wired, `session.idle` fires after the
-  answer has reached the user, and the plugin's `StopInput` carries neither
+  `Stop` support is dead code. The mapped event supplies no verified
+  block-and-re-enter contract, and the plugin's `StopInput` carries neither
   `last_assistant_message` nor `stop_hook_active`, so `reread-hook.py` would
   fail open on every answer.
 
@@ -123,8 +123,8 @@ verification status), not in prose that lets a reader infer parity.
   have.
 - **Depending on `opencode-claude-hooks` Stop**: dead code in v0.1.0; a
   third-party package would become a runtime dependency of a kit feature (the
-  kit ships only first-party adapters today); and the mapped event is
-  post-delivery regardless.
+  kit ships only first-party adapters today); and no block-and-re-enter
+  behavior was verified for its mapped event.
 - **Porting `reread-hook.py` to OpenCode as-is**: the inspected hooks provide
   no compatible Stop event with its block-and-re-enter contract; the payload
   differs; it would fail open silently —

@@ -9,7 +9,7 @@ set -euo pipefail
 #
 # Content is routed by tool-compatibility:
 #   shared/    cross-tool  — the doc-harness (doc-* commands, doc-critic skill)
-#              + doc-check.py and the managed CLAUDE.md template
+#              + doc-check.py, doc-keywords.py and the managed CLAUDE.md template
 #                (installed once to ~/.config/mrcall-ai-kit/)
 #              + ai-help / ai-tutorial (installed with doc-harness; introspect whatever is
 #                actually installed rather than a list that goes stale)
@@ -109,7 +109,7 @@ EOF
   echo "  doc-harness    [cross-tool → Claude Code + Codex + OpenCode]"
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
-  echo "     scripts:    doc-check.py + CLAUDE.template.md, and the scripts of ai-help, ai-tutorial and"
+  echo "     scripts:    doc-check.py + doc-keywords.py + CLAUDE.template.md, and the scripts of ai-help, ai-tutorial and"
   echo "                 ai-budget  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
@@ -341,6 +341,7 @@ add_agent() { # $1=runtime (claude|opencode) $2=agent name $3=the runtime's agen
 if $DO_DOC; then
   # doc-check.py → kit-global, once (the commands call it from here)
   add_one "$SCRIPT_DIR/shared/scripts/doc-check.py" "$KIT_GLOBAL/doc-check.py"
+  add_one "$SCRIPT_DIR/shared/scripts/doc-keywords.py" "$KIT_GLOBAL/doc-keywords.py"
   # One source for the harness-managed repository CLAUDE.md. doc-create and the
   # gate both read this installed artifact; project guidance lives in AGENTS.md.
   add_one "$SCRIPT_DIR/shared/templates/CLAUDE.md" "$KIT_GLOBAL/CLAUDE.template.md"

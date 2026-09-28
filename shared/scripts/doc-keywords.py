@@ -4,16 +4,15 @@
 Usage:
     python3 doc-keywords.py --repo <dir> [--range <rev>] [--docs-only]
 
-Reads recent commits (default: baseline..HEAD from active-context.md, or
-git rev-parse HEAD..HEAD if no baseline), extracts keywords from commit
-messages, and checks whether those keywords appear in README.md and all
-docs/*.md files. Prints a report of covered and uncovered keywords.
+Reads commit subjects (default: baseline..HEAD from active-context.md, or the
+latest ten commits when the baseline is missing or unsuitable), extracts
+keywords, and checks whether they appear in README.md and docs/**/*.md.
+Prints a report of covered and uncovered keywords.
 """
 import argparse
 import subprocess
 import re
 import sys
-import os
 from pathlib import Path
 
 # Common English stop words to skip when tokenizing commit messages
@@ -44,6 +43,8 @@ def run_git(args, repo_dir):
         ["git", "-C", repo_dir] + args,
         capture_output=True, text=True
     )
+    if result.returncode:
+        raise RuntimeError(f"Git command failed with exit {result.returncode}: {result.stderr.strip()}")
     return result.stdout.strip()
 
 def get_baseline(repo_dir):
@@ -62,18 +63,33 @@ def get_commit_range(repo_dir, explicit_range=None):
     """Get the git range for commits to analyze."""
     if explicit_range:
         return explicit_range
+    # Fail clearly for a non-repository or a repository without a HEAD.
+    run_git(["rev-parse", "--verify", "HEAD^{commit}"], repo_dir)
     baseline = get_baseline(repo_dir)
     if baseline:
-        try:
-            run_git(["merge-base", "--is-ancestor", baseline, "HEAD"], repo_dir)
-            return f"{baseline}..HEAD"
-        except Exception:
-            pass
-    return "HEAD~10..HEAD"
+        exists = subprocess.run(
+            ["git", "-C", repo_dir, "rev-parse", "--verify", "--quiet", f"{baseline}^{{commit}}"],
+            capture_output=True, text=True,
+        )
+        if exists.returncode not in (0, 1):
+            raise RuntimeError(f"Git baseline check failed with exit {exists.returncode}: {exists.stderr.strip()}")
+        if exists.returncode == 0:
+            ancestor = subprocess.run(
+                ["git", "-C", repo_dir, "merge-base", "--is-ancestor", baseline, "HEAD"],
+                capture_output=True, text=True,
+            )
+            if ancestor.returncode == 0:
+                return f"{baseline}..HEAD"
+            if ancestor.returncode != 1:
+                raise RuntimeError(f"Git ancestor check failed with exit {ancestor.returncode}: {ancestor.stderr.strip()}")
+    # HEAD includes all commits in a short history; HEAD~10..HEAD selects the
+    # latest ten when there are more.
+    count = int(run_git(["rev-list", "--count", "HEAD"], repo_dir))
+    return "HEAD~10..HEAD" if count > 10 else "HEAD"
 
 def extract_keywords_from_commits(repo_dir, commit_range):
     """Extract keywords from commit messages in the given range."""
-    log_output = run_git(["log", "--oneline", commit_range], repo_dir)
+    log_output = run_git(["log", "--format=%s", commit_range], repo_dir)
     if not log_output:
         return set()
 
@@ -81,18 +97,10 @@ def extract_keywords_from_commits(repo_dir, commit_range):
     for line in log_output.split("\n"):
         if not line.strip():
             continue
-        # Get the subject (first line)
-        subject = line.split("\n")[0] if "\n" in line else line
-        # Also get the body after the blank line
-        body = ""
-        if "\n\n" in line:
-            body = line.split("\n\n", 1)[1]
-
-        # Tokenize: split on non-alphanumeric boundaries, keep things like
+        # Tokenize subjects without abbreviated commit hashes. Keep things like
         # /ai-budget, execute, verify, review, model, budget, etc.
-        tokens = re.findall(r'[A-Za-z_][A-Za-z0-9_-]*', subject)
-        tokens += re.findall(r'/[A-Za-z][A-Za-z0-9-]*', subject)
-        tokens += re.findall(r'[A-Za-z_][A-Za-z0-9_-]*', body)
+        tokens = re.findall(r'[A-Za-z_][A-Za-z0-9_-]*', line)
+        tokens += re.findall(r'/[A-Za-z][A-Za-z0-9-]*', line)
 
         for token in tokens:
             lower = token.lower().strip("/")
@@ -158,10 +166,15 @@ def main():
     args = parser.parse_args()
 
     repo_dir = Path(args.repo).resolve()
-    commit_range = get_commit_range(str(repo_dir), args.range)
-
-    keywords = extract_keywords_from_commits(str(repo_dir), commit_range)
+    try:
+        commit_range = get_commit_range(str(repo_dir), args.range)
+        keywords = extract_keywords_from_commits(str(repo_dir), commit_range)
+    except (RuntimeError, ValueError) as exc:
+        print(f"doc-keywords: {exc}", file=sys.stderr)
+        return 2
     doc_files = find_doc_files(str(repo_dir))
+    if args.docs_only:
+        doc_files = [(name, path) for name, path in doc_files if name != "README.md"]
     coverage = check_coverage(keywords, doc_files)
 
     if args.json:
@@ -176,7 +189,7 @@ def main():
             "uncovered": sum(1 for v in coverage.values() if not v),
         }
         print(json.dumps(result, indent=2))
-        return
+        return 0
 
     # Text output
     covered = {k: v for k, v in coverage.items() if v}
@@ -196,13 +209,15 @@ def main():
         print()
 
     if uncovered:
-        print("--- UNCOVERED keywords (not found in README.md or any docs/*.md) ---")
+        location = "docs/**/*.md" if args.docs_only else "README.md or docs/**/*.md"
+        print(f"--- UNCOVERED keywords (not found in {location}) ---")
         for kw in sorted(uncovered):
             print(f"  ⚠️  {kw}: NOT found in any documentation")
         print()
         print("These keywords come from commit messages but appear in no doc.")
         print("Each uncovered keyword raises a question: is the omission justified,")
         print("or is documentation missing and needing an update?")
+    return 0
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

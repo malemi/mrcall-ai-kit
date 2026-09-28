@@ -9,15 +9,15 @@ The hook script lives at `~/.config/mrcall-ai-kit/reread-hook.py` and its
 checklist at `~/.config/mrcall-ai-kit/reread-checklist.md` (both installed by
 `./install.sh --features reread`). It is dormant unless one of two flags exists
 in that directory: `reread.once`, armed for a single answer and cleared by the
-hook itself, or `reread.on`, which stays until switched off. This command is the
-only thing that creates, removes or inspects either, and the only thing that
-registers the hook in `~/.claude/settings.json`.
+hook itself, or `reread.on`, which stays until switched off. This command
+offers the operator controls and registers the hook in
+`~/.claude/settings.json`; the hook and `/ai-help` also inspect the flags.
 
 Argument: `$ARGUMENTS`.
 
 - **Anything that is not a verb below is the question.** Arm the guard for this
   one answer, then answer the question. This is the common case and what the
-  command is for: `/sc perché il cron non parte?`
+  command is for: `/sc why won't cron start?`
 - `on`, `off`, `status`, `unregister` manage the always-on mode.
 - No argument at all: show `status` and stop.
 
@@ -31,8 +31,9 @@ Do these in order:
 2. `touch ~/.config/mrcall-ai-kit/reread.once`
 3. Answer the question — the rest of `$ARGUMENTS` — normally.
 
-Then stop thinking about it. The hook clears that flag itself when it fires, so
-the arming never outlives the turn and never leaks into the next question.
+Then stop thinking about it. The hook clears that flag after a valid Stop
+payload, including when a short answer skips the pass. A malformed payload
+fails open before disarming, so the flag can remain for a later answer.
 
 Say nothing about any of this. No "arming the guard", no note that a re-read
 will happen, no mention of the flag. The user asked a question and wants its

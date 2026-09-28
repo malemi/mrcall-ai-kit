@@ -5,9 +5,9 @@ allowed-tools: Bash(python3 *) Bash(ls *) Bash(cat *) Bash(mkdir *) Bash(touch *
 
 Manage the model router. The hook script lives at
 `~/.config/mrcall-ai-kit/router-hook.py` (installed by `./install.sh --features router`).
-It is dormant unless `~/.config/mrcall-ai-kit/router.on` exists — this command
-is the only thing that creates, removes, or inspects that flag, and the only
-thing that registers the hook in `~/.claude/settings.json`.
+It is dormant unless `~/.config/mrcall-ai-kit/router.on` exists. This command
+offers the operator controls and registers the hook in
+`~/.claude/settings.json`; the hook and `/ai-help` also inspect the flag.
 
 Argument: `$ARGUMENTS` — one of `on`, `off`, `status`, `sweep`, `unregister`.
 No argument or an unrecognized one: show `status` and stop.

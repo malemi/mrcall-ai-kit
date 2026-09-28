@@ -35,9 +35,10 @@ now, read from disk rather than from a list someone maintained. `/ai-help all`
 covers every runtime.
 
 Reach for it when you cannot remember whether something is installed here or on
-the other machine, or after an install, to see what landed. It also reports
-whether the hook-backed features are dormant or live, which the file listing
-alone cannot tell you.
+the other machine, or after an install, to see what landed. It reports the
+Claude router's persistent flag and registration state. When the re-read hook
+script is installed, it also reports that guard's persistent flag and
+registration state. This does not prove a hook executed in the client.
 
 <!-- capability: sc | proof: commands/sc.md | covers: sc -->
 ## `sc` — a re-read pass over one answer
@@ -53,8 +54,8 @@ answer back once with the checklist before delivery. A shorter answer skips
 the pass and spends the one-shot arming. `/sc on` and `/sc off` control the
 persistent mode on Claude Code only.
 
-On OpenCode, `/sc <question>` instructs the model to read the checklist and
-re-read its answer in the current turn. On Codex, ask for the `$sc <question>`
+On OpenCode, `/sc <question>` inserts the installed checklist into the prompt
+and instructs the model to re-read its answer in the current turn. On Codex, ask for the `$sc <question>`
 skill to do the same. Both include short answers. Their pass depends on the
 model following the instruction; neither runtime offers the Claude Stop-hook
 guarantee or an always-on mode.
@@ -73,17 +74,22 @@ without that file everything the previous worker understood is lost.
 Reach for it on long sessions with a lot of mechanical work in them. Not for a
 single hard question, where the delegation costs more than it saves.
 
-`/router sweep` lists session files still open, with their age, so you can spot
-the ones a dead session left behind. It never closes one itself.
+`/router sweep` lists open session files with their start time and a transcript
+recency label, so you can spot ones a dead session left behind. It never
+closes one itself.
 
 <!-- capability: scope-guard | proof: commands/scope-guard.md | covers: scope-guard -->
-## `/scope-guard` — a declared blast radius
+## `/scope-guard` — protect marked Markdown documents
 
-Lets a repository declare which paths a session may modify, and refuses edits
-outside them. Dormant unless you activate it, per runtime.
+The opt-in guard is designed to intercept supported file edits to a Markdown
+document with an inline `doc-scope` declaration, deny the first attempt, and
+present the declaration before an eligible retry. A Claude Code main-session
+`Edit` has been verified; other runtime paths remain unverified. Shell writes
+and other unhandled tools can bypass it.
 
-Reach for it when a session will run unattended, or in a tree where a stray
-write is expensive. It is the one guard here that says no rather than advising.
+Reach for it when an agent may edit declared documents and you need a scope
+check on a verified tool path. It installs dormant until activated for that
+runtime.
 
 <!-- capability: shortcuts | proof: commands/nr.md | covers: nr av -->
 ## `nr` and `av` — two instruction overrides, pulled on demand

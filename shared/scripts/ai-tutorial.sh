@@ -58,6 +58,7 @@ have() { # $1 = proof path relative to a runtime root
 }
 
 shown=0
+matched=0
 while IFS= read -r line; do
   case "$line" in
     "<!-- capability: "*)
@@ -65,7 +66,10 @@ while IFS= read -r line; do
       proof="${line##*proof: }"; proof="${proof%% *}"
       printing=0
       if [ -n "$WANT" ] && [ "$WANT" != all ]; then
-        [ "$WANT" = "$cap" ] && printing=1
+        if [ "$WANT" = "$cap" ]; then
+          matched=1
+          have "$proof" && printing=1
+        fi
       elif have "$proof"; then
         printing=1
       fi
@@ -78,7 +82,11 @@ done < "$TUTORIAL"
 
 if [ "$shown" -eq 0 ]; then
   if [ -n "$WANT" ] && [ "$WANT" != all ]; then
-    echo "No section named '$WANT'. Run /ai-tutorial with no argument for what you have."
+    if [ "$matched" -eq 1 ]; then
+      echo "Section '$WANT' is not installed for $here. Run /ai-tutorial with no argument for what you have."
+    else
+      echo "No section named '$WANT'. Run /ai-tutorial with no argument for what you have."
+    fi
   else
     echo "Nothing from this kit is installed for $here."
   fi
