@@ -5,6 +5,47 @@ newest first, preserved verbatim. Cold storage: never read by `/doc-start`,
 queried on demand to answer "when did we do X" without reconstructing it from
 `git log -p`.
 
+## 2026-09-28 — Reviewed delivery, shortcuts, and re-read port
+
+OpenCode's orchestrator, build lead, read-only planner, reviewer, command, and
+orchestrator skill carry the same lifecycle. Build and plan may invoke the
+reviewer; plan reviews brief text before drafting plan text and never writes or
+implements. The `reviewer` role judges all four artifact kinds read-only, on
+Claude Code and on OpenCode.
+Direct implementation, positive-value delegation, bounded fan-out, and
+proportionate verification remain intact.
+
+Two installed shortcuts pull an instruction on demand: `nr` answers one question
+with no tool, subagent, work trace or review gate, refusing to guess and
+refusing an action request, and `av` restates the engineering-lead stance. Both are typed commands on Claude Code and
+OpenCode and model-invoked skills on Codex, which has no operator-typed prompt
+directory. Claude Code also offers its typed commands to the model itself, and
+OpenCode reads the Codex skills directory, so on a Codex-inclusive install every
+runtime can reach them without the operator typing anything. Each description
+therefore carries a run-only-when-asked instruction — an instruction, not a
+mechanism — and declares `$nr` or `$av` at the head of a message as its trigger,
+which on Codex is the only form there is. Both were exercised in all three real
+clients, including the refusal paths and the bare no-argument case.
+
+The re-read feature extends Claude Code's existing `/sc` to OpenCode and Codex.
+The `2026-09-27-reread-guard-cross-runtime` plan is completed. OpenCode's typed
+`/sc` inserts the installed procedure and checklist into its prompt; Codex's
+`$sc` skill reads them in-turn. Isolated real-client checks on OpenCode 1.18.32
+and Codex CLI 0.157.1 observed checklist use on short and long answers, missing
+file errors, and the one-shot command boundaries. Both paths are instruction
+based. Claude's existing Stop-hook test passes. Live Claude Code 2.1.280 could
+not run `/sc` because the client reported a weekly usage limit. The operator
+said the existing command worked before this port and waived a repeat live
+check; this trace establishes no new Claude client behavior. Independent
+milestone and final integration reviews approved the port.
+
+`/ai-help` reads the filesystem and shows the runtime it is running in, with
+`all` for every runtime installed. Its listing comes from
+`shared/scripts/ai-help.sh`, installed beside `doc-check.py` in the kit-global
+home: Claude Code delimits an injected shell block with backticks, so a script
+that formats a model column cannot live inline in the command. Descriptions are
+one line: the cost of that command is the model re-emitting them, not the disk.
+
 ## 2026-08-25 — the router's pre-live verification record
 
 Superseded by live use on 2026-08-25, when the router drove a full working

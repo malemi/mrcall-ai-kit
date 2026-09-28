@@ -60,3 +60,13 @@ that settled it. A document listed here is never asked about again.
   run from runtime capability proof through adapters, installation, harness
   migration, and real-client verification. It is read by phase; splitting it
   would hide cross-phase gates and require traversal across multiple plans.
+- `docs/execution-plans/2026-09-22-kit-agent-layer-and-issue-visibility.md` —
+  **keep whole**, 465 lines, 2026-09-28. The active plan holds the operator's
+  decisions and the remaining enforcement item alongside their dependencies;
+  readers need its order and boundaries together.
+- `docs/execution-plans/2026-09-24-budget-driven-model-resolution.md` —
+  **keep whole**, 413 lines, 2026-09-28. The completed plan records one
+  six-milestone delivery sequence and its merge and rollback dependencies.
+- `docs/briefs/2026-09-24-budget-driven-model-resolution.md` — **keep whole**,
+  408 lines, 2026-09-28. The dated brief argues one model-resolution decision
+  from measured inputs through requirements and limits.

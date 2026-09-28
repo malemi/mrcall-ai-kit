@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: d84a4107e9a25ef5eca1755e5199cad0dfb3b51b
-doc_baseline_date: 2026-09-09
+doc_baseline_commit: 1f41c71014b25a8a1c1d4b25e473940f3cad4b8d
+doc_baseline_date: 2026-09-28
 ---
 
 # Active Context
@@ -22,41 +22,21 @@ brief, plan, milestone, and final review gates for all substantial development.
 Repository instructions, orientation, and the thin-index budget remain entirely
 in `AGENTS.md`.
 
-OpenCode's orchestrator, build lead, read-only planner, reviewer, command, and
-orchestrator skill carry the same lifecycle. Build and plan may invoke the
-reviewer; plan reviews brief text before drafting plan text and never writes or
-implements. The `reviewer` role judges all four artifact kinds read-only, on
-Claude Code and on OpenCode.
-Direct implementation, positive-value delegation, bounded fan-out, and
-proportionate verification remain intact.
+OpenCode and Claude Code use the same reviewed delivery lifecycle described in
+[`documentation-harness.md`](documentation-harness.md).
 
 Standing instructions are pulled, not pushed. The router hook prints only this
 session's shared-memory path and the protocol for using that file, and prints
 nothing at all when no `docs/` tree is in reach; the contract itself reaches a
 session through the managed `CLAUDE.md` and each role agent's `description`.
-Two installed shortcuts pull an instruction on demand: `nr` answers one question
-with no tool, subagent, work trace or review gate, refusing to guess and
-refusing an action request, and `av` restates the engineering-lead stance. Both are typed commands on Claude Code and
-OpenCode and model-invoked skills on Codex, which has no operator-typed prompt
-directory. Claude Code also offers its typed commands to the model itself, and
-OpenCode reads the Codex skills directory, so on a Codex-inclusive install every
-runtime can reach them without the operator typing anything. Each description
-therefore carries a run-only-when-asked instruction — an instruction, not a
-mechanism — and declares `$nr` or `$av` at the head of a message as its trigger,
-which on Codex is the only form there is. Both were exercised in all three real
-clients, including the refusal paths and the bare no-argument case.
+The `nr` and `av` shortcuts remain on-demand instructions: typed commands on
+Claude Code and OpenCode, model-invoked skills on Codex. Their Codex trigger
+descriptions are instructions, not enforced dispatch rules.
 
-The re-read feature extends Claude Code's existing `/sc` to OpenCode and Codex.
-The `2026-09-27-reread-guard-cross-runtime` plan is completed. OpenCode's typed
-`/sc` inserts the installed procedure and checklist into its prompt; Codex's
-`$sc` skill reads them in-turn. Isolated real-client checks on OpenCode 1.18.32
-and Codex CLI 0.157.1 observed checklist use on short and long answers, missing
-file errors, and the one-shot command boundaries. Both paths are instruction
-based. Claude's existing Stop-hook test passes. Live Claude Code 2.1.280 could
-not run `/sc` because the client reported a weekly usage limit. The operator
-said the existing command worked before this port and waived a repeat live
-check; this trace establishes no new Claude client behavior. Independent
-milestone and final integration reviews approved the port.
+The re-read feature's OpenCode `/sc` and Codex `$sc` paths passed isolated
+real-client checks. Both are instruction-based; the existing Claude Code `/sc`
+uses a Stop hook. The operator waived repeat Claude client QA for this port.
+See the [runtime support matrix](reread-guard.md) for proof and limits.
 
 Agents are named for their job, and their models are data. Each role's needs
 per runtime are in `shared/roles/requirements.json`. The refresh,
@@ -72,12 +52,8 @@ new models from its next delegation, OpenCode from its next start. The kit's
 OpenCode agents run on OpenRouter routes, so an OpenCode without an OpenRouter
 provider cannot run them.
 
-`/ai-help` reads the filesystem and shows the runtime it is running in, with
-`all` for every runtime installed. Its listing comes from
-`shared/scripts/ai-help.sh`, installed beside `doc-check.py` in the kit-global
-home: Claude Code delimits an injected shell block with backticks, so a script
-that formats a model column cannot live inline in the command. Descriptions are
-one line: the cost of that command is the model re-emitting them, not the disk.
+`/ai-help` reports the installed runtime inventory from the filesystem through
+`shared/scripts/ai-help.sh`.
 
 Static profile and installation tests cover every shipped entry point, and both
 delivery lanes are verified through installed artifacts in a real Claude Code
