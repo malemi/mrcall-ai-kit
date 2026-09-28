@@ -1,5 +1,5 @@
 ---
-doc_baseline_commit: 1f41c71014b25a8a1c1d4b25e473940f3cad4b8d
+doc_baseline_commit: c9d940d2912adfb326e8af8092535bef38b90322
 doc_baseline_date: 2026-09-28
 ---
 
@@ -34,8 +34,9 @@ Claude Code and OpenCode, model-invoked skills on Codex. Their Codex trigger
 descriptions are instructions, not enforced dispatch rules.
 
 The re-read feature's OpenCode `/sc` and Codex `$sc` paths passed isolated
-real-client checks. Both are instruction-based; the existing Claude Code `/sc`
-uses a Stop hook. The operator waived repeat Claude client QA for this port.
+real-client checks. The operator also reports that `$sc` works in the current
+Codex client after installation. Both paths are instruction-based; the existing
+Claude Code `/sc` uses a Stop hook. The operator waived repeat Claude client QA for this port.
 See the [runtime support matrix](reread-guard.md) for proof and limits.
 
 Agents are named for their job, and their models are data. Each role's needs
