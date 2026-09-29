@@ -7,7 +7,8 @@ behavior must agree with it.
 
 The same documentation model serves Claude Code, Codex, and OpenCode. Tool
 integration may differ: Codex discovers user-level skills under
-`$HOME/.agents/skills`; deprecated custom prompts under `~/.codex/prompts`
+`$HOME/.agents/skills` and custom role agents under `~/.codex/agents`;
+deprecated custom prompts under `~/.codex/prompts`
 are not part of the design. OpenCode-only orchestration remains outside this
 cross-tool contract.
 
@@ -17,13 +18,12 @@ Both session start and consolidation may delegate bounded, substantive work to
 the kit's role agents where the environment provides them — `execute` for
 mechanical execution, `verify` for independent verification — through
 whatever subagent primitive the tool exposes (`Agent` in Claude Code, `task` in
-OpenCode). Delegation is conditional: parallelism, specialist capability, or
+OpenCode, `spawn_agent` in Codex). Delegation is conditional: parallelism, specialist capability, or
 context isolation must be worth more than prompting, waiting, and review.
-Narrow local work stays with the primary agent. Each role's definition names
-the model the kit chose for that role at the machine's budget (`/ai-budget`),
-so the model follows the job rather than the delegating session, which never
-names one; a subagent that names none inherits the parent's and therefore saves
-context only.
+Narrow local work stays with the primary agent. Claude Code and OpenCode role
+definitions name the model the kit chose at the machine's budget
+(`/ai-budget`). Codex role definitions have no model pin and inherit the
+session model; its budget report explicitly states this limit.
 
 One OpenCode capability is deliberately not ported to Claude Code: the
 watchdog daemon, which enforces timeout and budget through OpenCode's own
@@ -130,13 +130,9 @@ affect the exit code.
 build and test command, and the rules that must not be broken, closed by an
 `<!-- orientation ends -->` marker. A session entering that repository then
 orients on a dozen lines instead of the whole index. The marker is an HTML
-comment so it vanishes from the rendered document while staying greppable;
-"everything above the first `##`" was rejected as the convention because it
-gives the gate nothing to test — an index opening straight into `## Docs` would
-be indistinguishable from one with a well-written head. Enforcement lives in the
-meta-repo's gate rather than in each sub-repo's profile because sub-repos are
-not required to have a profile, and a per-repository rule reaches none of the
-ones that don't. The gate resolves each sub-repo's index through its own profile
+comment so it vanishes from the rendered document while staying greppable.
+The meta-repo gate checks the marker even for sub-repos without a profile.
+It resolves each sub-repo's index through its own profile
 when it has one, and falls back to `AGENTS.md`. The advisory pairs with a rule
 in `doc-start`: in a meta-repo the index's ownership map answers routing by
 itself, so a sub-repo index is opened when work enters that repository's code,
@@ -276,11 +272,13 @@ natively. `doc-start` explicitly loads both configured files unless the current
 session confirms their exact content is already present, so workflow behavior
 does not depend on guessing runtime injection.
 
-This does not claim a universal Codex primary profile. The kit deliberately
-does not overwrite Codex's user-owned global `~/.codex/AGENTS.md`; outside a
-workflow that reads managed `CLAUDE.md`, ordinary Codex behavior follows the
-operator's global and project `AGENTS.md` chain. OpenCode orchestration has its
-own installed primary profiles, while Claude receives the contract from managed
+The Codex install adds a delimited block to the user-owned global
+`~/.codex/AGENTS.md`. It tells a lead in a bootstrapped repository to read
+managed `CLAUDE.md` and use the installed custom reviewer at lifecycle gates.
+The rest of the global file remains the operator's. The block and custom agent
+profiles deliver instructions; they do not mechanically enforce review gates.
+OpenCode orchestration has its own
+installed primary profiles, while Claude receives the contract from managed
 `CLAUDE.md` and from each role agent's `description`.
 
 Enforcement is layered like the living-context shape: `doc-end` creates a
@@ -386,27 +384,11 @@ advisory `doc_max_lines` report, which skips it precisely because cold storage
 is meant to grow), and it is discoverable through a routing line in
 `docs/README.md`, the same as every other durable doc.
 
-Two independent points enforce this, so a lazy "consolidate" (prepend today's
-notes, touch nothing else) cannot silently drift the file into a changelog for
-months unnoticed. `doc-end` Phase 3 archives-then-trims as part of normal
-per-session reconsolidation (proactive). The `doc-critic` skill independently
-checks the file's shape — extra dated headings, narrative prose, well over the
-line target — and is the reactive safety net that catches a sloppy Phase 3.
-
-Three layers hold this rule, because two of them are LLM judgment and judgment
-is what failed: the mechanical gate rejects a non-canonical section outright,
-the end workflow treats a shape violation as a reason to consolidate, and the
-semantic critic catches the drift a heading cannot express. Only the first is
-deterministic, and only the first applies to an edit made by something that
-never ran a `doc-*` command at all.
-
-The shape is checked on every consolidation attempt, including one that
-concludes no consolidation is needed. Drift here does not follow from the
-current session's work and is invisible to `git status`: the file may have been
-mis-shaped for months, or rewritten by something that never invoked the end
-workflow. A run that only asks whether new work exists would report nothing to
-do and leave the violation standing indefinitely, so a mis-shaped file is
-itself a reason to consolidate.
+Three checks enforce this rule. The mechanical gate rejects non-canonical
+sections. The end workflow treats a shape violation as a reason to consolidate
+even when the working tree is clean. The semantic critic checks narrative prose
+and excess length. The mechanical section check also applies to edits made
+outside a `doc-*` workflow.
 
 What the safety net then does depends on who is running it, and follows from
 the delegation boundary above. Running in-session, it repairs the file:

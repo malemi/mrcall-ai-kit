@@ -5,6 +5,63 @@ newest first, preserved verbatim. Cold storage: never read by `/doc-start`,
 queried on demand to answer "when did we do X" without reconstructing it from
 `git log -p`.
 
+## 2026-09-29 — Agent and re-read runtime evidence
+
+The re-read feature's OpenCode `/sc` and Codex `$sc` paths passed isolated
+real-client checks. The operator also reports that `$sc` works in the current
+Codex client after installation. Both paths are instruction-based; the existing
+Claude Code `/sc` uses a Stop hook. The operator waived repeat Claude client QA for this port.
+See the [runtime support matrix](reread-guard.md) for proof and limits.
+
+An OpenCode 1.18.32 `build` session delegated to the installed `reviewer` in a
+disposable directory, and the child put the correct `No` verdict in its first
+report field. A Codex 0.158.0 spawned reviewer also preserved its verdict
+field while finding a brief overclaim. Claude Code 2.1.280 returned its weekly
+usage limit before the agent ran; its installed skill and agents match the
+generated files, with no new runtime-behavior proof for this change.
+
+Codex has four installed custom agents: `execute`, `plan`, `reviewer`, and
+`verify`. Their TOML definitions are generated from the shared role text and
+copied to `~/.codex/agents/` even in symlink install mode: Codex 0.158.0
+rejected symlinked roles, and a fresh CLI session accepted the copied
+`reviewer`. A delimited global `~/.codex/AGENTS.md` block tells a lead in a
+bootstrapped repository to load `CLAUDE.md` and use the named reviewer. A fresh
+CLI session received that block without file reads and returned the reviewer's
+`REVISE` verdict in the kit report format. Codex roles inherit the session
+model; `/ai-budget` reports that it does not switch them.
+
+The public catalogue carries the same Artificial Analysis scores as the keyed
+benchmarks endpoint (190 of 190 agreed on 2026-09-25), so a refresh could run
+without a key. The refresh reads the keyed endpoint.
+
+## 2026-09-29 — Details removed from the living snapshot
+
+OpenCode and Claude Code use the same reviewed delivery lifecycle described in
+[`documentation-harness.md`](documentation-harness.md).
+
+Standing instructions are pulled, not pushed. The router hook prints only this
+session's shared-memory path and the protocol for using that file, and prints
+nothing at all when no `docs/` tree is in reach; the contract itself reaches a
+session through the managed `CLAUDE.md` and each role agent's `description`.
+The `nr` and `av` shortcuts remain on-demand instructions: typed commands on
+Claude Code and OpenCode, model-invoked skills on Codex. Their Codex trigger
+descriptions are instructions, not enforced dispatch rules.
+
+Static profile and installation tests cover every shipped entry point, and both
+delivery lanes are verified through installed artifacts in a real Claude Code
+client: a one-word local correction completes in about ten seconds with no
+subagent or work trace, while a public CLI change is held at brief approval
+before planning, at plan approval before code, then at separate milestone and
+final reviews.
+
+The optional scope guard remains under the
+[`scope-guard execution plan`](execution-plans/2026-08-26-scope-guard.md).
+Claude Code's current `MessageDisplay` event carries indexed `delta` batches;
+the adapter now assembles them through `final` before attesting. A real
+main-session `Edit` in non-interactive mode verified one denial, a visible nonce
+reason, and one successful retry. Other runtime and Claude interaction modes
+remain unverified.
+
 ## 2026-09-28 — Reviewed delivery, shortcuts, and re-read port
 
 OpenCode's orchestrator, build lead, read-only planner, reviewer, command, and

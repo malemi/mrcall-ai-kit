@@ -12,7 +12,7 @@ Powerful. Easy to install, easier to use.
 
 - Claude wants to go on credits? Shift to OpenCode or Codex
 - Setup a simple LLM router which decides which model should be used for each query
-- One knob for what the agents cost — `/ai-budget low|medium|high` — shows each agent's model chosen from price and benchmark data
+- One knob for Claude Code and OpenCode agent costs — `/ai-budget low|medium|high` — shows each role's model chosen from price and benchmark data; Codex roles inherit the session model
 - Different agents can work together on a shared memory
 - You never start from stale documentation
 - You never end a session with documentation half-updated
@@ -30,7 +30,7 @@ cd mrcall-ai-kit
 
 That's the whole install. The script detects which tools you already have,
 asks what you want. It installs **globally** (your `~/.claude`,
-`~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
+`~/.codex`, `~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
 your repos.
 
 Then:
@@ -59,7 +59,7 @@ From there the routine is two commands: `doc-start` when you sit down,
   on/off/status/sweep/unregister.
 - **`/ai-help`** (Claude Code, OpenCode) — the current, accurate list of everything
   installed.
-- **`/ai-budget`** (Claude Code, OpenCode) — set how much the role agents may
+- **`/ai-budget`** (Claude Code, OpenCode) — set how much those role agents may
   cost, `low`, `medium` or `high`; with no argument, show the budget and each
   agent's model. A machine that never runs it runs `medium`.
 - **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
@@ -94,8 +94,12 @@ checks except its willingness to follow that line.
 
 There's also a **memory** — a short, current account of a project, and of
 each session, that keeps itself up to date — and **agents**: AI helpers,
-each named for one job, brought in automatically for that job. Each one runs
-the model the kit chose for its job at your budget; see
+each named for one job and selected by the lead for that job. Claude Code and
+OpenCode roles run the model the kit chose at your budget. Codex roles load
+the same role rules and inherit the session model. Every kit agent also receives
+the six shipped `sc` clarity and verification rules and is instructed to check
+its final report against them; this model instruction does not intercept
+delivery. See
 [`shared/roles/README.md`](shared/roles/README.md).
 
 Want the full detail? See

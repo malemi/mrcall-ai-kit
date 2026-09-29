@@ -40,6 +40,7 @@ KIT = HOME / ".config" / "mrcall-ai-kit"
 BUDGET_FILE = KIT / "budget"
 MANIFEST = KIT / "installed.tsv"
 RENDERINGS = KIT / "agents"
+CODEX_AGENTS = HOME / ".codex" / "agents"
 RUNTIMES = {  # runtime → where it reads agents, and its name in the output
     "claude": (HOME / ".claude" / "agents", "Claude Code"),
     "opencode": (HOME / ".config" / "opencode" / "agents", "OpenCode"),
@@ -112,6 +113,16 @@ def agents(log: dict) -> list[dict]:
                       "src": src, "backup": backup, "renderings": renderings,
                       "kits": still_the_kits(dest, mode, src)})
     return found
+
+
+def codex_role_note(log: dict) -> str:
+    roles = sorted(path.stem for path, (mode, src, _) in log.items()
+                   if path.parent == CODEX_AGENTS and path.suffix == ".toml"
+                   and mode in ("symlink", "copy") and still_the_kits(path, mode, src))
+    if not roles:
+        return ""
+    return ("Codex: " + ", ".join(roles) +
+            " inherit the session model; /ai-budget does not switch Codex models.")
 
 
 def current_budget() -> tuple[str, str]:
@@ -221,7 +232,9 @@ def main(argv: list[str]) -> int:
     if len(argv) > 1:
         print("usage: ai-budget [low|medium|high]", file=errors)
         return failed(2)
-    found = agents(installed())
+    log = installed()
+    found = agents(log)
+    codex_note = codex_role_note(log)
     budget, source = current_budget()
 
     if not argv:
@@ -230,7 +243,10 @@ def main(argv: list[str]) -> int:
               else f"Budget: {source} says '{budget}', which is not one of {', '.join(BUDGETS)}")
         lines = show(found, budget if valid else DEFAULT)
         print("\n".join(lines) if lines else
-              "No kit agents are installed; the next install places this budget's renderings.")
+              ("No budget-switched kit agents are installed." if codex_note else
+               "No kit agents are installed; the next install places this budget's renderings."))
+        if codex_note:
+            print(codex_note)
         return 0 if valid else failed(1)
 
     level = argv[0]
@@ -260,7 +276,10 @@ def main(argv: list[str]) -> int:
     print(f"Budget: {level}" + (" (unchanged)" if budget == level else f" (was {was})"))
     lines = show(found, level)
     print("\n".join(lines) if lines else
-          "No kit agents are installed; the next install places this budget's renderings.")
+          ("No budget-switched kit agents are installed." if codex_note else
+           "No kit agents are installed; the next install places this budget's renderings."))
+    if codex_note:
+        print(codex_note)
     for runtime, (_, label) in RUNTIMES.items():
         if any(a["runtime"] == runtime for a in found):
             print(f"{label}: {TAKES_EFFECT[runtime]}")

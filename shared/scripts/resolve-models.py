@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve each role's model, for every budget on both runtimes, from data.
+"""Resolve each pinned role's model, for every budget on Claude and OpenCode.
 
 A role declares requirements, never a model: `shared/roles/requirements.json`
 holds each role's rule, index and floor per runtime, each runtime's price
@@ -26,7 +26,8 @@ model ids (`anthropic/claude-opus-5.5` becomes `claude-opus-5-5`). OpenCode's
 are every entry, written `openrouter/<id>`; when `opencode` is on the PATH, only
 the routes `opencode models` lists are candidates.
 
-The run prints, for every agent in `shared/roles/agents.json` and every budget,
+The run prints, for every Claude and OpenCode agent in
+`shared/roles/agents.json` and every budget,
 the model its rendering names now, the model resolved for it, and both prices.
 It writes
 `shared/roles/models.json` only with `--apply`. It degrades rather than
@@ -126,8 +127,9 @@ def load_requirements(path: pathlib.Path = REQUIREMENTS) -> dict:
 
 
 def load_agents(req: dict, path: pathlib.Path = MANIFEST) -> list[dict]:
-    """The agents whose models this refresh resolves, each with its role."""
-    agents = sorted(json.loads(path.read_text(encoding="utf-8")).values(),
+    """Agents with pinned models; Codex agents inherit the session model."""
+    entries = json.loads(path.read_text(encoding="utf-8")).values()
+    agents = sorted((e for e in entries if e["runtime"] != "codex"),
                     key=lambda e: (e["runtime"], e["name"]))
     for entry in agents:
         roles = req["runtimes"].get(entry["runtime"], {}).get("roles", {})

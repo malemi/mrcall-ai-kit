@@ -22,54 +22,24 @@ brief, plan, milestone, and final review gates for all substantial development.
 Repository instructions, orientation, and the thin-index budget remain entirely
 in `AGENTS.md`.
 
-OpenCode and Claude Code use the same reviewed delivery lifecycle described in
-[`documentation-harness.md`](documentation-harness.md).
+Every generated kit agent on Claude Code, OpenCode, and Codex now carries the
+six shipped `sc` rules and an instruction to check its final report privately.
+Claude roles receive them through `kit-role-rules`; OpenCode roles and leads
+carry them inline; Codex roles carry them in `developer_instructions`. Fixed
+report headers and reviewer verdict position take precedence over answer-first
+wording. The private re-read is not observable. Claude Code agent behavior
+remains unverified because its client currently reaches a weekly usage limit.
 
-Standing instructions are pulled, not pushed. The router hook prints only this
-session's shared-memory path and the protocol for using that file, and prints
-nothing at all when no `docs/` tree is in reach; the contract itself reaches a
-session through the managed `CLAUDE.md` and each role agent's `description`.
-The `nr` and `av` shortcuts remain on-demand instructions: typed commands on
-Claude Code and OpenCode, model-invoked skills on Codex. Their Codex trigger
-descriptions are instructions, not enforced dispatch rules.
-
-The re-read feature's OpenCode `/sc` and Codex `$sc` paths passed isolated
-real-client checks. The operator also reports that `$sc` works in the current
-Codex client after installation. Both paths are instruction-based; the existing
-Claude Code `/sc` uses a Stop hook. The operator waived repeat Claude client QA for this port.
-See the [runtime support matrix](reread-guard.md) for proof and limits.
-
-Agents are named for their job, and their models are data. Each role's needs
-per runtime are in `shared/roles/requirements.json`. The refresh,
-`shared/scripts/resolve-models.py`, run by the maintainer with
-`OPENROUTER_API_KEY`, reads OpenRouter's catalogue and benchmarks, prints what
-would change, and with `--apply` writes the choice for every runtime, budget and
-role to `shared/roles/models.json`; `build-agents.py` renders each agent once
-per budget. An install puts every budget's rendering in
-`~/.config/mrcall-ai-kit/agents/` and the machine's budget (the `budget` file
-there, medium when absent) at the runtime paths. `/ai-budget low|medium|high`
-switches between those renderings without the checkout: Claude Code runs the
-new models from its next delegation, OpenCode from its next start. The kit's
-OpenCode agents run on OpenRouter routes, so an OpenCode without an OpenRouter
-provider cannot run them.
+Claude Code and OpenCode use the kit's resolved role models at the selected
+`/ai-budget` level. Their renderings are stored under
+`~/.config/mrcall-ai-kit/agents/`; OpenCode also needs an OpenRouter provider.
+Codex has four installed custom agents — `execute`, `plan`, `reviewer`, and
+`verify` — with physical TOML profiles under `~/.codex/agents/`. They inherit
+the session model. The global Codex `AGENTS.md` block instructs leads to use
+these agents for reviewed delivery; it does not mechanically enforce reviews.
 
 `/ai-help` reports the installed runtime inventory from the filesystem through
 `shared/scripts/ai-help.sh`.
-
-Static profile and installation tests cover every shipped entry point, and both
-delivery lanes are verified through installed artifacts in a real Claude Code
-client: a one-word local correction completes in about ten seconds with no
-subagent or work trace, while a public CLI change is held at brief approval
-before planning, at plan approval before code, then at separate milestone and
-final reviews.
-
-The optional scope guard remains under the
-[`scope-guard execution plan`](execution-plans/2026-08-26-scope-guard.md).
-Claude Code's current `MessageDisplay` event carries indexed `delta` batches;
-the adapter now assembles them through `final` before attesting. A real
-main-session `Edit` in non-interactive mode verified one denial, a visible nonce
-reason, and one successful retry. Other runtime and Claude interaction modes
-remain unverified.
 
 ## Unresolved
 
@@ -81,26 +51,15 @@ remain unverified.
 - Nothing prevents a model from invoking `nr` on its own judgement and thereby
   suspending its own tools and checks, wherever the model-invocable form is
   installed. The guard is the description's run-only-when-asked instruction.
-- OpenCode's orchestration behavior has install-level but no real-client proof;
-  the shortcuts are verified there, the orchestrator agents are not.
+- OpenCode's `orchestrator` agent still has no real-client proof.
 - The shell's `ANTHROPIC_API_KEY` takes precedence over the working Claude
   subscription login and leaves non-interactive requests at zero API tokens;
   removing that variable for the process restores normal client execution.
-- `install.sh` installs `claude/commands/scope-guard.md` to one destination
-  twice when the router and scope-guard features are selected together; see
-  [`harness-backlog.md`](harness-backlog.md).
-- Codex has no kit-installed global primary profile. Its doc workflows load the
-  managed harness contract explicitly, while general sessions remain governed
-  by Codex's user-owned global and project `AGENTS.md` chain.
+- The Codex global block and custom profiles are instructions, not mechanical
+  enforcement that every substantial session performs each review gate.
 - On Claude Code, `execute` runs `claude-sonnet-5` at low and medium, marked
   below its coding floor of 73, until a Claude model priced at or under the
   ceiling scores 73 or more.
-- A scored model priced at $0 that is not a `:free` variant passes the
-  resolver's filter, and `execute` would take it at every budget. None is
-  scored today.
-- The public catalogue carries the same Artificial Analysis scores as the keyed
-  benchmarks endpoint (190 of 190 agreed on 2026-09-25), so a refresh could run
-  without a key. The refresh reads the keyed endpoint.
 - Whether a resolved model does its role's job well is not measured, and other
   machines' installs and OpenCode providers are not checked.
 

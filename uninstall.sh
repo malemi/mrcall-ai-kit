@@ -99,6 +99,14 @@ if [[ -f "$SCOPE_REGISTER" ]]; then
     fi
   done
 fi
+CODEX_ROSTER="$KIT_GLOBAL/codex-agent-roster.py"
+if [[ -f "$CODEX_ROSTER" ]]; then
+  if $DRY_RUN; then
+    echo "  [dry]    remove kit block from $HOME/.codex/AGENTS.md"
+  else
+    python3 "$CODEX_ROSTER" off --home "$HOME"
+  fi
+fi
 
 removed=0
 for d in "${order[@]}"; do

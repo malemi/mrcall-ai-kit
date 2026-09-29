@@ -35,6 +35,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CC_DIR="$HOME/.claude"
 OC_DIR="$HOME/.config/opencode"
 CODEX_SKILLS_DIR="$HOME/.agents/skills"
+CODEX_AGENTS_DIR="$HOME/.codex/agents"
 KIT_GLOBAL="$HOME/.config/mrcall-ai-kit"   # tool-independent home for doc-check.py
 MANIFEST="$KIT_GLOBAL/installed.tsv"       # append-only install log, read by ./uninstall.sh
 BACKUPS="$KIT_GLOBAL/backups"              # --on-exist backup of a directory, outside every scan path
@@ -77,7 +78,9 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
               --yes and --features scope-guard alone leave it dormant.
   --mode:     symlink = the installed file points at this checkout, so editing
               the kit edits your live config — and moving or deleting the
-              checkout breaks it. copy = a frozen snapshot, unaffected by the
+              checkout breaks it. Codex custom agents are always copied because
+              current Codex clients reject symlinked agent TOML files.
+              copy = a frozen snapshot, unaffected by the
               checkout afterwards; re-run the installer to pick up changes.
   --on-exist: what to do when a target file already exists.
               skip      = leave the existing file alone and install nothing
@@ -86,8 +89,8 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
               backup    = move it aside, then install. A file moves to
                           <file>.bak. A directory, such as a skill, moves to
                           ~/.config/mrcall-ai-kit/backups/<its path under ~>,
-                          where no runtime loads it. Only one generation is
-                          kept: a second run replaces the backup.
+                          where no runtime loads it. Repeated installs keep
+                          the first backup; changed files get numbered backups.
               The same choice applies to the files the kit once installed
               under names it has retired (shared/roles/retired.txt), in a run
               that installs the role agents replacing them: doc-harness or
@@ -113,6 +116,7 @@ EOF
   echo "                 ai-budget  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
+  echo "     Codex:      execute, plan, reviewer, verify custom agents (-> ~/.codex/agents/)"
   echo
   echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
   echo "     commands:   nr, av  (-> ~/.claude/commands/, ~/.config/opencode/commands/)"
@@ -151,7 +155,7 @@ EOF
   echo "     installs:   common engine, registration helper, runtime adapter, command/skill"
   echo "     activation: dormant by default; interactive prompt or --activate-scope-guard"
   echo
-  echo "Destinations: Claude Code -> ~/.claude/{commands,skills,agents}/ ; Codex -> ~/.agents/skills/ ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
+  echo "Destinations: Claude Code -> ~/.claude/{commands,skills,agents}/ ; Codex -> ~/.agents/skills/ + ~/.codex/{agents,AGENTS.md} ; OpenCode -> ~/.config/opencode/{commands,skills,agents}/"
   echo "Agents: every kit agent is rendered once per budget (low, medium, high), each with the"
   echo "        models the kit resolved for it. All three renderings go to ~/.config/mrcall-ai-kit/agents/;"
   echo "        the runtime gets the one for this machine's budget, read from ~/.config/mrcall-ai-kit/budget"
@@ -370,6 +374,17 @@ if $DO_DOC; then
       add_one "$SCRIPT_DIR/codex/skills/$command" "$CODEX_SKILLS_DIR/$command"
     done
     add_one "$SCRIPT_DIR/shared/skills/doc-critic" "$CODEX_SKILLS_DIR/doc-critic"
+    for agent in "$SCRIPT_DIR/codex/agents"/*.toml; do
+      add_one "$agent" "$CODEX_AGENTS_DIR/$(basename "$agent")"
+      if [[ "$ON_EXIST" == skip && ( -e "$CODEX_AGENTS_DIR/$(basename "$agent")" || -L "$CODEX_AGENTS_DIR/$(basename "$agent")" ) ]] \
+         && { [[ -L "$CODEX_AGENTS_DIR/$(basename "$agent")" ]] || ! cmp -s "$agent" "$CODEX_AGENTS_DIR/$(basename "$agent")"; }; then
+        echo "Codex role conflict: $CODEX_AGENTS_DIR/$(basename "$agent") is symlinked or differs from the kit profile. Use --on-exist backup or overwrite; no files were installed." >&2
+        exit 1
+      fi
+    done
+    add_one "$SCRIPT_DIR/codex/scripts/agent-roster.py" "$KIT_GLOBAL/codex-agent-roster.py"
+    add_one "$SCRIPT_DIR/codex/AGENTS.block.md" "$KIT_GLOBAL/codex-AGENTS.block.md"
+    python3 "$SCRIPT_DIR/codex/scripts/agent-roster.py" check --home "$HOME"
   fi
   $WANT_OC && { add_dir "$SCRIPT_DIR/shared/commands" "$OC_DIR/commands"; add_dir "$SCRIPT_DIR/shared/skills" "$OC_DIR/skills"; }
 fi
@@ -558,7 +573,9 @@ done < "$RETIRED_LIST"
 echo "── Plan (mode: $MODE, on-exist: $ON_EXIST$($DRY_RUN && echo ', DRY-RUN' || true)) ──"
 i=0
 while [[ $i -lt ${#PLAN_SRC[@]} ]]; do
-  printf "  %-8s %s\n" "$MODE" "${PLAN_DST[$i]}"
+  preview_mode="$MODE"
+  [[ "${PLAN_DST[$i]}" != "$CODEX_AGENTS_DIR/"* ]] || preview_mode=copy
+  printf "  %-8s %s\n" "$preview_mode" "${PLAN_DST[$i]}"
   i=$((i+1))
 done
 $ACTIVATE_CC && printf "  %-8s %s\n" "activate" "Claude scope guard -> $CC_DIR/settings.json"
@@ -615,20 +632,59 @@ move_aside() { # $1=path $2=its backup — one generation: an older backup is re
   mv "$1" "$2"
 }
 
+next_backup_path() { # $1=occupied backup path -> first free numbered sibling
+  local base="$1" n=1
+  while [[ -e "$base.$n" || -L "$base.$n" ]]; do n=$((n+1)); done
+  echo "$base.$n"
+}
+
+same_installed_item() { # $1=source $2=destination
+  if [[ -d "$1" && -d "$2" ]]; then
+    diff -qr "$1" "$2" > /dev/null
+  else
+    cmp -s "$1" "$2"
+  fi
+}
+
+prior_backup() { # $1=destination -> latest backup recorded for it
+  [[ -f "$MANIFEST" ]] || return 0
+  D="$1" awk -F'\t' '$3 == ENVIRON["D"] { b = $5 } END { print b }' "$MANIFEST"
+}
+
 install_item() { # $1=src $2=dst
-  local src="$1" dst="$2" bak=""
+  local src="$1" dst="$2" bak="" item_mode="$MODE"
+  [[ "$dst" != "$CODEX_AGENTS_DIR/"* ]] || item_mode=copy
   if [[ -e "$dst" || -L "$dst" ]]; then
     case "$ON_EXIST" in
       skip)      echo "  skip     $dst (exists)"; return ;;
-      backup)    bak="$(backup_path "$dst")"; $DRY_RUN || move_aside "$dst" "$bak"; echo "  backup   $dst -> $bak" ;;
+      backup)
+        bak="$(prior_backup "$dst")"
+        if [[ -n "$bak" && ( -e "$bak" || -L "$bak" ) ]] && recorded_by_kit "$dst"; then
+          if same_installed_item "$src" "$dst"; then
+            $DRY_RUN || rm -rf "$dst"
+            echo "  keep backup $bak; replace unchanged kit file $dst"
+          else
+            bak="$(next_backup_path "$(backup_path "$dst")")"
+            $DRY_RUN || move_aside "$dst" "$bak"
+            echo "  backup   $dst -> $bak (changed since installation)"
+          fi
+        else
+          bak="$(backup_path "$dst")"
+          if [[ -e "$bak" || -L "$bak" ]]; then
+            echo "Cannot back up $dst: $bak already exists and would be replaced. Resolve it first." >&2
+            exit 1
+          fi
+          $DRY_RUN || move_aside "$dst" "$bak"
+          echo "  backup   $dst -> $bak"
+        fi ;;
       overwrite) $DRY_RUN || rm -rf "$dst"; echo "  remove   $dst (overwrite)" ;;
     esac
   fi
-  if $DRY_RUN; then echo "  [dry]    $MODE $dst"; return; fi
+  if $DRY_RUN; then echo "  [dry]    $item_mode $dst"; return; fi
   mkdir -p "$(dirname "$dst")"
-  if [[ "$MODE" == symlink ]]; then ln -s "$src" "$dst"; else cp -r "$src" "$dst"; fi
-  record_install "$MODE" "$dst" "$src" "$bak"
-  echo "  $MODE   $dst"
+  if [[ "$item_mode" == symlink ]]; then ln -s "$src" "$dst"; else cp -r "$src" "$dst"; fi
+  record_install "$item_mode" "$dst" "$src" "$bak"
+  echo "  $item_mode   $dst"
 }
 
 retire_item() { # $1=destination $2=the source the kit shipped it from — under skip, never called
@@ -671,8 +727,16 @@ if $DO_SCOPE; then
     fi
   }
   $ACTIVATE_CC && register_scope_guard claude "$CC_DIR/settings.json"
-  $ACTIVATE_CODEX && register_scope_guard codex "$HOME/.codex/hooks.json"
+$ACTIVATE_CODEX && register_scope_guard codex "$HOME/.codex/hooks.json"
   $ACTIVATE_OC && register_scope_guard opencode "$OC_DIR/plugins/mrcall-scope-guard.ts"
+fi
+if $DO_DOC && $WANT_CODEX; then
+  if $DRY_RUN; then
+    echo "  [dry]    install kit block in $HOME/.codex/AGENTS.md"
+  else
+    python3 "$KIT_GLOBAL/codex-agent-roster.py" on --home "$HOME" \
+      --block "$KIT_GLOBAL/codex-AGENTS.block.md" --on-exist "$ON_EXIST"
+  fi
 fi
 
 # ── Summary ────────────────────────────────────────────────────────────────
@@ -684,9 +748,10 @@ if [[ $still -gt 0 ]]; then
   echo "  Retired names: $still file(s) the kit once installed are still in place, listed above with what completes the migration."
 fi
 $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills/agents."
-$WANT_CODEX && echo "  Codex:       restart sessions to discover skills under ~/.agents/skills."
+$WANT_CODEX && echo "  Codex:       restart sessions to discover skills and agents under ~/.agents/skills and ~/.codex/agents."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
-$AGENTS_PLANNED && echo "  Agents: the runtimes read the $BUDGET budget's renderings ($BUDGET_FROM)."
+$AGENTS_PLANNED && echo "  Agents: Claude Code/OpenCode read the $BUDGET budget's renderings ($BUDGET_FROM)."
+$DO_DOC && $WANT_CODEX && echo "  Codex agents: roles inherit the session model; /ai-budget does not switch them."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."
 if $DO_REREAD; then

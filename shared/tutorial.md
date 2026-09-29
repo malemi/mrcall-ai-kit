@@ -63,13 +63,13 @@ guarantee or an always-on mode.
 <!-- capability: router | proof: commands/router.md | covers: router -->
 ## `/router` — cheap session, expensive workers
 
-Runs the conversation itself on a cheap model that answers trivia and does
-narrow work, and delegates the substantial pieces to the role agents, which run on stronger
-models. `/router on` activates it, `/router off` stops it.
+The operator chooses the conversation model; the router is designed for a
+lower-cost primary session that delegates substantial work to role agents.
+`/router on` activates its session-memory hook, and `/router off` stops it.
 
-It also gives a routed session a shared memory file under `docs/sessions/`, so
-work survives across delegations — a subagent starts with an empty context, and
-without that file everything the previous worker understood is lost.
+It names a shared memory path under `docs/sessions/` and instructs the routed
+session to create and use that file across delegations. A subagent starts with
+an empty context, so the file carries context the next worker needs.
 
 Reach for it on long sessions with a lot of mechanical work in them. Not for a
 single hard question, where the delegation costs more than it saves.
@@ -103,9 +103,9 @@ and names what would have to be checked, rather than guessing.
 than routing problems upward. Reach for it when a session has drifted into
 asking instead of deciding.
 
-Both are triggered by the literal token at the start of your message, never
-inferred. On Codex they install as skills you ask for by name, because Codex has
-no typed commands.
+Invoke either with its literal token at the start of your message or ask for
+it explicitly by name. Neither is inferred from a plain task. On Codex they
+install as skills, because Codex has no typed commands.
 
 <!-- capability: orchestration | proof: commands/orchestrator.md | covers: orchestrator build plan reviewer -->
 ## The orchestrator — OpenCode's reviewed delivery flow
@@ -133,21 +133,23 @@ Reach for one when the work is substantial and self-contained, and a fresh
 context is worth more than the cost of briefing it. Never for a trivial local
 edit: the briefing costs more than doing it.
 
-An agent is named for its job, and its model is a field of its definition,
-not its identity. Pick the role the job needs, and never a cheaper one to save
-money — the cheap wrong answer is the expensive one.
+An agent is named for its job. Claude Code and OpenCode get a model field from
+the kit's budget resolution. Codex gets the same role instructions in custom
+agents and inherits the session model. Pick the role the job needs, and never
+a cheaper one to save money — the cheap wrong answer is the expensive one.
 
 <!-- capability: ai-budget | proof: commands/ai-budget.md | covers: ai-budget -->
 ## `/ai-budget` — how much the role agents may cost
 
-One knob for this machine: `low`, `medium` or `high`. For every role and every
-budget, the kit has already chosen the model that meets the role's requirements
-under that budget's price ceiling; `/ai-budget low` switches the installed
+One knob for Claude Code and OpenCode on this machine: `low`, `medium` or
+`high`. For every role and budget on those runtimes, the kit has chosen a model
+under the budget's price ceiling when possible. A role can be marked below
+its score floor when no qualifying candidate is available; `/ai-budget low` switches the installed
 agents to the low choices, and so on. With no argument it shows the budget and
 each agent's model. A machine that never runs it runs medium.
 
-`high` sets no ceiling. It does not mean "prefer expensive": each role still
-gets the best model for its job, and past that there is nothing better to buy.
+`high` sets no ceiling. Roles with a `maximise` rule take the highest-scoring
+candidate; roles with a `satisfice` rule take the cheapest qualifying candidate.
 
 Reach for it when the bill matters more than the last point of capability, or
 the other way round. Never to pick a model: there is none to pick. When a chosen
@@ -157,6 +159,7 @@ requirements in the kit.
 Claude Code uses the new models from its next delegation, in sessions already
 open too. OpenCode reads its agents when it starts, so a running OpenCode keeps
 its models until it is restarted.
+Codex roles inherit the session model; this budget switch does not change it.
 
 <!-- capability: migrate | proof: commands/migrate-check.md | covers: migrate-check migrate-from-cc -->
 ## `/migrate-check` — moving a repository to OpenCode

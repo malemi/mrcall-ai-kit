@@ -24,8 +24,8 @@ step "2. regenerating is a no-op (the generator is deterministic)"
 # In a scratch copy: regenerating the checkout itself would overwrite the very
 # hand edit step 1 just reported, and then blame it on the generator.
 SCRATCH="$(mktemp -d)"
-cp -r shared claude opencode "$SCRATCH"/
-outputs() { (cd "$SCRATCH" && find claude/agents opencode/agents shared/skills/kit-role-rules -type f -exec md5sum {} + | sort); }
+cp -r shared claude opencode codex "$SCRATCH"/
+outputs() { (cd "$SCRATCH" && find claude/agents opencode/agents codex/agents shared/skills/kit-role-rules -type f -exec md5sum {} + | sort); }
 python3 "$SCRATCH/shared/scripts/build-agents.py" >/dev/null
 FIRST="$(outputs)"
 python3 "$SCRATCH/shared/scripts/build-agents.py" >/dev/null
@@ -68,6 +68,46 @@ sys.exit(1 if bad else 0)
 PY
 [ "$FAIL" -eq 0 ] && echo "OK: $(ls claude/agents/*/*.md | wc -l) via skill, $(ls opencode/agents/*/*.md | wc -l) inline, each with the blocks agents.json records"
 
+python3 - <<'PY' || FAIL=1
+import pathlib, tomllib
+roles = pathlib.Path("shared/roles")
+for path in sorted(pathlib.Path("codex/agents").glob("*.toml")):
+    body = tomllib.loads(path.read_text())
+    instructions = body["developer_instructions"]
+    role = "review" if body["name"] == "reviewer" else body["name"]
+    for source in [roles / f"{role}.md", roles / "common.md",
+                   roles / "block-delivery-contract.md", roles / "block-proportional-execution.md",
+                   roles / "block-report-budget.md", roles / "worker-report.md"]:
+        assert source.read_text().strip() in instructions, f"{path} lacks {source}"
+    assert "model" not in body, f"{path} pins a model"
+    if role == "review":
+        assert body["sandbox_mode"] == "read-only"
+print("OK: Codex TOML loads with complete role instructions and no model pin")
+PY
+
+python3 - <<'PY' || FAIL=1
+import json, pathlib, tomllib
+root = pathlib.Path(".")
+checklist = (root / "shared/roles/reread-checklist.md").read_text().strip()
+skill = (root / "shared/skills/kit-role-rules/SKILL.md").read_text()
+assert checklist in skill, "Claude preloaded role skill lacks the complete sc checklist"
+assert "## Final-answer re-read" in skill
+agents = json.loads((root / "shared/roles/agents.json").read_text())
+budgets = ("low", "medium", "high")
+for entry in agents.values():
+    if entry["runtime"] == "claude":
+        continue
+    paths = [root / entry["src"]] if entry["runtime"] == "codex" else [
+        root / entry["src"].format(budget=budget) for budget in budgets]
+    for path in paths:
+        body = (tomllib.loads(path.read_text())["developer_instructions"]
+                if entry["runtime"] == "codex" else path.read_text())
+        assert checklist in body, f"{path} lacks the complete sc checklist"
+        assert "## Final-answer re-read" in body, f"{path} lacks the pass instruction"
+        assert "first required field" in body, f"{path} lacks fixed-report precedence"
+print("OK: every Claude, OpenCode, and Codex agent receives the complete sc checklist")
+PY
+
 step "4. the skill Claude preloads actually exists where install.sh ships it"
 if [ -f shared/skills/kit-role-rules/SKILL.md ]; then echo "OK"; else
   echo "FAIL: agents name kit-role-rules but the skill is not in shared/skills/"; FAIL=1
@@ -89,6 +129,8 @@ for stub in sorted(pathlib.Path("shared/roles/agents").glob("*.md")):
         bad.append(f"{stub} names a model")
 count = 0
 for e in agents.values():
+    if e["runtime"] == "codex":
+        continue
     for budget, outcome in selection[e["runtime"]].items():
         path = pathlib.Path(e["src"].format(budget=budget))
         want = outcome["roles"][e["role"]]["model"]
@@ -107,14 +149,15 @@ step "6. an agent file no source renders is caught, and regenerating removes it"
 # The flat <runtime>/agents/<name>.md files are gone. One left behind, or put
 # back by hand, would ship a model no refresh chose.
 SCRATCH="$(mktemp -d)"
-cp -r shared claude opencode "$SCRATCH"/
+cp -r shared claude opencode codex "$SCRATCH"/
 cp claude/agents/medium/execute.md "$SCRATCH/claude/agents/execute.md"
+cp codex/agents/reviewer.toml "$SCRATCH/codex/agents/extra.toml"
 # The output is captured first: under pipefail, `--check | grep -q` would fail
 # on --check's own exit status, which is 1 exactly when it finds the file.
 CHECK="$(python3 "$SCRATCH/shared/scripts/build-agents.py" --check 2>&1)"
-if grep -q 'claude/agents/execute.md' <<< "$CHECK"; then
+if grep -q 'claude/agents/execute.md' <<< "$CHECK" && grep -q 'codex/agents/extra.toml' <<< "$CHECK"; then
   GEN="$(python3 "$SCRATCH/shared/scripts/build-agents.py")"
-  if [ -e "$SCRATCH/claude/agents/execute.md" ]; then
+  if [ -e "$SCRATCH/claude/agents/execute.md" ] || [ -e "$SCRATCH/codex/agents/extra.toml" ]; then
     echo "FAIL: regenerating left the unrendered file in place"; FAIL=1
   elif ! grep -q '^removed claude/agents/execute.md' <<< "$GEN"; then
     echo "FAIL: regenerating removed a file without naming it"; FAIL=1
@@ -128,7 +171,7 @@ rm -rf "$SCRATCH"
 
 step "7. the generator refuses a stub that names a model"
 SCRATCH="$(mktemp -d)"
-cp -r shared claude opencode "$SCRATCH"/
+cp -r shared claude opencode codex "$SCRATCH"/
 sed -i 's/^description:/model: hand-picked\ndescription:/' "$SCRATCH/shared/roles/agents/claude--execute.md"
 OUT="$(python3 "$SCRATCH/shared/scripts/build-agents.py" 2>&1)"; RC=$?
 if [ "$RC" -ne 0 ] && grep -q 'claude--execute.md names a model' <<< "$OUT"; then

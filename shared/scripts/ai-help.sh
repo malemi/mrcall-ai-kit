@@ -55,6 +55,12 @@ if show Codex && compgen -G "$HOME/.agents/skills/*/SKILL.md" >/dev/null; then
     printf '| %s | %s |\n' "$(basename "$(dirname "$f")")" "$(one_line "$f")"
   done
 fi
+if show Codex && compgen -G "$HOME/.codex/agents/*.toml" >/dev/null; then
+  printf '\n**Codex — agents**\n\n| name | model | what it is |\n|---|---|---|\n'
+  for f in "$HOME"/.codex/agents/*.toml; do
+    python3 -c 'import pathlib, sys, tomllib; d=tomllib.loads(pathlib.Path(sys.argv[1]).read_text()); print("| {} | {} | {} |".format(d.get("name", "(unnamed)"), d.get("model", "inherits session model"), d.get("description", "")))' "$f"
+  done
+fi
 
 # Hook-backed features have a state the file listing cannot show: a command can
 # be installed while its hook is dormant, or registered and switched off. Each

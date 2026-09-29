@@ -91,8 +91,8 @@ overview lives in [`README.md`](README.md).
   `reviewer`) the doc workflows delegate to, rendered once per budget under
   `agents/<budget>/`, plus the opt-in model router (`commands/router.md`,
   `scripts/router-hook.py`).
-- `codex/` — Codex-native skill entry points for the shared doc workflows and
-  for the shortcuts, which Codex has no operator-typed command form for.
+- `codex/` — Codex custom role agents and native skill entry points for the
+  shared doc workflows and shortcuts.
 - `opencode/` — OpenCode-only: orchestration and its leads, the role agents
   (both rendered once per budget under `agents/<budget>/`), watchdog, and
   migration tooling.

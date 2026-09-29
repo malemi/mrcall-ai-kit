@@ -607,6 +607,17 @@ class VerifyNeverBelowExecute(ResolverCase):
 
 
 class CommittedData(unittest.TestCase):
+    def test_committed_manifest_resolves_through_cli_with_codex_agents(self) -> None:
+        catalogue, benchmarks = world()
+        with tempfile.TemporaryDirectory() as temporary:
+            fixture = write_fixture(Path(temporary), catalogue, benchmarks)
+            run = subprocess.run(
+                [sys.executable, str(RESOLVER), "--fixture", str(fixture)],
+                capture_output=True, text=True, timeout=120)
+        self.assertEqual(run.returncode, 0, run.stderr)
+        self.assertIn("agent models differ", run.stdout)
+        self.assertNotIn("codex /", run.stdout)
+
     def test_every_agent_role_is_resolved_and_no_other(self) -> None:
         # A role no agent plays would still take part in raising a ceiling.
         requirements = json.loads(COMMITTED_REQUIREMENTS.read_text(encoding="utf-8"))

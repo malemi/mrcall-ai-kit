@@ -231,14 +231,16 @@ unchanged "$home" "${SEEDED[@]}" || fail "uninstall --restore-backups did not re
 no_bak_in_scan_paths "$home"
 echo "backup moves the kit's retired files aside, and uninstall restores them: PASS"
 
-# One generation: a second backup run replaces the directory's backup rather
-# than nesting the new one inside it.
+# An unchanged repeat install keeps the original directory backup rather than
+# replacing it with a copy of the kit's installed version.
 home="$TEST_ROOT/backup-twice" ; seed "$home"
 run_install "$home" backup >/dev/null
 run_install "$home" backup >/dev/null
-diff -r "$KIT_DIR/opencode/skills/orchestrator" "$home/.config/mrcall-ai-kit/backups/$SKILL" >/dev/null \
-  || fail "backup, second run: the directory's backup is not the one the first run installed"
-echo "a second backup run keeps one generation of a directory: PASS"
+diff -r "$TEST_ROOT/pristine/$SKILL" "$home/.config/mrcall-ai-kit/backups/$SKILL" >/dev/null \
+  || fail "backup, second run: the original directory backup was replaced"
+[[ ! -e "$home/.config/mrcall-ai-kit/backups/$SKILL.1" ]] \
+  || fail "backup, second run: an unchanged skill made an unnecessary numbered backup"
+echo "a second backup run preserves the original directory backup: PASS"
 
 # An operator's file made at a retired path after the retirement is not the
 # kit's: uninstall leaves it, and keeps the backup that would have replaced it.
