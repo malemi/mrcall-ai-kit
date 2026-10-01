@@ -247,6 +247,34 @@ remove only exact historical harness markers before applying the same split.
 entry-point skills inherit the version from their installed shared
 `WORKFLOW.md`, so all three environments use the same handshake.
 
+## Releasing
+
+The kit's version is `MAJOR.MINOR.PATCH`, and the major is the harness
+protocol: `MAJOR` equals `HARNESS_VERSION` in `shared/scripts/doc-check.py`.
+A change to the `docs/` contract bumps `HARNESS_VERSION`, hence the major,
+and resets minor and patch to 0; every bootstrapped repository then migrates
+through `doc-create`. A new capability or a behavior change that leaves the
+contract untouched bumps the minor. A fix or a documentation-only release
+bumps the patch. A minor or patch needs no migration: the operator runs
+`git pull` and then `./install.sh` again, because the installer copies or
+links each file individually and a pull alone changes nothing installed.
+
+Release notes live in the root `CHANGELOG.md`, one `## vX.Y.Z — YYYY-MM-DD`
+section per version, newest first, with an `## Unreleased` section collecting
+work since the last tag. The GitHub Release body is that section.
+
+A release is cut only with `shared/scripts/release.sh vX.Y.Z` from the
+checkout root (the script is an operator tool, never installed). It runs every
+check and prints one `PASS`/`FAIL` line per check, then stops with exit 1 if
+any failed: semver shape; major equal to `HARNESS_VERSION`; no local or remote
+tag of that name; a non-empty `## vX.Y.Z` section in `CHANGELOG.md`; no
+modified tracked files; branch `main` at `origin/main`; the mechanical gate;
+every `tests/test_*.sh`; `pytest tests shared/scripts/tests`. All green, it
+creates the annotated tag `vX.Y.Z` with message `mrcall-ai-kit vX.Y.Z`, pushes
+it, and publishes the GitHub Release titled `mrcall-ai-kit vX.Y.Z` with the
+changelog section as body. `--dry-run` runs the same checks and prints the
+three commands instead of running them.
+
 ## Work traces
 
 Substantial work always leaves a trace, so "what are we doing, is it finished,

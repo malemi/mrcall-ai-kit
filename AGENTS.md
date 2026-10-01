@@ -97,6 +97,9 @@ overview lives in [`README.md`](README.md).
   (both rendered once per budget under `agents/<budget>/`), watchdog, and
   migration tooling.
 - `install.sh` / `uninstall.sh` — global installer / uninstaller.
+- `CHANGELOG.md` — release notes per version; `shared/scripts/release.sh`
+  cuts a release (rule and refusals: `docs/documentation-harness.md`,
+  "Releasing").
 
 ### Conventions
 

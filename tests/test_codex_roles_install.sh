@@ -25,7 +25,9 @@ for mode in copy symlink; do
   HOME="$test_home" python3 "$test_home/.config/mrcall-ai-kit/ai-budget.py" \
     > "$TEST_ROOT/$mode.budget"
   grep -q 'Codex: execute, plan, reviewer, verify inherit the session model' "$TEST_ROOT/$mode.budget"
-  HOME="$test_home" bash "$test_home/.config/mrcall-ai-kit/ai-help.sh" \
+  # `all`: the listing hides every runtime but the one it runs in, and this
+  # test asserts a Codex row from whichever runtime runs the suite.
+  HOME="$test_home" bash "$test_home/.config/mrcall-ai-kit/ai-help.sh" all \
     > "$TEST_ROOT/$mode.help"
   grep -q '| reviewer | inherits session model |' "$TEST_ROOT/$mode.help"
   HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes > /dev/null
