@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 brief: docs/briefs/2026-10-01-release-versioning.md
 ---
 
@@ -108,13 +108,14 @@ approved at its gate on 2026-10-01 after one revision.
 
 ## State (2026-10-01)
 
-M1, M2 and M3 are reviewed and committed (60399bb, pushed). M4: tags
-`v8.0.0` and `v8.1.0` are pushed; the two GitHub Releases and the deletion of
-`v0.1.0`/`v0.2.0` await the operator, because the session's permission mode
-refuses `gh release create` and `gh release delete`. M5's dry-run on `main`
-at `origin/main` gave the expected single FAIL. The final end-to-end review
-follows M4.
-
+All milestones done and reviewed (brief, plan, M1, M2, final: `APPROVED`).
+Delivery commits 60399bb and af4b657. Remote tags are exactly `v8.0.0`
+(657d506) and `v8.1.0` (de232a0) with their GitHub Releases, `v8.1.0`
+marked latest; the `v0.x` tags and releases are gone. Release bodies equal
+the former notes except for one trailing newline GitHub adds to a release
+created from `--notes-file`. The final dry-run of `v8.2.0` on `main` at
+`origin/main` gave the single expected FAIL. Cutting `v8.2.0` is the
+operator's call.
 ## Ownership and risk
 
 - All milestones in-session. M4 is the only external, non-reversible step: it
