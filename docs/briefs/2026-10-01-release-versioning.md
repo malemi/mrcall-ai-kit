@@ -113,5 +113,6 @@ harness protocol:
 
 - The next release (`v8.2.0`, the release tooling and the `doc-end` phase)
   is cut by this session through `doc-end`, as the end-to-end proof.
-- Codex and OpenCode operators cut releases from the same script; no
-  runtime-specific command is added.
+- Codex and OpenCode sessions cut releases through the same shared `doc-end`
+  workflow and script; no runtime-specific command is added. Whether their
+  sandboxes can push and call `gh` is unverified.

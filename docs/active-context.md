@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: e20d856d8fefa0132ba6d2c3d0673ef83c6d9a05
-doc_baseline_date: 2026-09-29
+doc_baseline_commit: e08c5fbb1af71baef41aa2d0379a194fc86f1e72
+doc_baseline_date: 2026-10-01
 ---
 
 # Active Context
@@ -27,8 +27,9 @@ six shipped `sc` rules and an instruction to check its final report privately.
 Claude roles receive them through `kit-role-rules`; OpenCode roles and leads
 carry them inline; Codex roles carry them in `developer_instructions`. Fixed
 report headers and reviewer verdict position take precedence over answer-first
-wording. The private re-read is not observable. Claude Code agent behavior
-remains unverified because its client currently reaches a weekly usage limit.
+wording. The private re-read is not observable. Claude Code's `execute`,
+`verify` and `reviewer` agents run as installed and return the kit's report
+format.
 
 Claude Code and OpenCode use the kit's resolved role models at the selected
 `/ai-budget` level. Their renderings are stored under
@@ -40,6 +41,17 @@ these agents for reviewed delivery; it does not mechanically enforce reviews.
 
 `/ai-help` reports the installed runtime inventory from the filesystem through
 `shared/scripts/ai-help.sh`.
+
+The kit is versioned `MAJOR.MINOR.PATCH` with the major equal to
+`HARNESS_VERSION`; tags `v8.0.0` and `v8.1.0` and their GitHub Releases are
+live. `CHANGELOG.md` holds the notes per version. The session that ends the
+work cuts the release: `doc-end` Phase 5 reads `release =
+shared/scripts/release.sh` from `docs/.doc-profile`, chooses the version from
+`Unreleased`, commits, pushes and runs the script, which refuses on nine
+preconditions and reports each as `PASS`/`FAIL`. `tests/test_release.sh`
+proves the refusals and the release path against a bare remote and a `gh`
+stub. A Claude Code session in auto mode runs the script through the allow
+rule in the repository's `.claude/settings.json`.
 
 ## Unresolved
 
@@ -62,6 +74,8 @@ these agents for reviewed delivery; it does not mechanically enforce reviews.
   ceiling scores 73 or more.
 - Whether a resolved model does its role's job well is not measured, and other
   machines' installs and OpenCode providers are not checked.
+- Whether a Codex or OpenCode session can push and call `gh` from inside its
+  sandbox when `doc-end` cuts a release is unverified.
 
 ## Next
 

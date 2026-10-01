@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 brief: docs/briefs/2026-10-01-release-versioning.md
 ---
 
@@ -102,7 +102,7 @@ approved at its gate on 2026-10-01 after one revision.
   expected exactly one `FAIL` (no `## v8.2.0` section in `CHANGELOG.md`) and
   `PASS` for every other check, suite and gate included. That is the
   final-user path on the real repository; the full green path is proven by
-  the test's success case. Cutting `v8.2.0` for real is the operator's call.
+  the test's success case. `v8.2.0` is cut by M6.
 - Mark this plan `completed`; `docs/active-context.md` is reconciled by
   `doc-end`.
 
@@ -127,14 +127,16 @@ approved at its gate on 2026-10-01 after one revision.
   change, major when the repository's rule says the protocol moved; the
   kit's rule is "Releasing" in `docs/documentation-harness.md`); rewrite
   `Unreleased` into `## vX.Y.Z — <date>` with a fresh empty `## Unreleased`
-  above it; commit the consolidation edits and the changelog by explicit
-  path; push; run the profile string verbatim from the repository root with
+  above it; commit `CHANGELOG.md` alone, move `doc_baseline_commit` onto that
+  commit, commit the docs-only consolidation edits by explicit path; push
+  both; run the profile string verbatim from the repository root with
   `vX.Y.Z` appended. On refusal the phase may choose another version, push,
   commit its own edits, or repair a test this session broke; it never
   deletes or moves a tag, edits `HARNESS_VERSION`, force-pushes, or commits
   tracked changes it did not make. An unfixable refusal ends as `release:
   not cut — <reason>`: the version section goes back under `Unreleased`,
-  that revert is committed and pushed. Success: `release: vX.Y.Z cut`.
+  that revert is committed alone, the baseline moves onto it in a docs-only
+  follow-up commit, both are pushed. Success: `release: vX.Y.Z cut`.
   Never hand a release to the operator.
 - `.claude/settings.json` (repository, committed): allow
   `Bash(shared/scripts/release.sh:*)` so a Claude Code session in auto mode
@@ -154,15 +156,12 @@ approved at its gate on 2026-10-01 after one revision.
 
 ## State (2026-10-01)
 
-M1–M5 done and reviewed (brief, plan, M1, M2, final: `APPROVED`). M6 added
-on 2026-10-01 after the operator rejected a release procedure addressed to
-them; it is in progress.
-Delivery commits 60399bb and af4b657. Remote tags are exactly `v8.0.0`
-(657d506) and `v8.1.0` (de232a0) with their GitHub Releases, `v8.1.0`
-marked latest; the `v0.x` tags and releases are gone. Release bodies equal
-the former notes except for one trailing newline GitHub adds to a release
-created from `--notes-file`. The final dry-run of `v8.2.0` on `main` at
-`origin/main` gave the single expected FAIL. `v8.2.0` is cut by M6.
+All milestones done and reviewed (brief, plan, M1, M2, final, M6 brief+plan,
+M6: `APPROVED`). Delivery commits 60399bb, af4b657, 9e6e55d, b25f9ea. Remote
+tags are `v8.0.0` (657d506) and `v8.1.0` (de232a0) with their GitHub
+Releases; the `v0.x` tags and releases are gone. `v8.2.0` is cut by the
+`doc-end` run that closes this plan, through Phase 5. Codex and OpenCode
+sandboxes pushing and calling `gh` for a release are unverified.
 ## Ownership and risk
 
 - All milestones in-session. M4 is the only external, non-reversible step: it
