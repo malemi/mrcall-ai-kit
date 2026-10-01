@@ -51,7 +51,9 @@ shared/scripts/release.sh` from `docs/.doc-profile`, chooses the version from
 preconditions and reports each as `PASS`/`FAIL`. `tests/test_release.sh`
 proves the refusals and the release path against a bare remote and a `gh`
 stub. A Claude Code session in auto mode runs the script through the allow
-rule in the repository's `.claude/settings.json`.
+rule in the repository's `.claude/settings.json`; headless Codex
+(`codex exec`, full-access sandbox) and OpenCode (`opencode run`) reach the
+remote, hold the `gh` login and run the script's full check set.
 
 ## Unresolved
 
@@ -74,8 +76,6 @@ rule in the repository's `.claude/settings.json`.
   ceiling scores 73 or more.
 - Whether a resolved model does its role's job well is not measured, and other
   machines' installs and OpenCode providers are not checked.
-- Whether a Codex or OpenCode session can push and call `gh` from inside its
-  sandbox when `doc-end` cuts a release is unverified.
 
 ## Next
 

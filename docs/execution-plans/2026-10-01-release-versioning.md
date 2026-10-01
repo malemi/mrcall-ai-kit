@@ -160,8 +160,9 @@ All milestones done and reviewed (brief, plan, M1, M2, final, M6 brief+plan,
 M6: `APPROVED`). Delivery commits 60399bb, af4b657, 9e6e55d, b25f9ea. Remote
 tags are `v8.0.0` (657d506) and `v8.1.0` (de232a0) with their GitHub
 Releases; the `v0.x` tags and releases are gone. `v8.2.0` is cut by the
-`doc-end` run that closes this plan, through Phase 5. Codex and OpenCode
-sandboxes pushing and calling `gh` for a release are unverified.
+`doc-end` run that closes this plan, through Phase 5. Headless Codex and
+OpenCode sessions reach the remote, hold the `gh` login and run the script's
+checks (probed 2026-10-01 with `codex exec` and `opencode run`).
 ## Ownership and risk
 
 - All milestones in-session. M4 is the only external, non-reversible step: it
