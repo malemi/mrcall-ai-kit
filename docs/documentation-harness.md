@@ -202,6 +202,11 @@ result.
 - `build`: optional smoke/build command used before code changes; omit the key
   when no command is known;
 - `smoke`: optional smoke command when it is distinct from `build`;
+- `release`: optional release command taking one `vX.Y.Z` argument; setting
+  it makes `doc-end` cut releases (its Phase 5) and opts the repository into
+  the `CHANGELOG.md` format that phase reads. Like `doc_max_lines`, an older
+  checker rejects the key as unknown, so it rides with the kit version that
+  introduced it;
 - `index_max_lines`: optional non-negative thin-index limit; `0` disables
   that size check;
 - `doc_max_lines`: optional non-negative advisory size limit applied to every
@@ -263,8 +268,13 @@ Release notes live in the root `CHANGELOG.md`, one `## vX.Y.Z — YYYY-MM-DD`
 section per version, newest first, with an `## Unreleased` section collecting
 work since the last tag. The GitHub Release body is that section.
 
-A release is cut only with `shared/scripts/release.sh vX.Y.Z` from the
-checkout root (the script is an operator tool, never installed). It runs every
+The session that ends the work cuts the release, never the operator:
+`doc-end`'s Phase 5 reads `release = shared/scripts/release.sh` from the
+profile, chooses the version from `Unreleased` under the rule above, rewrites
+the changelog, commits, pushes, and runs the command. A Claude Code session in
+auto mode may run it because the repository's `.claude/settings.json` allows
+that exact command. The script runs from the checkout root and is never
+installed. It runs every
 check and prints one `PASS`/`FAIL` line per check, then stops with exit 1 if
 any failed: semver shape; major equal to `HARNESS_VERSION`; no local or remote
 tag of that name; a non-empty `## vX.Y.Z` section in `CHANGELOG.md`; no

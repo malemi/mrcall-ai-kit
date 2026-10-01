@@ -6,3 +6,4 @@ harness_file = CLAUDE.md
 inventory_ignore =
 index_max_lines = 200
 build = python3 shared/scripts/doc-check.py --repo .
+release = shared/scripts/release.sh

@@ -15,6 +15,9 @@ Release.
   `--dry-run` prints the commands instead of running them.
 - `tests/test_codex_roles_install.sh` passes `all` to `ai-help.sh`, so it
   asserts the Codex rows from whichever runtime runs the suite.
+- `doc-end` Phase 5: the session that ends the work cuts the release when the
+  profile names a `release` command and `Unreleased` is not empty. The gate
+  accepts the optional `release` profile key.
 
 ## v8.1.0 — 2026-09-29
 

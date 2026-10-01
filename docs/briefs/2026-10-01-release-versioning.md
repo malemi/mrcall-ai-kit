@@ -45,6 +45,25 @@ harness protocol:
   Release title is the same string. No other spelling of the project name.
 - Release notes live in git, in a root `CHANGELOG.md`, one section per
   version. The GitHub Release body is that section.
+- **The session that ends the work cuts the release; the operator never
+  does.** `doc-end` gains a final phase, driven by a new optional profile key
+  `release = <command>` (the command takes `vX.Y.Z`; setting the key opts the
+  repository into the `## vX.Y.Z — <date>` / `## Unreleased` changelog
+  format). Before touching anything the phase skips, with a stated reason,
+  when the key is absent, when `CHANGELOG.md` has no non-empty `Unreleased`
+  (a non-whitespace line before the next version heading), when the branch is
+  not the release branch, or when tracked files carry changes the session did
+  not make. Otherwise it chooses the version by semver from the `Unreleased`
+  content applied to the newest `## vX.Y.Z` heading (a repository may state
+  its own rule in its docs; the kit's is the "Releasing" section), rewrites
+  `Unreleased` into the version section, commits the consolidation and the
+  changelog by path, pushes, and runs the profile command verbatim from the
+  repository root. A refusal it may fix: a different version, a push, a
+  commit of its own edits, a repair of a test this session broke. Moves it
+  may never make: delete or move a tag, edit `HARNESS_VERSION` to fit,
+  force-push, commit tracked changes it did not make. A refusal it cannot
+  fix ends as `release: not cut — <reason>`, with the version section moved
+  back under `Unreleased` and that revert committed and pushed.
 - A release is cut only through `shared/scripts/release.sh vX.Y.Z`, which
   refuses to proceed when the major differs from `HARNESS_VERSION`, when the
   tag exists, when `CHANGELOG.md` has no section for the version, when
@@ -61,6 +80,10 @@ harness protocol:
   two conventions in the tag list forever; the inconsistency is the defect.
 - **Drop tagging.** Costs nothing to keep, and a public repository benefits
   from stable points; the defect was the missing rule, not the tags.
+- **The operator runs the script.** Rejected on 2026-10-01: a release
+  procedure addressed to the operator is the operator doing the agents' job.
+  The first delivery of this brief made that mistake; the `doc-end` phase and
+  the profile key correct it.
 - **Document the rule without a script.** A rule in prose is what the two
   Codex sessions did not have and would not have read; the mismatch has to be
   refused mechanically.
@@ -75,6 +98,10 @@ harness protocol:
   section for work after `v8.1.0`.
 - `docs/documentation-harness.md` has a "Releasing" section stating the rule
   and the command; `AGENTS.md` routes to `CHANGELOG.md` and the script.
+- `doc-end` has a release phase that, with `release` set in the profile and
+  a non-empty `Unreleased`, cuts the version itself; `docs/.doc-profile`
+  accepts `release`, the gate rejects it when empty; the kit's own profile
+  sets it; the first release cut this way is `v8.2.0`.
 - `shared/scripts/release.sh` refuses each listed condition with a one-line
   reason and exit 1, and `--dry-run` prints the exact tag, push and release
   commands without running them; `tests/test_release.sh` proves the refusals
@@ -84,7 +111,7 @@ harness protocol:
 
 ## Assumptions
 
-- Cutting the next real release (`v8.2.0`, the release tooling itself) is a
-  separate operator decision; this work ends with a `--dry-run` on `main`.
+- The next release (`v8.2.0`, the release tooling and the `doc-end` phase)
+  is cut by this session through `doc-end`, as the end-to-end proof.
 - Codex and OpenCode operators cut releases from the same script; no
   runtime-specific command is added.

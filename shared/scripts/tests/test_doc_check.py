@@ -281,6 +281,16 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("`build` must not be empty", result.stdout)
         self.assertIn("non-negative integer", result.stdout)
 
+    def test_release_key_is_optional_and_must_not_be_empty(self) -> None:
+        profile = self.root / "docs" / ".doc-profile"
+        base = "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n"
+        profile.write_text(base, encoding="utf-8")
+        self.assertEqual(self.check().returncode, 0)  # absent: the release phase is not configured
+        profile.write_text(base + "release = scripts/release.sh\n", encoding="utf-8")
+        self.assertEqual(self.check().returncode, 0)
+        profile.write_text(base + "release =\n", encoding="utf-8")
+        self.assertIn("`release` must not be empty", self.check().stdout)
+
     def test_index_file_must_be_markdown(self) -> None:
         (self.root / "INDEX.txt").write_text("index\n", encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(

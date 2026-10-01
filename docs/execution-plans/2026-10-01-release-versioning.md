@@ -1,5 +1,5 @@
 ---
-status: completed
+status: active
 brief: docs/briefs/2026-10-01-release-versioning.md
 ---
 
@@ -106,16 +106,63 @@ approved at its gate on 2026-10-01 after one revision.
 - Mark this plan `completed`; `docs/active-context.md` is reconciled by
   `doc-end`.
 
+### M6 — The session cuts the release (correction of 2026-10-01)
+
+- `shared/scripts/doc-check.py`: `release` joins the known profile keys and
+  the non-empty check beside `build`/`smoke`; a pytest case covers accepted,
+  empty and absent `release`.
+- `docs/.doc-profile`: `release = shared/scripts/release.sh`.
+- `shared/commands/doc-end.md` and its byte copy
+  `codex/skills/doc-end/WORKFLOW.md` (`tests/test_codex_install.sh` compares
+  them): new "Phase 5 — Release", run after the baseline is written.
+  Skips, each reported in the new output slot, evaluated in this order and
+  before any edit: `release: not configured` (no `release` key);
+  `release: none, Unreleased empty` (no non-whitespace line between
+  `## Unreleased` and the next version heading); `release: none, not on
+  <branch>` (the release branch is `main` unless the repository's rule says
+  otherwise); `release: none, uncommitted work in <paths>` (tracked changes
+  that are not this run's consolidation edits). Otherwise: choose the version
+  by semver from the `Unreleased` content applied to the newest `## vX.Y.Z`
+  heading (patch for fixes and docs, minor for a capability or behavior
+  change, major when the repository's rule says the protocol moved; the
+  kit's rule is "Releasing" in `docs/documentation-harness.md`); rewrite
+  `Unreleased` into `## vX.Y.Z — <date>` with a fresh empty `## Unreleased`
+  above it; commit the consolidation edits and the changelog by explicit
+  path; push; run the profile string verbatim from the repository root with
+  `vX.Y.Z` appended. On refusal the phase may choose another version, push,
+  commit its own edits, or repair a test this session broke; it never
+  deletes or moves a tag, edits `HARNESS_VERSION`, force-pushes, or commits
+  tracked changes it did not make. An unfixable refusal ends as `release:
+  not cut — <reason>`: the version section goes back under `Unreleased`,
+  that revert is committed and pushed. Success: `release: vX.Y.Z cut`.
+  Never hand a release to the operator.
+- `.claude/settings.json` (repository, committed): allow
+  `Bash(shared/scripts/release.sh:*)` so a Claude Code session in auto mode
+  can run the command; the command must be invoked exactly as the profile
+  states.
+- `docs/documentation-harness.md`: profile schema lists `release` with the
+  same older-checker caveat as `doc_max_lines`; the "Releasing" section says
+  the session cuts the release through `doc-end` and drops "operator tool".
+  `AGENTS.md` pointer and `CHANGELOG.md` Unreleased updated.
+- Verify: `python3 -m pytest -q shared/scripts/tests`, `bash
+  tests/test_codex_install.sh` and the gate pass; then the final-user path:
+  run `doc-end` in this session and let it cut `v8.2.0`; `git ls-remote
+  --tags origin` shows `v8.2.0` at the pushed HEAD and `gh release view
+  v8.2.0` carries the former Unreleased notes. That proves Claude Code only;
+  Codex and OpenCode sandboxes pushing and calling `gh` stay unverified and
+  are recorded as such in the plan state.
+
 ## State (2026-10-01)
 
-All milestones done and reviewed (brief, plan, M1, M2, final: `APPROVED`).
+M1–M5 done and reviewed (brief, plan, M1, M2, final: `APPROVED`). M6 added
+on 2026-10-01 after the operator rejected a release procedure addressed to
+them; it is in progress.
 Delivery commits 60399bb and af4b657. Remote tags are exactly `v8.0.0`
 (657d506) and `v8.1.0` (de232a0) with their GitHub Releases, `v8.1.0`
 marked latest; the `v0.x` tags and releases are gone. Release bodies equal
 the former notes except for one trailing newline GitHub adds to a release
 created from `--notes-file`. The final dry-run of `v8.2.0` on `main` at
-`origin/main` gave the single expected FAIL. Cutting `v8.2.0` is the
-operator's call.
+`origin/main` gave the single expected FAIL. `v8.2.0` is cut by M6.
 ## Ownership and risk
 
 - All milestones in-session. M4 is the only external, non-reversible step: it

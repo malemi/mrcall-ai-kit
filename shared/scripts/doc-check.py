@@ -99,7 +99,7 @@ HARNESS_VERSION = 8
 BYTES_PER_TOKEN = 4
 KNOWN_PROFILE_KEYS = {
     "harness_version", "schema_version", "mode", "index_file", "harness_file",
-    "inventory_ignore", "build", "smoke", "index_max_lines", "doc_max_lines",
+    "inventory_ignore", "build", "smoke", "release", "index_max_lines", "doc_max_lines",
 }
 PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
 SESSION_STATUSES = {"open", "closed"}
@@ -181,7 +181,7 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
         and (root / values["index_file"]).resolve() == (root / values["harness_file"]).resolve()
     ):
         errors.append("docs/.doc-profile: `index_file` and `harness_file` must be distinct")
-    for key in ("build", "smoke"):
+    for key in ("build", "smoke", "release"):
         if key in values and not values[key]:
             errors.append(f"docs/.doc-profile: `{key}` must not be empty when present")
     for key in ("index_max_lines", "doc_max_lines"):
