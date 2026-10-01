@@ -106,6 +106,15 @@ approved at its gate on 2026-10-01 after one revision.
 - Mark this plan `completed`; `docs/active-context.md` is reconciled by
   `doc-end`.
 
+## State (2026-10-01)
+
+M1, M2 and M3 are reviewed and committed (60399bb, pushed). M4: tags
+`v8.0.0` and `v8.1.0` are pushed; the two GitHub Releases and the deletion of
+`v0.1.0`/`v0.2.0` await the operator, because the session's permission mode
+refuses `gh release create` and `gh release delete`. M5's dry-run on `main`
+at `origin/main` gave the expected single FAIL. The final end-to-end review
+follows M4.
+
 ## Ownership and risk
 
 - All milestones in-session. M4 is the only external, non-reversible step: it
