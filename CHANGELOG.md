@@ -4,9 +4,11 @@ Versions are `MAJOR.MINOR.PATCH` with the major equal to the harness protocol
 (`HARNESS_VERSION` in `shared/scripts/doc-check.py`); the rule and the release
 command are in [`docs/documentation-harness.md`](docs/documentation-harness.md),
 section "Releasing". Each released section below is the body of its GitHub
-Release.
+Release, after an optional first line naming the commit.
 
 ## Unreleased
+
+## v8.2.0 — 2026-10-01
 
 - `shared/scripts/release.sh`: the one way to cut a release. It runs every
   precondition (version shape and major, tag absence, changelog section,
