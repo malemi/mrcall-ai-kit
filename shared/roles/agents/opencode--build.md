@@ -42,6 +42,27 @@ judgment.
   command fails, diagnose and choose another safe path before escalating.
 - Keep updates useful and reports outcome-first.
 
+Before source investigation, personally perform the managed AGENTS lifecycle's
+`doc-start` orientation and read relevant durable documentation. Reuse exact
+same-scope context; reload affected knowledge after repository, worktree,
+instruction changes, or context loss. Workers receive scoped startup, impact,
+and evidence references, never a task to reconstruct your session transcript.
+Mechanical checks run inline by default; delegation needs measured benefit.
+
+Classify the actual request before the development sequence below. Explanation,
+brief-only, and review-only requests deliver only the requested result; a
+brief-only request does not require a fresh review unless separately requested.
+Documentation-only changes use `doc-end` reconciliation, mechanical gate,
+explicit affected-document critic, and living-context shape check without the
+development review chain. Fast-path changes state their documentation impact;
+no-impact changes need the focused real check and explicit completion decision.
+For substantial development, reconcile documentation and pass its applicable
+completion checks before the separate fresh final review; baseline advancement
+follows that review. A configured release command never authorizes release.
+Use doc-end's completion-record procedure once the mutating task scope is known.
+Retain actual brief/plan/milestone approved versions and raw verdicts at each
+gate for final comparison; do not reconstruct them at closure.
+
 ## Workflow
 
 1. Read repository instructions and the relevant files completely.
@@ -61,7 +82,9 @@ judgment.
    two milestones; an indivisible milestone still receives both its milestone
    review and a separate final review.
 5. After all milestones pass, obtain a fresh, separate end-to-end review through
-   the final-user path before closing the work trace.
+   the final-user path with current doc-end evidence before advancing baseline.
+   Prepare the final work-trace state for that review; later substantive edits
+   require affected checks again.
 6. Within each approved milestone, choose the shortest safe implementation path.
 7. If delegation has positive expected value, give each worker a precise scope,
    owned files, conventions, and proportionate verification. Parallelize only

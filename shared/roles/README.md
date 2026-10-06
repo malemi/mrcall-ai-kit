@@ -89,3 +89,11 @@ installer places physical TOML files under `~/.codex/agents/`: Codex 0.158.0
 rejected the symlink form in a real spawn probe. A global kit block in
 `~/.codex/AGENTS.md` tells a fresh lead when to use them. Codex roles inherit
 the session model; `/ai-budget` does not switch them.
+
+The v9 lead follows the managed root `AGENTS.md` block, personally loading
+routing and relevant documentation before source investigation. Bounded role
+handoffs carry relevant startup, documentation-impact, and result references;
+workers do not reconstruct the lead's transcript. Final reviewers require
+current mechanical, explicit critic, coverage, and living-context shape results
+for applicable closure. Missing or stale evidence yields `REVISE`. These role
+instructions do not supply a runtime final-answer interceptor.

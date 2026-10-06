@@ -28,8 +28,11 @@ argument, 1 for a refusal).
 from __future__ import annotations
 
 import datetime
+import hashlib
+import json
 import os
 import pathlib
+import stat
 import sys
 import tempfile
 
@@ -159,7 +162,13 @@ def log_line(mode: str, dest: pathlib.Path, src: str, backup: str) -> str:
     a switch replaces the kit's file, never the operator's, so what an
     `--on-exist backup` install moved aside stays the file to restore."""
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    return f"{stamp}\t{mode}\t{dest}\t{src}\t{backup}\n"
+    content_hash = ""
+    if mode == "copy":
+        records = [[".", stat.S_IFREG, stat.S_IMODE(dest.stat().st_mode),
+                    hashlib.sha256(dest.read_bytes()).hexdigest()]]
+        content_hash = hashlib.sha256(json.dumps(records, ensure_ascii=True,
+                                               separators=(",", ":")).encode()).hexdigest()
+    return f"{stamp}\t{mode}\t{dest}\t{src}\t{backup}\t{content_hash}\n"
 
 
 def plan(level: str, found: list[dict]) -> list[tuple[dict, str, bytes | None]]:

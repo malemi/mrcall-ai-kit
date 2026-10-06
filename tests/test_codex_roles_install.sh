@@ -88,3 +88,56 @@ HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes --restore-backups > /dev/null
 grep -q 'description = "mine"' "$test_home/.codex/agents/reviewer.toml"
 
 echo 'Codex role install, discovery, budget report, and uninstall: PASS'
+
+for marker in partial duplicate; do
+  test_home="$TEST_ROOT/$marker-block"
+  mkdir -p "$test_home/.codex"
+  if [[ "$marker" == partial ]]; then
+    printf 'Foreign prefix.\n<!-- mrcall-ai-kit:codex-agents:start -->\n' > "$test_home/.codex/AGENTS.md"
+  else
+    cat "$KIT_DIR/codex/AGENTS.block.md" "$KIT_DIR/codex/AGENTS.block.md" > "$test_home/.codex/AGENTS.md"
+  fi
+  cp "$test_home/.codex/AGENTS.md" "$TEST_ROOT/$marker-before"
+  if HOME="$test_home" "$KIT_DIR/install.sh" --environment codex --features doc-harness \
+    --mode copy --on-exist overwrite --yes > "$TEST_ROOT/$marker.out" 2>&1; then
+    echo "malformed $marker block silently accepted" >&2; exit 1
+  fi
+  cmp "$test_home/.codex/AGENTS.md" "$TEST_ROOT/$marker-before"
+  test ! -e "$test_home/.config/mrcall-ai-kit"
+done
+
+test_home="$TEST_ROOT/edited-global-block"
+mkdir -p "$test_home/.codex"
+printf 'Foreign prefix.\n' > "$test_home/.codex/AGENTS.md"
+HOME="$test_home" "$KIT_DIR/install.sh" --environment codex --features doc-harness \
+  --mode copy --on-exist skip --yes > /dev/null
+python3 - "$test_home/.codex/AGENTS.md" <<'CHECK'
+from pathlib import Path
+import sys
+p=Path(sys.argv[1])
+p.write_text(p.read_text().replace('The kit installs', 'Operator-customized block. The kit installs'))
+asset=p.parents[1]/'.config/mrcall-ai-kit/codex-AGENTS.block.md'
+asset.write_text(asset.read_text().replace('The kit installs', 'Operator-customized block. The kit installs'))
+CHECK
+cp "$test_home/.codex/AGENTS.md" "$TEST_ROOT/edited-global-before"
+HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes > /dev/null
+cmp "$test_home/.codex/AGENTS.md" "$TEST_ROOT/edited-global-before"
+echo 'partial/duplicate global markers and modified block preservation: PASS'
+
+python3 - "$KIT_DIR" "$TEST_ROOT" <<'CHECK'
+from pathlib import Path
+import importlib.util
+import sys
+root=Path(sys.argv[1])
+spec=importlib.util.spec_from_file_location('roster', root/'codex/scripts/agent-roster.py')
+module=importlib.util.module_from_spec(spec)
+spec.loader.exec_module(module)
+block=(root/'codex/AGENTS.block.md').read_text()
+for original in ('', '\n\nForeign text.\n\n\n', 'Foreign without final newline'):
+    installed=module.changed(original, block, 'on')
+    assert module.changed(installed, block, 'off') == original
+prefix='Foreign prefix.\n\n'
+suffix='\nForeign suffix.\n\n'
+assert module.changed(prefix+block+suffix, block, 'off') == prefix+suffix
+print('global block removal preserves exact surrounding bytes: PASS')
+CHECK

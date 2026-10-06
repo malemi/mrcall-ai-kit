@@ -24,6 +24,8 @@ Do not duplicate that inventory here.
   docs: the uncertainty-reduction rule and the log exemption.
 - [`documentation-harness.md`](documentation-harness.md) — contract, gates,
   plan states, baseline semantics, and living-document rules.
+- [`harness-runtime-support.md`](harness-runtime-support.md) — measured client modes,
+  instruction-loading conditions, startup cost, and remaining bypasses.
 - [`scope-guard.md`](scope-guard.md) — scope declaration format, runtime guard
   behavior, capability levels, and known bypasses.
 - [`reread-guard.md`](reread-guard.md) — per-runtime re-read behavior and

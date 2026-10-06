@@ -24,8 +24,21 @@ Reach for it when you are about to do real work in a repository you will come
 back to. The pay-off is not the writing; it is that six weeks later nobody has
 to reconstruct why something is the way it is.
 
-The mechanical half is `doc-check.py`, which the commands run for you. It checks
-structure — frontmatter, statuses, sizes — never prose.
+The v9 instruction entry is the managed block in root `AGENTS.md`; detailed
+procedures remain in the workflows. The lead loads routing and relevant docs
+before source investigation. Limited explanation, brief, and review requests
+stay limited. Fast-path edits state documentation impact; documentation-only
+edits run reconciliation, mechanical verification, the explicit critic, and a
+living-context shape check. Substantial development provides these results to
+final review before advancing the baseline. Release needs separate authority.
+
+The mechanical half is `doc-check.py`, including a compact `--startup --json`
+result. It checks structure and state, never semantic truth. `doc-migrate.py`
+provides inspect, dry-run, apply, and saved-transaction rollback. `doc-create`
+uses that helper for an explicit upgrade and preserves project prose. Migration
+requires actual scoped compatibility evidence; unsupported configurations stop
+before writes. Installed commands alone do not prove client compliance, and a
+client can still bypass the instruction-based lifecycle.
 
 <!-- capability: ai-help | proof: commands/ai-help.md | covers: ai-help ai-tutorial -->
 ## `/ai-help` — what you actually have

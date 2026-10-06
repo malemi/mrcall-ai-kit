@@ -67,6 +67,23 @@ for level in low high medium; do
 done
 echo "copy mode switches between installed renderings with the checkout gone: PASS"
 
+python3 - "$home/.config/mrcall-ai-kit/installed.tsv" <<'CHECK'
+from pathlib import Path
+import hashlib, json, stat, sys
+latest={}
+for line in Path(sys.argv[1]).read_text().splitlines():
+    fields=line.split('\t')
+    latest[fields[2]]=fields
+for name,fields in latest.items():
+    path=Path(name)
+    if path.parent.name == 'agents' and path.suffix == '.md':
+        records=[[".",stat.S_IFREG,stat.S_IMODE(path.stat().st_mode),hashlib.sha256(path.read_bytes()).hexdigest()]]
+        expected=hashlib.sha256(json.dumps(records,ensure_ascii=True,separators=(',',':')).encode()).hexdigest()
+        assert len(fields)==6 and fields[5]==expected, name
+print('budget switch retains exact copied-agent ownership digest: PASS')
+CHECK
+
+
 # ── symlink mode: a switch re-points each link into the checkout ──────────
 home="$TEST_ROOT/symlink-home" ; mkdir -p "$home"
 install_kit "$home" symlink "$KIT_DIR"

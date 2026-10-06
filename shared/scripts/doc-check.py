@@ -1,88 +1,14 @@
 #!/usr/bin/env python3
 """
-doc-check.py — the documentation integrity gate of the mrcall-ai-kit doc-harness.
-
-Single source of truth: project-owned `AGENTS.md` holds repository inventory,
-roles, ownership, and instructions; harness-managed `CLAUDE.md` holds only the
-versioned protocol and imports that project file. This checker fails (exit 1)
-when the docs drift from that rule, so
-rot cannot survive a `/doc-start`, a `/doc-end`, or (if a repo opts in) a
-pre-commit hook.
-
-Checks (which run depends on the repo's profile — see below):
-  1. DEAD LINKS   (always) — every relative markdown link in README.md,
-                  <index_file>, and docs/**/*.md must resolve on disk. Code is
-                  never scanned: fenced blocks and inline backtick spans are
-                  blanked first, because `Array.fill[Byte](packetSize)` matches
-                  the Markdown-link pattern exactly and is not a link.
-  2. LIVING CTX   (always) — docs/active-context.md carries only the canonical
-                  `## State now` / `## Unresolved` / `## Next` sections. Any other
-                  one is changelog drift; pruned narrative belongs in
-                  docs/active-context-archive.md, which is not checked.
-  3. INVENTORY    (meta mode only) — every independent sub-repo checked out under
-                  the repo root must appear in <index_file>'s `## Services` table,
-                  and every dir the table names must exist.
-  4. NO DUP INDEX (meta mode only) — README.md / docs/README.md must NOT re-list
-                  the repos in a table; the inventory lives ONLY in <index_file>.
-  5. DOC SIZE     (always, ADVISORY) — names every doc past `doc_max_lines`.
-                  Reported, never enforced: it never contributes to the exit code
-                  (which still reflects checks 1-4 alone). Only a path, a line
-                  count, and what reading it costs in bytes and estimated tokens
-                  cross, so a session learns a doc has exploded without opening
-                  it.
-  6. TRACE NAMES  (always, ADVISORY) — names every work-trace file (a Markdown
-                  file under docs/briefs/ or docs/execution-plans/) whose
-                  filename lacks the `YYYY-MM-DD-` date prefix. Reported, never
-                  enforced, for the same reason as check 5.
-  7. SESSION STATUS (always) — every docs/sessions/*.md must carry a
-                  frontmatter `status` of exactly `open` or `closed`; missing
-                  or invalid is a gate failure. docs/sessions/ is the
-                  short-lived, per-session sibling of active-context.md (the
-                  opt-in model router's shared memory) — never read by
-                  doc-start, the same way docs/projects/** is not.
-  8. OPEN SESSIONS (always, ADVISORY) — counts docs/sessions/*.md still
-                  `status: open`. Reported, never enforced: an open file is
-                  normal mid-session and only becomes stale once its owning
-                  session is long gone, which this check cannot determine —
-                  see the `/router sweep` command for that judgment call.
-  9. DOC SCOPE    (always) — the configured harness file, project index,
-                  docs/README.md, and docs/active-context.md each carry exactly
-                  one valid inline scope declaration. External index-scope
-                  declarations are obsolete. Scope blocks are optional elsewhere,
-                  but any block present must use the canonical format.
- 10. HARNESS TEMPLATE (always) — the configured harness file matches the
-                  installed canonical template byte-for-byte. Project-specific
-                  guidance belongs in the configured index instead.
- 11. ORIENTATION  (meta mode only, ADVISORY) — names every sub-repo index in the
-                  `## Services` table whose head is not closed by the
-                  `<!-- orientation ends -->` marker. The head carries stack,
-                  entry points, build and test command, and the rules that must
-                  not be broken, so a session can learn where work belongs by
-                  reading a dozen lines instead of a whole index. Enforcement
-                  lives here rather than in each sub-repo's profile because
-                  sub-repos are not required to have one, and a per-repository
-                  rule reaches none of the ones that don't.
-
-Profile: an optional `docs/.doc-profile` file (simple `key = value` lines):
-    harness_version   = 6                    (must match installed harness)
-    schema_version    = 1                    (optional for legacy profiles)
-    mode              = meta | leaf          (default: leaf — links only)
-    index_file        = AGENTS.md            (project-owned single-source index)
-    harness_file      = CLAUDE.md            (managed harness entry point)
-    inventory_ignore  = dir1, dir2           (sub-repo dirs to skip in INVENTORY)
-    build             = command              (optional metadata; never executed)
-    smoke             = command              (optional metadata; never executed)
-    index_max_lines   = 200                  (0 disables the thin-index check)
-    doc_max_lines     = 400                  (0 disables the advisory size report)
-A leaf repo (no sub-repos) only needs the DEAD LINKS check, so it needs no
-profile at all. A meta-repo (one that checks out other repos) sets `mode = meta`.
-
-Usage:  python3 doc-check.py [--repo PATH]     (exit 0 = clean)
-Stdlib only, no network.
+Documentation integrity gate for harness v9: project routing and the canonical
+managed delivery block share AGENTS.md. Existing link, scope, inventory, size,
+status, baseline, and living-context checks remain mechanical checks only.
+--startup adds compact Git and lifecycle facts; --json emits all diagnostics.
 """
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -92,7 +18,7 @@ from pathlib import Path
 MD_LINK = re.compile(r"\[[^\]]*\]\(([^)]+)\)")
 # An inline code span: a run of backticks, its content, the same run again.
 INLINE_CODE = re.compile(r"(`+)[^`]*?\1")
-HARNESS_VERSION = 8
+HARNESS_VERSION = 9
 # Bytes per token: a stated convention for English prose, NOT a tokenizer result.
 # It carries none of the argument — every size comparison is a ratio between two
 # numbers produced by this divisor, so a wrong divisor cancels out.
@@ -137,7 +63,6 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
     profile_exists = prof.exists()
     values: dict[str, str] = {
         "mode": "leaf", "index_file": "AGENTS.md", "inventory_ignore": "",
-        "harness_file": "CLAUDE.md",
         "index_max_lines": "200", "doc_max_lines": "400",
     }
     errors: list[str] = []
@@ -163,7 +88,7 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
         errors.append("docs/.doc-profile: `mode` must be `leaf` or `meta`")
     if "schema_version" in values and values["schema_version"] != "1":
         errors.append("docs/.doc-profile: `schema_version` must be `1`")
-    for key, label in (("index_file", "index"), ("harness_file", "harness")):
+    for key, label in (("index_file", "index"),):
         path = root / values[key]
         if profile_exists and (not values[key] or not path.is_file()):
             errors.append(f"docs/.doc-profile: {label} file `{values[key]}` does not exist")
@@ -174,13 +99,6 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
                 path.resolve().relative_to(root.resolve())
             except ValueError:
                 errors.append(f"docs/.doc-profile: `{key}` must stay inside the repo")
-    if (
-        profile_exists
-        and values["index_file"]
-        and values["harness_file"]
-        and (root / values["index_file"]).resolve() == (root / values["harness_file"]).resolve()
-    ):
-        errors.append("docs/.doc-profile: `index_file` and `harness_file` must be distinct")
     for key in ("build", "smoke", "release"):
         if key in values and not values[key]:
             errors.append(f"docs/.doc-profile: `{key}` must not be empty when present")
@@ -195,7 +113,8 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
         if raw_version is None:
             errors.append(
                 "docs/.doc-profile: missing `harness_version`; repository docs use a "
-                "legacy harness — explicitly migrate docs/ with the installed doc-create workflow"
+                "legacy harness that doc-create cannot migrate (it migrates only v6-v8 profiles); "
+                "this layout is unsupported until it is converted outside the kit"
             )
         else:
             try:
@@ -205,7 +124,13 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
             except ValueError:
                 errors.append("docs/.doc-profile: `harness_version` must be a positive integer")
             else:
-                if profile_version < HARNESS_VERSION:
+                if profile_version < 6:
+                    errors.append(
+                        f"docs harness version {profile_version} is older than installed version "
+                        f"{HARNESS_VERSION}; doc-create migrates only v6-v8 profiles, so this "
+                        "layout is unsupported until it is converted outside the kit"
+                    )
+                elif profile_version < HARNESS_VERSION:
                     errors.append(
                         f"docs harness version {profile_version} is older than installed version "
                         f"{HARNESS_VERSION}; explicitly migrate docs/ with doc-create"
@@ -215,24 +140,18 @@ def read_profile(root: Path) -> tuple[dict[str, str], list[str], bool]:
                         f"docs harness version {profile_version} is newer than installed version "
                         f"{HARNESS_VERSION}; upgrade the installed mrcall-ai-kit commands"
                     )
-                elif "harness_file" not in seen:
-                    errors.append(
-                        "docs/.doc-profile: missing required `harness_file` for harness v8"
-                    )
                 else:
                     if values["index_file"] != "AGENTS.md":
-                        errors.append(
-                            "docs/.doc-profile: harness v8 requires `index_file = AGENTS.md`"
-                        )
-                    if values["harness_file"] != "CLAUDE.md":
-                        errors.append(
-                            "docs/.doc-profile: harness v8 requires `harness_file = CLAUDE.md`"
-                        )
+                        errors.append("docs/.doc-profile: harness v9 requires `index_file = AGENTS.md`")
+                    if "harness_file" in seen:
+                        errors.append("docs/.doc-profile: harness v9 removes `harness_file`; migrate explicitly")
+    if not profile_exists:
+        errors.append("docs/.doc-profile: missing profile; run doc-create")
     return values, errors, profile_exists
 
 
 def index_docs(root: Path, index_file: str, harness_file: str) -> list[Path]:
-    docs = [root / "README.md", root / index_file, root / harness_file]
+    docs = [root / "README.md", root / index_file]
     docs_dir = root / "docs"
     if docs_dir.exists():
         docs += sorted(docs_dir.rglob("*.md"))
@@ -332,7 +251,6 @@ def check_doc_scopes(root: Path, index_file: str, harness_file: str) -> list[str
     Harness v8 has no external index-scope form.
     """
     required = {
-        Path(harness_file).as_posix(),
         Path(index_file).as_posix(),
         "docs/README.md",
         "docs/active-context.md",
@@ -398,39 +316,61 @@ def check_doc_scopes(root: Path, index_file: str, harness_file: str) -> list[str
 
 def find_harness_template() -> Path | None:
     configured = os.environ.get("MRCALL_DOC_HARNESS_TEMPLATE")
+    kit_home = os.environ.get("MRCALL_KIT_HOME")
     candidates = [
         Path(configured) if configured else None,
-        Path(__file__).resolve().parents[1] / "templates" / "CLAUDE.md",
-        Path(__file__).resolve().with_name("CLAUDE.template.md"),
+        Path(kit_home) / "AGENTS.block.md" if kit_home else None,
+        Path(__file__).resolve().parents[1] / "templates" / "AGENTS.block.md",
+        Path(__file__).resolve().with_name("AGENTS.block.md"),
     ]
     return next((path for path in candidates if path is not None and path.is_file()), None)
 
 
+def managed_block_span(data: bytes, name: bytes = b"delivery") -> tuple[int, int] | None:
+    prefix = b"<!-- mrcall-ai-kit:" + name + b":"
+    start, end = prefix + b"start -->", prefix + b"end -->"
+    marker = prefix[:-1]
+    if marker not in data:
+        return None
+    markers = []
+    offset = 0
+    fenced = False
+    for line in data.splitlines(keepends=True):
+        stripped = line.rstrip(b"\r\n")
+        if stripped.lstrip().startswith((b"```", b"~~~")):
+            fenced = not fenced
+        if marker in line:
+            if fenced or stripped not in (start, end):
+                raise ValueError("malformed or fenced managed block delimiter")
+            markers.append((stripped, offset, offset + len(stripped)))
+        offset += len(line)
+    if len(markers) != 2 or markers[0][0] != start or markers[1][0] != end:
+        raise ValueError("expected exactly one ordered managed delivery block")
+    return markers[0][1], markers[1][2]
+
+
 def check_harness_template(root: Path, harness_file: str) -> list[str]:
-    """Require the repository harness entry point to match its installed template."""
-    obsolete = root / ".claude" / "rules" / "doc-harness.md"
     errors = []
-    if obsolete.exists() or obsolete.is_symlink():
-        errors.append(
-            ".claude/rules/doc-harness.md: obsolete harness v5 sidecar remains; "
-            "remove it during the v6 migration"
-        )
+    for rel in ("CLAUDE.md", "CLAUDE.local.md", ".claude/rules/doc-harness.md"):
+        if (root / rel).exists() or (root / rel).is_symlink():
+            errors.append(f"{rel}: legacy or foreign instruction file remains; single-entry compatibility unresolved")
     template = find_harness_template()
     if template is None:
-        return errors + ["canonical CLAUDE.md harness template is not installed"]
-    target = root / harness_file
+        return errors + ["canonical AGENTS.md managed block is not installed"]
+    target = root / "AGENTS.md"
     if not target.is_file():
-        return errors
+        return errors + ["AGENTS.md: managed instruction entry is missing"]
+    expected = template.read_bytes()
+    actual = target.read_bytes()
     try:
-        expected = template.read_bytes()
-        actual = target.read_bytes()
-    except OSError as exc:
-        return errors + [f"{harness_file}: cannot compare managed harness template: {exc}"]
-    if actual != expected:
-        errors.append(
-            f"{harness_file}: managed harness file differs from the installed template; "
-            "put repository guidance in `AGENTS.md` and run doc-create migration"
-        )
+        span = managed_block_span(actual)
+    except ValueError as exc:
+        return errors + [f"AGENTS.md: {exc}"]
+    if span is None:
+        return errors + ["AGENTS.md: expected exactly one managed delivery block"]
+    first, last = span
+    if actual[first:last] != expected.rstrip(b"\n"):
+        errors.append("AGENTS.md: managed delivery block differs from canonical template")
     return errors
 
 
@@ -570,6 +510,19 @@ def frontmatter(text: str) -> tuple[dict[str, str], set[str]] | None:
     return None
 
 
+def read_frontmatter(path: Path) -> tuple[dict[str, str], set[str]] | None:
+    with path.open(encoding="utf-8") as handle:
+        first = handle.readline()
+        if first.strip() != "---":
+            return None
+        lines = [first]
+        for line in handle:
+            lines.append(line)
+            if line.strip() == "---":
+                return frontmatter("".join(lines))
+    return None
+
+
 def check_plan_statuses(root: Path) -> list[str]:
     plans = root / "docs" / "execution-plans"
     if not plans.exists():
@@ -577,7 +530,7 @@ def check_plan_statuses(root: Path) -> list[str]:
     errors: list[str] = []
     for plan in sorted(plans.rglob("*.md")):
         rel = plan.relative_to(root)
-        parsed = frontmatter(plan.read_text(encoding="utf-8"))
+        parsed = read_frontmatter(plan)
         if parsed is None:
             errors.append(f"{rel}: missing YAML frontmatter with `status`")
             continue
@@ -606,7 +559,7 @@ def check_session_statuses(root: Path) -> list[str]:
     errors: list[str] = []
     for session in sorted(sessions.glob("*.md")):
         rel = session.relative_to(root)
-        parsed = frontmatter(session.read_text(encoding="utf-8"))
+        parsed = read_frontmatter(session)
         if parsed is None:
             errors.append(f"{rel}: missing YAML frontmatter with `status`")
             continue
@@ -636,7 +589,7 @@ def check_open_sessions(root: Path) -> list[str]:
         return []
     open_files: list[str] = []
     for session in sorted(sessions.glob("*.md")):
-        parsed = frontmatter(session.read_text(encoding="utf-8"))
+        parsed = read_frontmatter(session)
         metadata = parsed[0] if parsed else {}
         if metadata.get("status", "").lower() == "open":
             open_files.append(session.relative_to(root).as_posix())
@@ -662,11 +615,13 @@ def check_unstated_issues(root: Path) -> list[str]:
     for issue in sorted(issues.glob("*.md")):
         if issue.name.lower() == "readme.md":
             continue
-        parsed = frontmatter(issue.read_text(encoding="utf-8"))
+        parsed = read_frontmatter(issue)
         metadata = parsed[0] if parsed else {}
         status = str(metadata.get("status", "")).lower()
         if not status:
             warnings.append(f"{issue.relative_to(root).as_posix()}: no `status:` frontmatter")
+        elif parsed and "status" in parsed[1]:
+            warnings.append(f"{issue.relative_to(root).as_posix()}: duplicate `status:` frontmatter")
         elif status not in VALID_ISSUE_STATUSES:
             warnings.append(
                 f"{issue.relative_to(root).as_posix()}: status `{status}` is not "
@@ -683,9 +638,11 @@ def check_baseline(root: Path) -> list[str]:
     context = root / "docs" / "active-context.md"
     if not context.is_file():
         return []
-    parsed = frontmatter(context.read_text(encoding="utf-8"))
+    parsed = read_frontmatter(context)
     metadata = parsed[0] if parsed else {}
     baseline = metadata.get("doc_baseline_commit", "")
+    if parsed and "doc_baseline_commit" in parsed[1]:
+        return ["docs/active-context.md: duplicate frontmatter `doc_baseline_commit`"]
     if not baseline:
         return ["docs/active-context.md: missing frontmatter `doc_baseline_commit`"]
     if run_git(root, "rev-parse", "--is-inside-work-tree").returncode:
@@ -835,15 +792,82 @@ def check_no_dup_index(root: Path, index_file: str) -> list[str]:
     return errors
 
 
+def startup_facts(root: Path, prof: dict[str, str]) -> dict:
+    context = root / "docs/active-context.md"
+    parsed = read_frontmatter(context) if context.is_file() else None
+    baseline = (parsed[0] if parsed else {}).get("doc_baseline_commit", "")
+    valid = bool(baseline) and not check_baseline(root)
+    drift = None
+    git_errors = []
+    if valid:
+        result = run_git(root, "rev-list", "--count", "--full-history", f"{baseline}..HEAD", "--", ".", ":(exclude)docs/**", f":(exclude){prof['index_file']}")
+        if result.returncode:
+            git_errors.append(result.stderr.strip())
+        else:
+            drift = int(result.stdout.strip())
+    state = run_git(root, "status", "--porcelain=v1", "-z", "--untracked-files=all")
+    changes = []
+    records = iter(state.stdout.split("\0"))
+    for entry in records:
+        if not entry:
+            continue
+        item = {"status": entry[:2], "path": entry[3:]}
+        if "R" in entry[:2] or "C" in entry[:2]:
+            item["from"] = next(records, "")
+        changes.append(item)
+    for result in (state,):
+        if result.returncode:
+            git_errors.append(result.stderr.strip())
+    plans = []
+    for path in sorted((root / "docs/execution-plans").rglob("*.md")):
+        parsed = read_frontmatter(path)
+        status = (parsed[0] if parsed else {}).get("status", "unknown").lower()
+        if not parsed or "status" in parsed[1] or status not in PLAN_STATUSES:
+            status = "unknown"
+        if status not in {"completed", "superseded"}:
+            plans.append({"path": path.relative_to(root).as_posix(), "status": status})
+    issues = []
+    for path in sorted((root / "docs/known-issues").glob("*.md")):
+        if path.name.lower() == "readme.md":
+            continue
+        parsed = read_frontmatter(path)
+        status = (parsed[0] if parsed else {}).get("status", "unknown").lower()
+        if not parsed or "status" in parsed[1]:
+            status = "unknown"
+        if status != "fixed":
+            issues.append({"path": path.relative_to(root).as_posix(), "status": status if status in VALID_ISSUE_STATUSES else "unknown"})
+    return {
+        "baseline": {"commit": baseline or None, "valid": valid, "content_drift_commits": drift},
+        "working_tree": {"dirty": bool(changes), "staged": sum(c["status"][0] not in " ?" for c in changes), "unstaged": sum(c["status"][1] not in " ?" for c in changes), "untracked": sum(c["status"] == "??" for c in changes)},
+        "open_plans": plans, "open_issues": issues,
+        "git_errors": git_errors,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Documentation integrity gate (mrcall-ai-kit).")
     ap.add_argument("--repo", help="repo root (default: git toplevel, else cwd)")
+    ap.add_argument("--startup", action="store_true", help="include compact startup facts")
+    ap.add_argument("--json", action="store_true", help="emit structured diagnostics")
+    ap.add_argument("--completion", choices=("init", "attest", "snapshot", "mechanical", "focused", "result", "check", "recover", "finalize"), help="explicit mutating-task evidence action; never required by startup alone")
+    ap.add_argument("--task", help="worktree-local completion task ID")
+    ap.add_argument("--input", help="JSON input or actual review envelope for completion action")
+    ap.add_argument("--context-id", help="caller attestation identifying currently available lead context")
+    ap.add_argument("--phase", choices=("pre-review",), help="check all obligations except final-review")
     args = ap.parse_args()
+    if args.completion:
+        if args.startup:
+            ap.error("--startup and --completion are separate operations")
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("doc_evidence", Path(__file__).resolve().with_name("doc-evidence.py"))
+        evidence = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(evidence)
+        return evidence.main(args, sys.modules[__name__])
 
     root = repo_root(args.repo)
     prof, profile_errors, _ = read_profile(root)
     index_file = prof["index_file"]
-    harness_file = prof["harness_file"]
+    harness_file = prof["index_file"]
     meta = prof["mode"].lower() == "meta"
     ignore = {s.strip() for s in prof["inventory_ignore"].split(",") if s.strip()}
 
@@ -877,7 +901,29 @@ def main() -> int:
     unstated_issues = check_unstated_issues(root)
     unoriented = check_orientation_heads(root, index_file) if meta else []
 
+    facts = startup_facts(root, prof) if args.startup else {}
+    if facts.get("git_errors"):
+        groups.append(("STARTUP GIT", facts["git_errors"]))
     failed = [(name, errs) for name, errs in groups if errs]
+    if args.json or args.startup:
+        result = {
+            "harness_version": HARNESS_VERSION,
+            "profile_version": prof.get("harness_version"),
+            "mode": prof["mode"],
+            "indexed_docs": len(index_docs(root, index_file, harness_file)),
+            "mechanical_gate": "failed" if failed else "clean",
+            "violations": {name: errors for name, errors in failed},
+            "advisories": {name: warnings for name, warnings in (("oversized", oversized), ("undated_traces", undated), ("open_sessions", open_sessions), ("unstated_issues", unstated_issues), ("unoriented_indexes", unoriented)) if warnings},
+            **facts,
+        }
+        if args.json:
+            print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
+        else:
+            print(f"doc-check: MECHANICAL GATE {result['mechanical_gate'].upper()} — harness v{HARNESS_VERSION}; {result['indexed_docs']} docs indexed")
+            for key, value in result.items():
+                if key not in {"harness_version", "indexed_docs", "mechanical_gate"}:
+                    print(f"{key}: {json.dumps(value, ensure_ascii=False)}")
+        return 1 if failed else 0
     if not failed:
         print(
             f"doc-check: MECHANICAL GATE CLEAN — {root.name} "

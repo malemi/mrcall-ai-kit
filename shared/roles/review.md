@@ -29,6 +29,29 @@ read the source and judge.
   and judge the integrated result against the approved brief and plan.
 - For **final** review, check the full integrated diff, recorded milestone
   verdicts, final-user evidence, documentation truth, and work-trace state.
+  Require current scope-bound documentation impact, lead reconciliation, actual
+  mechanical result, explicit doc-critic result over affected changed and
+  unchanged documentation plus missing coverage, always-required living-context
+  shape check during consolidation, and an explicit work-trace decision. Return
+  `REVISE` for missing or stale required evidence; a generic code review or clean
+  mechanical gate cannot substitute for the critic. Preserve UNVERIFIABLE
+  findings. Final approval precedes baseline advancement and any separately
+  authorized release. Review-only tasks do not authorize these mutations.
+  For a completion task, run the checker's read-only `--completion check`
+  with the supplied `--repo`, `--task`, `--context-id`, `--phase pre-review`,
+  and `--json`; use the current installed checker. Require its actual passing
+  result and independently inspect the referenced evidence. Return the real
+  verdict with the supplied current snapshot, `evidence_digest`, and reviewed
+  scope. A changed supporting result invalidates final approval even if source
+  content is unchanged. The parent
+  retains your raw report and records its reference; never manufacture a
+  producer claim or treat an attestation as authenticated judgment.
+  Compare current declared brief, plan, and milestone sources against their
+  retained immutable approved versions. Report each gate key/source, approved
+  and current SHA-256, whether approved scope remains preserved, whether changes
+  are substantive, and the comparison reason. Progress notes alone need no new
+  approval; substantive scope changes require a fresh applicable review and
+  approved version. Never hide changed prose through normalization.
 
 Return exactly one verdict. `APPROVED` means no blocking finding remains.
 `REVISE` lists only concrete blocking findings and the evidence needed to close

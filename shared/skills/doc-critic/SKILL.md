@@ -1,9 +1,12 @@
 ---
 name: doc-critic
-description: Verify documentation against code reality, and check whether docs/active-context.md has drifted into a changelog. Given the docs changed this session, flag any claim that describes a feature/endpoint/file/flag that does not exist or is not wired (dead code documented as live), plus non-English artifacts. Also independently checks that active-context.md still matches the living-snapshot contract (reporting the violation when delegated, repairing it when run in-session) and that substantial work since the baseline left its brief+plan work trace. Used by /doc-end before advancing the baseline.
+description: Verify documentation against code reality, and check whether docs/active-context.md has drifted into a changelog. Given affected documentation, including unchanged contracts, flag any claim that describes a feature/endpoint/file/flag that does not exist or is not wired (dead code documented as live), plus non-English artifacts. Also independently checks that active-context.md still matches the living-snapshot contract (reporting the violation when delegated, repairing it when run in-session) and that substantial work since the baseline left its brief+plan work trace. Used by /doc-end before advancing the baseline.
 ---
 
 # doc-critic — does the documentation match the code, and is active-context.md still a snapshot?
+
+This `SKILL.md` is the complete workflow. There is no sibling `WORKFLOW.md`;
+load this file once, preferring the repository-local skill when present.
 
 The mechanical gate (`doc-check.py`) catches dead links, inventory drift,
 duplicate indexes, and malformed scope declarations. It CANNOT catch *semantic*
@@ -20,7 +23,22 @@ two months of sessions that each individually said "consolidate" in their commit
 message. The shape check below is the backstop for exactly that failure.
 
 ## When to run
-Invoked by `/doc-end`, scoped to the **docs touched this session** (`git diff <doc_baseline_commit>..HEAD -- '*.md'`). Can also run standalone as a full-repo audit, or in-session from `doc-create`'s migration. Run the living-context shape check (next section) before the per-claim audit in every case: where you are allowed to repair, the claim pass then only has to verify the small current remainder rather than the history on its way out; where you are not, you still want the violation reported before anything else, because it changes what the claim pass is auditing.
+Invoked by `/doc-end`, scoped to the lead's **affected-document list**: Markdown changed across baseline..HEAD, staged, unstaged, and untracked work, plus unchanged documents affected by changed behavior. Check missing coverage for new capabilities as well as false existing claims. Stay within the task and its documented dependencies; changed Markdown alone is insufficient. Can also run standalone as a full-repo audit, or in-session from `doc-create`'s migration. Run the living-context shape check (next section) before the per-claim audit in every case: where you are allowed to repair, the claim pass then only has to verify the small current remainder rather than the history on its way out; where you are not, you still want the violation reported before anything else, because it changes what the claim pass is auditing.
+
+## Documentation read boundary
+
+Use the supplied affected-document list as the documentation read scope. Do not
+turn a coverage check into a crawl of all indexed Markdown. Read an additional
+document only after identifying its concrete dependency on the changed behavior;
+state that dependency in the result. An index entry or presence in Git alone
+is not evidence of relevance.
+
+Do not open unrelated `docs/projects/**`, `docs/sessions/**`, archived history,
+or other briefs and plans to search for possible claims. The mechanical checker
+owns recursive link and metadata checks. For an affected archive, verify the
+owned insertion and exact preservation of prior bytes; old narrative is not a
+new current-state claim. Missing coverage means a relevant capability lacks a
+contract or routing entry, not that every historical document must be read.
 
 ## Living-context shape (`docs/active-context.md`) — always check; repair only in-session
 
@@ -64,24 +82,21 @@ pair into existence: the session may resolve it by stating, in its output's
 
 ## Scope declarations — validate meaning, not only syntax
 
-For every changed document carrying a canonical `doc-scope` block, compare its
+For every affected document carrying a canonical `doc-scope` block, compare its
 `Scope:` statement with the document's actual role, routing position, and
 content. A declaration is STALE when it names a purpose the file no longer
 serves, omits a material subject the file now owns, claims authority held by a
 different document, or is so broad that it supplies no useful boundary. The
-managed `CLAUDE.md`, project-owned `AGENTS.md`, `docs/README.md`, and
+managed block and project-owned routing in `AGENTS.md`, `docs/README.md`, and
 `docs/active-context.md` always receive this semantic check when their
-declarations change. The project index owns its inline scope. Also verify that
-`CLAUDE.md` contains only the canonical harness template and that project
-guidance has not leaked into it; template equality itself remains the
-mechanical gate's job.
+declarations change. The project index owns its inline scope. Also verify that project guidance remains outside the managed AGENTS block; exact block equality remains the mechanical gate's job.
 
 When delegated, report a misleading or over-broad declaration and do not invent
 a replacement. When running in-session, repair it only from transcript-backed
 knowledge plus the document's verified routing role; if that evidence does not
 determine an accurate boundary, mark it UNVERIFIABLE instead of guessing.
 
-## What to verify — for each factual claim in the changed docs
+## What to verify — for each factual claim in the affected docs
 Extract the concrete, checkable claims (not prose/opinion) and verify each against the actual code:
 
 1. **Existence** — a named file / module / function / class / endpoint / env var / CLI flag / config key the doc mentions: does it exist? `grep`/`ls`/read to confirm. A doc naming `services/foo.py` or `POST /api/x` that isn't there is a defect.
@@ -92,7 +107,7 @@ Extract the concrete, checkable claims (not prose/opinion) and verify each again
 6. **Scope** — does each changed declaration accurately and narrowly describe
    what the document owns, and what it does not? A valid marker around stale,
    misleading, or over-broad prose is semantic drift, not a clean result.
-7. **State, not story** — flag sentences in any changed doc that narrate
+7. **State, not story** — flag sentences in any affected doc that narrate
    process or defend choices instead of describing the present system: "since
    X was impossible, we did Y", "this was removed, so now there is Z", "as
    requested", a tool-by-tool account of how a result was reached. Apply the
@@ -107,6 +122,22 @@ Extract the concrete, checkable claims (not prose/opinion) and verify each again
 - Return the STALE + UNVERIFIABLE findings to `/doc-end`, which repairs the doc and re-runs this skill until zero STALE remain.
 - **Never fabricate.** If you cannot verify a claim against code, mark it UNVERIFIABLE — do not invent a confirmation. Correctness over coverage.
 - Prefer reading the real source over trusting a prior doc; the code wins over the doc every time.
+
+## Completion evidence handoff
+
+When invoked for a completion task, receive the exact task/repository/worktree,
+checker snapshot, and affected-document list. Audit that content, including
+unchanged affected docs, missing coverage, and active-context shape. Return the
+actual findings, reviewed document list, shape result, and explicit nonblocking
+UNVERIFIABLE claims/reasons. The lead retains this raw result and records its
+reference through the checker; a delegated read-only critic does not write the
+record or repair the lead's session account. If content changes during review,
+report it and require a fresh snapshot/review. Do not issue an APPROVED outcome
+for STALE, failed shape, or unmet required acceptance. Qualified nonblocking
+limits stay visible and are never described as semantic-clean. For a completion
+handoff, explicitly state the actual outcome: `APPROVED` only with zero STALE,
+passing shape, and no unmet required acceptance; `STALE` or `REVISE` for a
+blocking finding; `UNVERIFIABLE` when the result cannot establish approval.
 
 ## Output
 Lead with the shape check, always — one of `active-context.md: shape OK`, `active-context.md: archived — N → M lines (archive: +K lines)` (repaired in-session), or `active-context.md: shape violation — NOT repaired here, Phase 3 must redo it` plus the list of what is mis-shaped (delegated). The third form is a blocking finding, not an observation: whoever called you must not advance the baseline until it is resolved. If the diff shows substantial work with no trace pair touched, add the `TRACE:` line next — resolved by the session's explicit decision, never by inventing files. Then the claim list: `STALE: <claim> — code says <file:line: reality>` / `UNVERIFIABLE: <claim> — <why>` / `STORY: <sentence> — narrates process, belongs in <commit|brief|archive>`. If everything checks out: `Critic clean — N claims verified.`

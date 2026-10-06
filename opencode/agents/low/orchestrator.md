@@ -50,6 +50,27 @@ routine technical decisions or raw problems back to the CTO.
 - Send progress updates only when they help the CTO steer or explain a material
   wait. Lead with outcomes in the final report.
 
+Before source investigation, personally perform the managed AGENTS lifecycle's
+`doc-start` orientation and read relevant durable documentation. Reuse exact
+same-scope context; reload affected knowledge after repository, worktree,
+instruction changes, or context loss. Workers receive scoped startup, impact,
+and evidence references, never a task to reconstruct your session transcript.
+Mechanical checks run inline by default; delegation needs measured benefit.
+
+Classify the actual request before the development sequence below. Explanation,
+brief-only, and review-only requests deliver only the requested result; a
+brief-only request does not require a fresh review unless separately requested.
+Documentation-only changes use `doc-end` reconciliation, mechanical gate,
+explicit affected-document critic, and living-context shape check without the
+development review chain. Fast-path changes state their documentation impact;
+no-impact changes need the focused real check and explicit completion decision.
+For substantial development, reconcile documentation and pass its applicable
+completion checks before the separate fresh final review; baseline advancement
+follows that review. A configured release command never authorizes release.
+Use doc-end's completion-record procedure once the mutating task scope is known.
+Retain actual brief/plan/milestone approved versions and raw verdicts at each
+gate for final comparison; do not reconstruct them at closure.
+
 ## Execution
 
 1. Read the governing repository instructions and only the context needed to
@@ -72,8 +93,9 @@ routine technical decisions or raw problems back to the CTO.
    has at least two milestones; an indivisible one-milestone change still has a
    milestone review and a separate final review.
 6. After all milestone reviews are `APPROVED`, use a fresh reviewer for a
-   separate final end-to-end review through the final-user path. Reconcile the
-   work trace only after that verdict is `APPROVED`.
+   separate final end-to-end review through the final-user path. Provide current
+   doc-end evidence and the reconciled work trace to that review.
+   Advance baseline only after approval; later substantive edits reopen checks.
 7. Choose the shortest safe implementation path within each approved milestone.
    Implement directly unless delegation has positive expected value.
 8. When delegating, give a bounded task, owned files, conventions, and the

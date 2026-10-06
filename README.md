@@ -14,8 +14,8 @@ Powerful. Easy to install, easier to use.
 - Setup a simple LLM router which decides which model should be used for each query
 - One knob for Claude Code and OpenCode agent costs — `/ai-budget low|medium|high` — shows each role's model chosen from price and benchmark data; Codex roles inherit the session model
 - Different agents can work together on a shared memory
-- You never start from stale documentation
-- You never end a session with documentation half-updated
+- Repository instructions make documentation the starting point for investigation
+- Documentation closure checks affected claims, living context, and current evidence
 - Each routing document can declare its exact purpose and boundary in a
   mechanically checked scope block
 - Agent roles are defined in `shared/roles/` — name your agent for its job, not its model
@@ -37,11 +37,23 @@ Then:
 
 1. Restart your Claude Code / Codex / OpenCode sessions so they pick up the
    new commands.
-2. In each repo you want covered, run `doc-create` once (`/doc-create` as a
-   slash command; `$doc-create` in Codex) to bootstrap its `docs/`.
+2. In each repo you want covered, run `doc-create` (`/doc-create` as a
+   slash command; `$doc-create` in Codex) to bootstrap or explicitly migrate
+   its documentation. Version 9 uses one managed block in `AGENTS.md`.
+   Migration checks client compatibility and saves a rollback transaction;
+   customized `CLAUDE.md` files and ownership conflicts stop it before edits.
 
-From there the routine is two commands: `doc-start` when you sit down,
-`doc-end` when you stop.
+Repository instructions invoke `doc-start` before source investigation and
+the appropriate `doc-end` checks before delivering changes. You can still call
+them explicitly. Read-only and brief-only requests keep their limited scope;
+they do not automatically authorize implementation or consolidation.
+
+These instructions and the completion checker improve observable compliance;
+they do not make every client intercept a skipped workflow. Support depends on
+the runtime and configuration. See the
+[harness contract](docs/documentation-harness.md) for ownership, compatibility,
+and evidence limits. Installation does not migrate other repositories or change
+their client settings.
 
 ## Commands
 
@@ -88,9 +100,8 @@ so an operator who installed for Codex as well as OpenCode gets the model-invoca
 form there too.
 
 Both descriptions therefore instruct the model to run them only on an explicit
-by-name request. That instruction is the guarantee, and an instruction is weaker
-than a mechanism: nothing prevents a model from suspending its own tools and
-checks except its willingness to follow that line.
+by-name request. This is an instruction boundary: no runtime check prevents a model from
+misusing these overrides to suspend its own tools and checks.
 
 There's also a **memory** — a short, current account of a project, and of
 each session, that keeps itself up to date — and **agents**: AI helpers,

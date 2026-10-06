@@ -1,7 +1,7 @@
 # Scope Guard
 
 This document defines the inline scope declaration introduced by documentation
-harness v4, its v6-and-later ownership model, and the contract for optional runtime
+harness v4, its current v9 ownership model, and the contract for optional runtime
 enforcement. Implementation is in progress. No runtime adapter is considered
 working until it passes the installed-client acceptance flow described in the
 execution plan.
@@ -18,11 +18,11 @@ the text may continue on following lines.
 ```
 
 The delimiters must occupy their own lines exactly. The content is non-empty
-text beginning `Scope:` and may continue on following lines. Harness v6 and later require
+text beginning `Scope:` and may continue on following lines. Harness v9 requires
 one block in each mechanically required routing document:
 
-- the configured `harness_file`, the exact managed root `CLAUDE.md`;
-- the configured project-owned `index_file`, root `AGENTS.md`;
+- the configured `index_file`, root `AGENTS.md`, containing its managed protocol
+  block and project-owned content;
 - `docs/README.md`;
 - `docs/active-context.md`.
 
@@ -119,6 +119,13 @@ and nonce, Claude emitted the required reason in visible assistant text, and the
 one exact retry succeeded. This observation establishes the main-session `Edit`
 path only and does not promote the remaining matrix cells.
 
+Later documentation-lifecycle trials on Claude 2.1.280 print mode observed
+guard denials that remained after visible-reason retries. OpenCode 1.18.32
+documentation edits observed denials followed by successful retries. These
+incidental observations do not replace the adapter acceptance matrix or prove
+the cause of Claude's failure; see the exact tested configurations in
+[`harness-runtime-support.md`](harness-runtime-support.md).
+
 ## State and safety boundary
 
 Per-session state belongs below
@@ -152,17 +159,15 @@ enforcement.
 
 ## Harness migration
 
-Migration across harness versions is explicit through `doc-create`. The v8
-transition refreshes the exact managed `CLAUDE.md` template with the reviewed
-delivery flow and writes `harness_version = 8` last. The v7 transition
-introduced the engineering-lead contract. A v5-to-v6 migration preserves the
-complete project-owned index payload in root `AGENTS.md`, replaces root
-`CLAUDE.md` with the exact managed template, removes the obsolete harness
-sidecar, gives both configured files their own inline declaration, swaps the
-profile paths, and writes the target harness version last. It stops on a conflicting
-non-empty `AGENTS.md`; it never merges repository prose heuristically or trims
-the index to make the gate pass. Older repositories follow the explicit
-migration chain before this v5-to-v6 transition.
+Migration across harness versions is explicit through `doc-create` and its
+deterministic helper. The v9 transition validates client compatibility and
+recognized legacy ownership, preserves project content, places the managed
+protocol in `AGENTS.md`, removes only the exact recognized managed root
+`CLAUDE.md`, and publishes the profile version last. Required routing scopes
+remain inline in their own files. Foreign content, symlinks, or ambiguous
+layouts stop migration before publication; saved transactions support rollback.
+The helper does not guess prose merges or trim an index to pass its size limit.
+Historical v6/v7/v8 templates are migration data, not current instruction entries.
 
 `doc-start` and `doc-end` only compare versions. On an older repository they
 stop and direct the operator to the explicit migration; neither workflow mutates

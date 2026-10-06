@@ -1,438 +1,277 @@
 # Documentation Harness Contract
 
-This document defines what the harness guarantees. Command prose and checker
-behavior must agree with it.
+The harness defines repository orientation, request scope, documentation
+reconciliation, and reviewed delivery. Instructions, deterministic checks, and
+observed runtime behavior are separate forms of evidence.
 
-## Environments
+## Entry and ownership
 
-The same documentation model serves Claude Code, Codex, and OpenCode. Tool
-integration may differ: Codex discovers user-level skills under
-`$HOME/.agents/skills` and custom role agents under `~/.codex/agents`;
-deprecated custom prompts under `~/.codex/prompts`
-are not part of the design. OpenCode-only orchestration remains outside this
-cross-tool contract.
+Harness v9 uses root `AGENTS.md` as its single repository instruction entry.
+Exactly one `mrcall-ai-kit:delivery` block contains the canonical managed
+protocol. Everything outside that block remains project-owned: operating rules,
+inventory, ownership, commands, and links. The default 200-line thin-index limit
+counts the complete file, including the managed block.
+
+The kit does not require a live root `CLAUDE.md`. Exact historical v6/v7/v8
+templates remain migration data. A customized or foreign `CLAUDE.md` is a
+compatibility conflict to preserve and resolve explicitly, never a file to
+silently delete. The mechanical gate fails while a root `CLAUDE.md`,
+`CLAUDE.local.md`, or `.claude/rules/doc-harness.md` exists in a v9 repository.
+Loading `AGENTS.md` depends on the client and configuration; the compatibility
+checks apply before migration, and measured conditions are in
+[`harness-runtime-support.md`](harness-runtime-support.md).
+
+- `docs/README.md` routes readers without duplicating the root inventory.
+- Durable documents describe current, verified behavior and ownership.
+- `docs/active-context.md` is the current operational snapshot.
+- `docs/briefs/YYYY-MM-DD-<slug>.md` records intent, decisions, and rationale.
+- `docs/execution-plans/YYYY-MM-DD-<slug>.md` records execution and status.
+- `docs/active-context-archive.md` preserves displaced session narrative.
+
+Codex discovers user skills under `~/.agents/skills` and physical custom-role
+profiles under `~/.codex/agents`; deprecated custom prompts are not part of this
+design. A repository may vendor its own doc-start, doc-end, and doc-critic under
+`.agents/skills/`; the managed block directs agents to load those copies instead
+of same-named global workflows. The installer never creates repository-local
+copies. Its installed global instruction block routes leads to the repository's
+managed AGENTS entry and installed roles. Other content in the global file is
+operator-owned. OpenCode-only orchestration and watchdog behavior remain
+outside this cross-client documentation contract.
+
+## Request scope and delivery
+
+Before substantive source investigation, the lead invokes `doc-start` and
+personally obtains the complete root index, docs index, active context, and
+relevant durable documentation. Exact content already present in context is
+reused. A worker summary never substitutes for these reads.
+
+| Request | Required result and closure |
+|---|---|
+| Explanation or read-only diagnosis | Orient, investigate, answer with uncertainty; no required edits, trace, consolidation, baseline change, or release. |
+| Brief-only or review-only | Orient and deliver the requested artifact or verdict; no automatic plan, implementation, migration, baseline change, or release. |
+| Direct fast path | Establish every fast-path condition, implement, run the focused real check, and state documentation impact. Invoke proportional `doc-end` if docs are affected. |
+| Documentation-only | Lead reconciliation, mechanical check, explicit `doc-critic`, living-context shape check, and completion check. No development review chain is required. |
+| Substantial development | Reviewed brief, reviewed plan, reviewed milestones, documentation closure, and a separate final review before baseline finalization. |
+
+The fast path requires a local, obvious, reversible change with no public
+contract, behavior boundary, persistent data, security, dependency-graph, or
+migration change; no decomposition or delegation; and one focused real check
+that establishes the result. Every other development request is substantial.
+
+Substantial work follows brief → fresh reviewer APPROVED → plan → fresh
+reviewer APPROVED → implementation → milestone review before dependent work →
+separate final review through the final-user path. A `REVISE` finding blocks the
+next stage until repaired and re-reviewed by that reviewer. `FAST_PATH` requires
+proof of every criterion. `BLOCKED` identifies unresolved intent, material risk,
+irreversible or external action, or authority. These are internal gates, not
+routine requests for human permission. Without fresh-review capability, make a
+separate pass and disclose the limitation.
+
+The lead acts as the engineer responsible for deciding and finishing within
+scope. Model instructions and reviewer judgments do not make the host intercept
+every noncompliant final answer.
+
+## Startup and context cost
+
+`doc-check.py --repo PATH --startup` produces compact deterministic startup
+facts; `--json` exposes the same facts. They include version and mechanical
+outcome, indexed count, baseline validity, complete content-drift count,
+separate staged/unstaged/untracked state, every open plan and open or malformed
+issue status, violations, and advisories. Unknown metadata is reported rather
+than silently treated as closed.
+
+The helper owns recursive integrity work and status scans. Its compact output
+does not mean total filesystem work is constant. The lead consumes the result
+without dumping inventories, historical records, or unrelated project bodies
+into context. Repository indexes route meta-repository work; a child index is
+read when entering that child's code, not as a substitute for parent routing.
+
+Startup loads one applicable workflow copy and avoids rereading exact available
+content. Mechanical work stays inline by default. Delegation must justify its
+coordination cost; it is not an automatic way to reduce context. Changes to
+repository, worktree, applicable instructions, or available context invalidate
+the affected orientation; ordinary source edits do not require a complete
+restart. A configured smoke/build command runs before code changes, including
+when the initial working tree was clean.
+
+Cost reports separate preloaded instructions, newly delivered workflow/docs/tool
+results, assistant output, and child usage. Bytes divided by four are only a
+token estimate. Cumulative billed tokens and visible text totals are not actual
+context occupancy. Moving instructions into AGENTS preload is not eliminated
+cost. Runtime measurements and their limitations are in
+[`harness-runtime-support.md`](harness-runtime-support.md).
 
 ## Delegation boundary
 
-Both session start and consolidation may delegate bounded, substantive work to
-the kit's role agents where the environment provides them — `execute` for
-mechanical execution, `verify` for independent verification — through
-whatever subagent primitive the tool exposes (`Agent` in Claude Code, `task` in
-OpenCode, `spawn_agent` in Codex). Delegation is conditional: parallelism, specialist capability, or
-context isolation must be worth more than prompting, waiting, and review.
-Narrow local work stays with the primary agent. Claude Code and OpenCode role
-definitions name the model the kit chose at the machine's budget
-(`/ai-budget`). Codex role definitions have no model pin and inherit the
-session model; its budget report explicitly states this limit.
+Delegate bounded substantive work when parallelism, specialist capability, or
+isolation exceeds prompting, waiting, and review costs. Use `execute` for decided
+work, `verify` for consequential truth checks, `plan` for read-only planning,
+and `reviewer` for lifecycle gates where those installed roles are available.
+Claude exposes `Agent`, OpenCode `task`, and Codex `spawn_agent`.
 
-One OpenCode capability is deliberately not ported to Claude Code: the
-watchdog daemon, which enforces timeout and budget through OpenCode's own
-session-abort API and has no Claude Code equivalent.
+Workers receive scoped ownership, relevant orientation, and current result
+references. They reload only required knowledge they lack. The lead cannot
+delegate session-signal gathering or deciding which knowledge remains current:
+both require the transcript. Independent semantic verification may be delegated,
+but a delegated critic reports living-context defects instead of reconstructing
+the lead's session and repairing them.
 
-Two parts of consolidation are never delegable, in any environment: gathering
-the session signal, and deciding which knowledge is current. Both depend on the
-session transcript — decisions taken, approaches rejected, corrections
-received — which no subagent can observe and none may reconstruct by
-inference. At session start the same line falls elsewhere: the mechanical
-checks are delegable, but reading the index, the docs index, and the volatile
-snapshot is not, because loading those into the session is the purpose of the
-command and a worker's summary of them defeats it.
+Claude and OpenCode role models follow the machine's `/ai-budget`; Codex roles
+inherit the session model. A missing worker means eligible work runs inline,
+not that the obligation disappears. Reports need actual command/result evidence;
+a statement of success alone is insufficient.
 
-Where no worker exists, the delegable work is done inline; a step is never
-skipped for want of a worker. A worker's report is evidence only when it quotes
-the command output it claims to have produced.
+## Mechanical and semantic checks
 
-## Layers and ownership
+The mechanical gate indexes Markdown recursively under `docs/`, the root README,
+and the configured AGENTS index. It checks relative links, profile fields,
+execution-plan and session-memory status, inventory ownership, inline scopes,
+the exact single managed block, obsolete layout conflicts, and baseline format
+and ancestry. It rejects active-context `##` headings other than `State now`,
+`Unresolved`, and `Next`; fenced content and the archive are handled separately.
 
-- Root `AGENTS.md` is the configured project-owned index. It is thin and owns
-  repository instructions, inventory, roles, conventions, commands, and links
-  to durable knowledge. Its 200-line budget is entirely project content.
-- Root `CLAUDE.md` is the configured harness-managed entry point. It is an exact
-  copy of the installed versioned template: generic protocol, engineering-lead
-  operating contract, reviewed delivery flow, inline scope, and `@AGENTS.md`.
-  Repositories never customize it.
-- `docs/README.md` routes readers without duplicating the index.
-- Durable documents describe verified, long-lived facts.
-- `docs/active-context.md` is a volatile snapshot of current state, unresolved
-  work, and immediate next steps. It is reconsolidated, not appended to.
-- Execution plans describe bounded multi-step work and expose state in YAML
-  frontmatter.
-- Briefs (`docs/briefs/`) record a workstream's what and why — the analysis,
-  the decision, the approach — one dated file each. They carry no lifecycle
-  metadata; state lives only in the paired execution plan.
-
-## Managed entry point and document scopes (harness v8)
-
-Harness v8 retains the v6 machine-readable statement of
-purpose and boundary:
+Required scope declarations remain in AGENTS, docs/README, and active-context:
 
 ```markdown
 <!-- doc-scope:start -->
-Scope: A concise, non-empty statement of this document's purpose and boundary;
-the text may continue on following lines.
+Scope: A non-empty statement of this document's purpose and boundary.
 <!-- doc-scope:end -->
 ```
 
-Managed `CLAUDE.md`, project-owned `AGENTS.md`, `docs/README.md`, and
-`docs/active-context.md` each require exactly one canonical block. Other indexed
-Markdown files need no declaration, but any declaration that appears is
-validated. Delimiters occupy their own lines exactly, outside fenced code, and
-enclose non-empty text beginning `Scope:`. Partial, duplicate, reversed,
-malformed, or empty blocks fail the mechanical gate. The v5
-`doc-index-scope` form is obsolete and rejected.
-
-The inline block consumes only its small canonical declaration in `AGENTS.md`;
-this is deliberate. Project instructions need a boundary visible to every
-runtime that loads the file, and every remaining line in the 200-line budget
-belongs to the project. No other harness protocol consumes that budget.
-
-Syntax is only the deterministic half of the contract. The semantic critic
-compares changed declarations with the file's actual routing role and content;
-stale, misleading, or over-broad scope is semantic drift. A delegated critic
-reports it without inventing a replacement. An in-session critic repairs it
-only when transcript-backed knowledge determines the correct boundary.
-
-Declarations are useful without runtime enforcement: they put the intended
-boundary in every agent's document context. Optional hook/plugin enforcement,
-capability labels, activation, and bypasses are specified separately in
+Delimiters occupy exact standalone lines outside fences. Partial, duplicate,
+reversed, malformed, empty, or obsolete `doc-index-scope` blocks fail. Other
+indexed files need no scope, but any present declaration must be valid. The
+semantic critic also checks whether a declaration matches the document's role.
+Optional scope-write interception is a separate feature documented in
 [`scope-guard.md`](scope-guard.md).
 
-## Mechanical and semantic guarantees
+Advisories report oversized docs, undated work traces, open session memories,
+and missing meta-child orientation heads without changing the exit status.
+Orientation heads end with `<!-- orientation ends -->`; they are an advisory
+on a complete index, not permission to truncate required reads. Size messages
+include lines, bytes, and explicitly estimated tokens.
 
-The deterministic, repository-local mechanical gate recursively indexes
-Markdown under `docs/`, plus the root README, configured project index, and
-configured managed entry point. It checks:
+`doc-start` reports size advisories without editing files. During `doc-end`, each
+newly named oversized document gets one verdict in the `Oversized docs —
+reviewed` ledger in `docs/harness-backlog.md`: `keep whole` with a reason, or
+`split` plus an ordinary backlog item. Existing rows are not reconsidered on
+every run. Projects are outside automatic cleanup; active-context shape belongs
+to reconciliation. A verdict does not authorize a split. Follow the full
+deletion-first split rules in the closure workflow: do not relocate redundant
+prose into existing or generated documents to evade a size advisory.
 
-- relative Markdown links;
-- `.doc-profile` keys and values;
-- execution-plan status metadata;
-- session-memory status metadata (`docs/sessions/*.md`);
-- the configured index and meta-repository inventory ownership;
-- canonical inline scope syntax and required routing-file presence;
-- exact equality between configured `harness_file` and the installed template,
-  fixed ownership paths introduced in v6, and absence of the obsolete v5
-  sidecar;
-- baseline format and ancestry when a baseline is present;
-- the living context's section headings: `docs/active-context.md` carries only
-  `State now`, `Unresolved`, and `Next`. This is the objective half of the shape
-  contract and the only half a checker can own; narrative prose and "longer than
-  what it says warrants" need judgment and stay with the semantic critic. A `##`
-  line inside a code fence is content, not a section. `active-context-archive.md`
-  is exempt by design — dated sections are what it is for.
+A clean mechanical gate proves graph/metadata consistency, not factual truth.
+The lead identifies affected documentation from changed behavior, including
+unchanged contracts, dependencies, routing, and missing coverage. Explicitly
+invoke the current `doc-critic` skill over that scope, always including
+active-context shape even when untouched. Generic code review is not a critic
+result. The affected-document list bounds documentation reads; an additional
+document needs a concrete dependency on changed behavior. Unrelated project
+and session histories are not ambient audit input. Repair STALE claims and repeat affected checks; retain UNVERIFIABLE
+claims honestly. Repository artifacts remain English.
 
-The gate also emits advisories — docs past `doc_max_lines`, work-trace files
-(briefs, execution plans) named without the `YYYY-MM-DD-` date prefix,
-session-memory files (`docs/sessions/*.md`) still `open`, and in `meta` mode any
-sub-repo index without an orientation head. Advisories name paths and never
-affect the exit code.
+## Profile and version handshake
 
-**Orientation heads.** A sub-repo index should open with stack, entry points,
-build and test command, and the rules that must not be broken, closed by an
-`<!-- orientation ends -->` marker. A session entering that repository then
-orients on a dozen lines instead of the whole index. The marker is an HTML
-comment so it vanishes from the rendered document while staying greppable.
-The meta-repo gate checks the marker even for sub-repos without a profile.
-It resolves each sub-repo's index through its own profile
-when it has one, and falls back to `AGENTS.md`. The advisory pairs with a rule
-in `doc-start`: in a meta-repo the index's ownership map answers routing by
-itself, so a sub-repo index is opened when work enters that repository's code,
-never to decide whether it belongs there.
+`docs/.doc-profile` contains `key = value` records:
 
-Every size message — the oversized-doc advisory and the thin-index failure —
-carries bytes and an estimated token count beside the line count. The limits
-count lines while a context window is billed in bytes, and the two do not track
-each other: a dense table of 160 lines can outweigh 400 lines of prose, so an
-index passes its thin-index check while being the most expensive single item a
-session loads. Bytes are the on-disk size, the number `wc -c` prints. The token
-figure is a stated convention, bytes divided by four, and never a tokenizer
-result; it is printed with a `~` and is accurate within a small factor, which is
-all any decision here turns on — every comparison is a ratio between two numbers
-produced by the same divisor.
+| Key | Meaning |
+|---|---|
+| `harness_version` | Required exact protocol version, now 9. |
+| `schema_version` | `1` for new profiles; legacy absence follows checker compatibility rules. |
+| `mode` | `leaf` or `meta`. |
+| `index_file` | Root `AGENTS.md`; includes both managed and project-owned content. |
+| `inventory_ignore` | Optional comma-separated top-level directory names excluded from meta inventory. |
+| `build`, `smoke` | Optional known real commands; commented examples are not configuration. |
+| `release` | Optional command accepting one `vX.Y.Z`; configures release mechanics and changelog format, not task authorization. |
+| `index_max_lines` | Optional nonnegative thin-index limit; `0` disables it. |
+| `doc_max_lines` | Optional nonnegative advisory limit, default `400`; `0` disables it. |
 
-The oversized list has exactly one consumer, and it is `doc-end`. For every
-document the gate names that is not already carried in the
-`## Oversized docs — reviewed` section of `docs/harness-backlog.md`, `doc-end`
-records a verdict there: `split`, which is work and therefore also an ordinary
-backlog entry, or `keep whole` with its reason on the same line. `doc-start`
-does nothing with the list beyond reporting it, so session start stays cheap.
-Neither command may touch the oversized document itself — the verdict is a line
-in the backlog and nothing else moves — and a document with a recorded verdict
-is never asked about again, so the steady state is zero work.
+The v9 profile has no `harness_file`. Unknown keys and invalid values fail.
+Commands require a matching version before ordinary work. v6, v7, and v8
+profiles migrate explicitly through `doc-create`; a profile without
+`harness_version`, v1–v5 profiles, and ambiguous layouts are unsupported and the
+helper refuses them. A repository with no profile is a fresh bootstrap. A newer repository
+requires upgrading the kit installation. Neither startup nor closure performs
+an implicit migration or downgrade. Codex wrappers use their installed shared
+WORKFLOW version.
 
-`split` is a deletion decision before it is anything else: it means judging what
-in the document still deserves to exist and removing what does not, never moving
-the same prose into an existing document to shrink a line count. One move is
-legitimate and narrow — a document that has grown a second subject may be cut
-along that seam into a new document with its own title, its own routing line and
-a pointer left behind, provided both halves stand alone. Moving text into a
-generated file — one a template overwrites, marked as such by a "regenerated
-by" / "do not hand-edit" header or equivalent — is forbidden outright, because
-the next render discards it; content that belongs there belongs in the
-template's own repository instead. And a durable document is never an append
-target: an as-built or architecture document describes what the system *is*,
-while rationale and history belong in a CHANGELOG or a dated brief, so a
-document that accumulates entries over time has become a log whatever its title
-says.
+Migration uses the deterministic `doc-migrate.py` helper, with inspection,
+dry-run, apply, and exact rollback. It validates compatibility evidence,
+ownership, scopes, symlinks, collisions, markers, and recognized historical
+bytes before mutation. It preserves project bytes and optional profile
+settings, validates staged v9 content, removes only a recognized managed
+CLAUDE, and publishes the profile version last. Saved transactions permit
+recovery; rollback refuses unrelated subsequent edits. Customized or ambiguous
+legacy layouts stop untouched instead of guessing a merge. Installing the kit
+does not migrate repositories or change client instruction-loading settings.
 
-A clean mechanical gate means the document graph and metadata are internally
-consistent. It does **not** mean prose matches runtime behavior.
+## Reconciliation, evidence, and baseline
 
-The semantic critic reviews factual claims in changed documentation against
-code and wiring. It classifies unsupported claims instead of guessing and
-enforces English for repository artifacts. Session consolidation requires a
-clean mechanical gate, zero stale semantic claims, and no unresolved
-living-context shape violation; unverifiable claims stay explicit in the
-result.
+`doc-end` gathers committed changes since the valid baseline plus staged,
+unstaged, and relevant untracked changes. The lead also gathers session-only
+decisions, corrections, and rejected approaches, then reconciles living docs.
+Configured session memory is read only when this session's exact file is known;
+do not glob unrelated sessions to reconstruct a history.
 
-## Profile schema
+Order is lead reconciliation → mechanical and affected-document semantic
+checks → explicit completion check and applicable final review → baseline
+finalization → separately authorized release. A documentation-only change still
+needs explicit completion even without a development reviewer. Missing or stale
+required evidence blocks closure. Changed code, docs, instructions, or reviewed
+artifacts require the affected results to be refreshed; a receipt cannot restore
+knowledge lost from the lead's context.
 
-`docs/.doc-profile` uses `key = value` records:
+`doc_baseline_commit` must be a real ancestor of HEAD. It means the last reviewed
+repository commit, never the hypothetical commit containing current dirty work.
+Documentation/index-only commits do not create content drift; dirty changes are
+reported separately. Advance the baseline only after mechanical success, zero
+STALE findings, valid living-context shape, and all applicable reviews. Narrow
+baseline/status finalization is distinct from changing reviewed prose.
 
-- `harness_version`: required protocol version shared by the repo docs, the
-  installed commands, and the mechanical checker;
-- `schema_version`: `1` in every newly created profile; a missing value is
-  accepted only for backward compatibility with legacy profiles;
-- `mode`: `leaf` or `meta`;
-- `index_file`: root `AGENTS.md` since harness v6, the project-owned Markdown
-  index;
-- `harness_file`: root `CLAUDE.md` since harness v6, the managed Markdown entry
-  point, distinct from `index_file`;
-- `inventory_ignore`: optional comma-separated top-level directory names for
-  meta-repository inventory checks;
-- `build`: optional smoke/build command used before code changes; omit the key
-  when no command is known;
-- `smoke`: optional smoke command when it is distinct from `build`;
-- `release`: optional release command taking one `vX.Y.Z` argument; setting
-  it makes `doc-end` cut releases (its Phase 5) and opts the repository into
-  the `CHANGELOG.md` format that phase reads. Like `doc_max_lines`, an older
-  checker rejects the key as unknown, so it rides with the kit version that
-  introduced it;
-- `index_max_lines`: optional non-negative thin-index limit; `0` disables
-  that size check;
-- `doc_max_lines`: optional non-negative advisory size limit applied to every
-  indexed doc, default `400`; `0` disables the report. Purely informational —
-  the gate names each doc past the limit by path, line count, byte size and
-  estimated tokens, and the exit code is unaffected. Because a profile travels
-  in git while the checker is installed per machine, write this key only when
-  the repo wants a value other than the default: an older checker rejects it as
-  an unknown key and fails.
+The completion checker is a refusing CLI gate when invoked. It is not a
+host-level guarantee that a model cannot bypass the entire lifecycle or invent
+an attestation. Preserve actual result references, pending obligations, and
+unverifiable findings across delegation and resumption.
 
-Unknown keys and invalid enum values are errors. Comments are explanatory only;
-a commented `build` example is not a configured build command. Defaults keep
-non-versioned checker use possible, but every command requires an exact harness
-version match before doing any work.
+## Work traces and living context
 
-## Harness compatibility handshake
+Substantial or multi-session work has a dated brief and plan before execution.
+Briefs record intent and rationale without lifecycle frontmatter. Plans use
+`status: planned | active | blocked | completed | superseded`. Only `completed`
+means finished; checkboxes are reading aids, not authoritative state. A small
+single-session fix can omit the pair with an explicit work-trace decision.
+Consolidation creates a missing required trace from the lead's transcript;
+delegated critics report absence instead of inventing content.
 
-Every `doc-*` workflow embeds the protocol version it implements and compares
-it with `harness_version` before reading context, running consolidation, or
-changing repository documentation.
+Active context contains verified operational facts, unresolved work, and next
+actions under only `State now`, `Unresolved`, and `Next`; target about 120 lines.
+It is not a changelog. Route durable facts to durable docs. Preserve displaced
+session narrative verbatim in dated sections at the top of the archive, with
+an honest unknown date when necessary. Do not silently delete history.
 
-- Equal versions proceed normally.
-- A missing or lower repository version means the installed commands are newer.
-  The workflow stops and offers an explicit `docs/` migration through
-  `doc-create`; it never migrates implicitly.
-- A higher repository version means the installed commands are stale. The
-  workflow stops and directs the user to upgrade and reinstall mrcall-ai-kit.
-- Downgrading repository docs is never offered.
-
-An authorized docs migration changes only harness-owned metadata and structure,
-preserves repository knowledge, writes the new version last, and must finish
-with a clean mechanical gate. The v7-to-v8 migration replaces only the exact
-managed `CLAUDE.md` template and advances the profile after the reviewed
-delivery flow is present. The v6-to-v7 migration similarly introduced the
-engineering-lead contract. The explicit v5-to-v6 migration preserves the
-complete old project index in root `AGENTS.md`, replaces root `CLAUDE.md` with
-the canonical template, removes the obsolete sidecar, swaps the profile paths,
-and stops before mutation on a conflicting non-empty `AGENTS.md`. An explicitly
-reconciled repository may proceed because the current task already made the
-content decision; migration logic never guesses a merge. Older migrations
-remove only exact historical harness markers before applying the same split.
-`doc-start` and `doc-end` never perform a migration implicitly. Codex
-entry-point skills inherit the version from their installed shared
-`WORKFLOW.md`, so all three environments use the same handshake.
+The archive remains indexed for links but is exempt from the oversized-doc
+advisory and startup reading. The mechanical gate checks headings; the semantic
+critic checks narrative and excess length. Shape alone can require closure even
+on a clean tree. A delegated shape failure blocks baseline advancement and
+returns reconciliation to the lead.
 
 ## Releasing
 
-The kit's version is `MAJOR.MINOR.PATCH`, and the major is the harness
-protocol: `MAJOR` equals `HARNESS_VERSION` in `shared/scripts/doc-check.py`.
-A change to the `docs/` contract bumps `HARNESS_VERSION`, hence the major,
-and resets minor and patch to 0; every bootstrapped repository then migrates
-through `doc-create`. A new capability or a behavior change that leaves the
-contract untouched bumps the minor. A fix or a documentation-only release
-bumps the patch. A minor or patch needs no migration: the operator runs
-`git pull` and then `./install.sh` again, because the installer copies or
-links each file individually and a pull alone changes nothing installed.
+Versions are `MAJOR.MINOR.PATCH`; major equals `HARNESS_VERSION`. Protocol
+changes require a major version and explicit repository migration; other
+capabilities use minor and fixes use patch. Reinstall after updating the kit:
+copy installs require refresh, while symlinks can expose changed source files
+immediately but do not install new assets.
 
-Release notes live in the root `CHANGELOG.md`, one `## vX.Y.Z — YYYY-MM-DD`
-section per version, newest first, with an `## Unreleased` section collecting
-work since the last tag. The GitHub Release body is that section.
+`CHANGELOG.md` contains `Unreleased` and dated version sections. Release requires
+authorization in the current task as well as a configured command. When
+authorized, `doc-end` Phase 5 owns version selection, changelog/commit ordering,
+baseline update, push, and invocation; unrelated tracked work is not included.
+The profile setting alone never authorizes publication or commits.
 
-The session that ends the work cuts the release, never the operator:
-`doc-end`'s Phase 5 reads `release = shared/scripts/release.sh` from the
-profile, chooses the version from `Unreleased` under the rule above, rewrites
-the changelog, commits, pushes, and runs the command. A Claude Code session in
-auto mode may run it because the repository's `.claude/settings.json` allows
-that exact command. The script runs from the checkout root and is never
-installed. It runs every
-check and prints one `PASS`/`FAIL` line per check, then stops with exit 1 if
-any failed: semver shape; major equal to `HARNESS_VERSION`; no local or remote
-tag of that name; a non-empty `## vX.Y.Z` section in `CHANGELOG.md`; no
-modified tracked files; branch `main` at `origin/main`; the mechanical gate;
-every `tests/test_*.sh`; `pytest tests shared/scripts/tests`. All green, it
-creates the annotated tag `vX.Y.Z` with message `mrcall-ai-kit vX.Y.Z`, pushes
-it, and publishes the GitHub Release titled `mrcall-ai-kit vX.Y.Z` with the
-changelog section as body. `--dry-run` runs the same checks and prints the
-three commands instead of running them.
-
-## Work traces
-
-Substantial work always leaves a trace, so "what are we doing, is it finished,
-in progress, or only conceived" is never a matter of memory. The trace is a
-pair of dated files sharing one slug:
-
-- `docs/briefs/YYYY-MM-DD-<slug>.md` — the what and why: problem, decision,
-  approach, rejected alternatives. Written once, updated only if the
-  understanding changes. No status frontmatter.
-- `docs/execution-plans/YYYY-MM-DD-<slug>.md` — the lifecycle: YAML frontmatter
-  `status` (schema below) plus the step list. Work that is only conceived is
-  `planned`; work that never gets a go becomes `superseded`, not deleted.
-
-The pair is created **before execution starts** whenever work is orchestrated —
-delegated to multiple agents or workers, in any environment — and whenever a
-workstream is expected to span sessions or is too large for the living context
-alone. A quick single-session fix needs no pair; the living context and git
-already record it.
-
-The rule itself lives in managed root `CLAUDE.md`. Claude Code reads that file
-and follows its `@AGENTS.md` import; Codex and OpenCode read root `AGENTS.md`
-natively. `doc-start` explicitly loads both configured files unless the current
-session confirms their exact content is already present, so workflow behavior
-does not depend on guessing runtime injection.
-
-The Codex install adds a delimited block to the user-owned global
-`~/.codex/AGENTS.md`. It tells a lead in a bootstrapped repository to read
-managed `CLAUDE.md` and use the installed custom reviewer at lifecycle gates.
-The rest of the global file remains the operator's. The block and custom agent
-profiles deliver instructions; they do not mechanically enforce review gates.
-OpenCode orchestration has its own
-installed primary profiles, while Claude receives the contract from managed
-`CLAUDE.md` and from each role agent's `description`.
-
-Enforcement is layered like the living-context shape: `doc-end` creates a
-missing pair retroactively in-session (it holds the transcript that says what
-the work was and why); a delegated critic reports the absence instead of
-inventing content; the mechanical gate reports undated trace filenames as an
-advisory, never a failure.
-
-## Reviewed delivery lifecycle
-
-The managed primary-agent contract divides implementation into two lanes. The
-fast path is available only for a local, obvious, reversible change that alters
-no public contract, behavior boundary, persistent data, security posture,
-dependency graph, or migration, needs neither decomposition nor delegation,
-and can be established by one focused real check.
-
-Every other development request is substantial. Its brief is written and
-independently reviewed before planning begins; its milestone plan is written
-and independently reviewed before implementation begins. A `REVISE` verdict
-blocks the next stage until its blocking findings are repaired and re-reviewed.
-`FAST_PATH` is valid at brief or plan review only when the reviewer demonstrates
-every fast-path criterion. `BLOCKED` is reserved for a product decision,
-material risk, irreversible or external action, or missing authority that needs
-the CTO.
-
-Implementation proceeds through the smallest independently reviewable
-milestones. Each milestone review must pass before dependent work starts, and
-a separate final review exercises the integrated result through the final-user
-path. A runtime without fresh subagents performs an explicit separate review
-pass and reports that limitation instead of silently omitting review. These are
-internal engineering gates, not CTO approval checkpoints.
-
-## Session memory, rotation, and worker reports
-
-The opt-in model router, the per-session shared memory it writes
-(`docs/sessions/<id>.md`), the hand-off that brackets a context window, and the
-budget a worker's report must respect all live in
-[`model-router.md`](model-router.md). They are a separate subject: the gate and
-the `/doc-*` contract below apply whether or not the router is installed.
-
-## Execution-plan schema
-
-Every Markdown file under `docs/execution-plans/` except placeholders has YAML
-frontmatter with one `status` value:
-
-- `planned`: accepted but not started;
-- `active`: currently being executed;
-- `blocked`: unable to advance until its recorded condition changes;
-- `completed`: all required work and verification are done;
-- `superseded`: replaced or deliberately abandoned, with the reason recorded.
-
-Commands derive plan state from metadata, never from prose. Only `completed`
-plans are finished; the other states remain visible with their labels.
-Checkboxes inside a plan are a reading aid, not lifecycle state: unticked boxes
-under `status: completed` are untidiness, not a contradiction, and no command
-treats them as work to investigate or as a reason to withhold consolidation.
-
-## Baseline semantics
-
-`doc_baseline_commit` identifies the code commit whose behavior has been
-reconciled into living documentation. It must resolve and be an ancestor of
-`HEAD`.
-
-The documentation update recording that baseline can be committed after the
-referenced code commit. A reconciliation commit touching only `docs/**`, the
-configured project index, and the configured harness entry point after the baseline is
-therefore not product drift. Start-of-session reporting distinguishes
-code-bearing commits from harness-only commits and reports uncommitted changes
-separately.
-
-The end workflow reviews committed changes since the baseline and relevant
-working-tree changes. It advances the baseline only after the mechanical gate
-passes, semantic review has zero stale claims, and no unresolved
-living-context shape violation remains.
-Advancing it to `HEAD` records what was reviewed; it cannot represent an
-uncommitted code change as part of that commit.
-
-## Living-context discipline
-
-`active-context.md` contains only current facts:
-
-- verified capabilities that materially affect current work;
-- work in progress or awaiting verification;
-- unresolved failures and blockers;
-- immediate next actions.
-
-It does not retain per-session done lists, corrected theories, or chronological
-notes. A durable architectural fact belongs in a durable doc; a decision fully
-captured by a completed plan or brief needs no duplicate here. Session
-narrative that is neither of those — the detailed "what we tried, what broke,
-what we verified" record of a session — moves to `docs/active-context-archive.md`
-instead of being deleted outright: dated sections, newest first, preserved
-verbatim. Nothing that was ever true is lost, it is just no longer on the path
-every session pays to read. Contradictory current and historical claims are a
-semantic failure even when the mechanical gate is clean.
-
-The archive is deliberately outside `doc-start`'s Phase 2 (volatile-layer) read
-set — it exists to answer "when did we do X", read on demand, not to be loaded
-every session start. It is still an ordinary file under `docs/`: the mechanical
-gate indexes it like any other Markdown file (dead links inside it are still
-checked, and it is never exempt from `index_docs()`; the single exception is the
-advisory `doc_max_lines` report, which skips it precisely because cold storage
-is meant to grow), and it is discoverable through a routing line in
-`docs/README.md`, the same as every other durable doc.
-
-Three checks enforce this rule. The mechanical gate rejects non-canonical
-sections. The end workflow treats a shape violation as a reason to consolidate
-even when the working tree is clean. The semantic critic checks narrative prose
-and excess length. The mechanical section check also applies to edits made
-outside a `doc-*` workflow.
-
-What the safety net then does depends on who is running it, and follows from
-the delegation boundary above. Running in-session, it repairs the file:
-archive and rewrite. Running as a delegate, it reports the violation and does
-not repair, because sorting current from historical is the Phase-3 decision
-that needs the transcript it does not have. Such a report is blocking: the
-baseline may not advance over a mis-shaped `active-context.md`, so the session
-returns to Phase 3 and redoes it. Both paths refuse to let the violation
-through; only one of them is entitled to fix it.
+`shared/scripts/release.sh` runs from the checkout, never the installed command
+directory. It checks semver, matching protocol major, tag absence, nonempty
+changelog section, clean tracked tree, `main` at `origin/main`, the mechanical
+gate, all shell tests, and Python suites before tagging, pushing, and publishing.
+`--dry-run` runs checks and prints publication commands. Its fixture tests use
+a bare remote and a `gh` stub; those tests are not a production release.

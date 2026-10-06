@@ -42,7 +42,7 @@ answer; the pass is machinery, and machinery that announces itself is noise.
 ## What it does, when asked
 
 The rules about how to answer are not new and are not in this hook. They live in
-the managed `CLAUDE.md` a repository installs. The hook exists because by the end
+the shipped re-read checklist and the role instructions. The hook exists because by the end
 of a long turn those rules are thousands of tokens behind, and a rule out of
 sight is a rule not applied. On each finished answer the hook hands it back once,
 with the checklist, and the session fixes what fails before the answer is shown.

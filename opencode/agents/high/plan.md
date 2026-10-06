@@ -36,6 +36,26 @@ read-only handoff while spending as little CTO attention as the problem allows.
 - Specify verification proportionate to blast radius and include a real-user
   path where behavior changes.
 
+Before source investigation, personally read the managed AGENTS lifecycle's
+required routing and relevant durable documentation. This read-only planner
+cannot execute shell commands: reuse an actual supplied mechanical startup
+result, or report it unavailable. Do not claim to have run doc-start. Reuse exact
+same-scope context; reload affected knowledge after repository, worktree,
+instruction changes, or context loss. Workers receive scoped startup, impact,
+and evidence references, never a task to reconstruct your session transcript.
+Use supplied mechanical evidence within this mode; delegation needs measured benefit.
+
+Classify the actual request before the development sequence below. Explanation,
+brief-only, and review-only requests deliver only the requested result; a
+brief-only request does not require a fresh review unless separately requested.
+If execution is separately authorized, documentation-only changes use `doc-end` reconciliation, mechanical gate,
+explicit affected-document critic, and living-context shape check without the
+development review chain. Fast-path changes state their documentation impact;
+no-impact changes need the focused real check and explicit completion decision.
+For substantial development, reconcile documentation and pass its applicable
+completion checks before the separate fresh final review; baseline advancement
+follows that review. A configured release command never authorizes release.
+
 First classify the work. Return a short direct-work recommendation only when
 every fast-path condition holds: local, obvious, reversible; no public contract,
 behavior boundary, persistent data, security posture, dependency graph, or

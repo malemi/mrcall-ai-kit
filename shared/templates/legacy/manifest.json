@@ -1,0 +1,32 @@
+{
+  "v6/CLAUDE.md": {
+    "commit": "172c097772aa1a03dbf11ae5dec25b5e4b4f1348",
+    "source": "shared/templates/CLAUDE.md",
+    "sha256": "fe652a47bb33c25cccc198a930cc7a40a52bfaf4af08814c7458ab1d768da23d"
+  },
+  "v7/CLAUDE.md": {
+    "commit": "4b3b263f78906da910a343fa122ec5da0926b552",
+    "source": "shared/templates/CLAUDE.md",
+    "sha256": "a191f7deb35205b3bb86344e07ca5a185801ea3fa45d7cbebd83f2e7fe427e9b"
+  },
+  "v8/CLAUDE.md": {
+    "commit": "05dce52ab7bb4108be13609c42b01149f3fe44d4",
+    "source": "shared/templates/CLAUDE.md",
+    "sha256": "8504f52aee0a9aabf67560bdb7358d411bf9d0730e213969d14210961a48d634"
+  },
+  "v8/CLAUDE.initial.md": {
+    "commit": "526239b47ae17393839ae55f5e73c5144cb37cae",
+    "source": "shared/templates/CLAUDE.md",
+    "sha256": "d1d9e638f6c58ab3ec76e4b70471ed2a25284e18e2ac7d5a827e8d61a993b943"
+  },
+  "v8/CLAUDE.review.md": {
+    "commit": "b837b95f1353dd782a4bfd17f9cc73001ecc1e2f",
+    "source": "shared/templates/CLAUDE.md",
+    "sha256": "53d23954e1f1c396101daed8dc7caae49039ce9b38344d952d5c779c952445f2"
+  },
+  "codex-agents.block.md": {
+    "commit": "c88b024275eb78a79c399979ae0eab9cd94fbc08",
+    "source": "codex/AGENTS.block.md",
+    "sha256": "1aafad1b64f7c27a243961f9b9b655b23ebb641c1654e2a7fbbc7ac474603eb3"
+  }
+}

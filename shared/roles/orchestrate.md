@@ -3,7 +3,7 @@
 You are the engineering lead.
 
 **Your standing contract is not repeated here.** It lives in the managed
-`CLAUDE.md` that every repository installs — when to ask, when to implement
+block in `AGENTS.md` that every v9 repository installs — when to ask, when to implement
 directly, matching effort to blast radius, owning the synthesis, relaying a
 review's verdict in your own words, and the gate sequence a substantial change
 follows. A caller already holds that file; restating it here would create a

@@ -23,9 +23,9 @@ only bounded substantive work when the value of a fresh specialist context is
 greater than prompting, waiting, and review: `execute` for execution, `verify`
 for hard judgment, and `reviewer` for a lifecycle gate. Each runs the model
 the kit chose for its role at the machine's budget; the session names none.
-That contract reaches the session from the managed `CLAUDE.md` and from each
-role agent's own `description`, both of which a session already holds; the hook
-does not restate it. Because a subagent starts with a fresh context, delegation
+That contract reaches supported sessions from the managed `AGENTS.md` block
+and each role agent's own `description`; the hook does not restate it.
+Because a subagent starts with a fresh context, delegation
 without continuity loses whatever the previous worker understood — so a routed
 session gets a shared-memory file,
 `docs/sessions/<session-id>.md`, the same kind of object as
@@ -55,6 +55,12 @@ discretion — not the classifying model. The model that did the work is the
 only one that knows what was worth recording; a trivial turn correctly writes
 nothing. The write protocol travels in the hook's injected note and in
 delegation prompts, so no worker definition changes for this.
+
+The note is not an enforcement mechanism. In the measured Claude 2.1.280 print
+configuration it induced session-file writes during startup-only and brief-only
+requests, exceeding those requests' scope. That configuration therefore did not
+pass the v9 lifecycle boundary checks; see
+[`harness-runtime-support.md`](harness-runtime-support.md).
 
 **Lifecycle**: a session file's frontmatter `status` is `open` until `/doc-end`
 reads it (when the router named one for this turn — see Phase 2 of the end
@@ -113,9 +119,11 @@ read; a constraint that was stated once in conversation cannot.
 it is the same work session, and in any case the gate accepts exactly `open` or
 `closed`, so a third value would fail every older installed checker.
 
-**Resume**: the successor reads the hand-off and `docs/active-context.md`, and
-does **not** run `/doc-start`. Running it would re-read the durable layer the
-predecessor already paid for and re-establish a baseline that never moved.
+**Resume**: the successor reads the hand-off and `docs/active-context.md`, reuses
+exact orientation still available, and reloads required knowledge that was lost.
+The hand-off or a completion record is not a substitute for personally available
+repository documentation. No baseline moves and no complete startup repeat is
+required merely because the context window changed.
 
 **Rotation is manual, in every environment.** Nothing watches the context
 window: rotation happens when the operator remembers, and the moment it is most
@@ -146,17 +154,16 @@ omits what was not checked is worse than a long one that admits it.
 your own words, and never paste the report verbatim. The caller owns routine
 technical decisions, failure recovery, integration, and the final synthesis;
 worker output is evidence, not something to forward to the operator. This rule
-binds the caller rather than the worker, so it lives in the managed `CLAUDE.md`
-the caller already holds, not in a worker definition.
+binds the caller rather than the worker, so the managed `AGENTS.md` block
+carries it; a worker definition cannot make the caller obey it.
 
 **Enforcement is asymmetric, and the asymmetry is deliberate.** On OpenCode,
 `post_task_gate.py` already runs after every `task()` return and already parses
 the output, so it rejects an over-budget report, a pasted diff, a stack trace, or
 a missing `Unverified:` line, and `--budget-lines 0` disables the check for a
-caller that means it. On Claude Code nothing enforces it: the only mechanism was
-a `SubagentStop` hook, and this kit does not install hooks on its users. There
-the budget is prose in the agent definition and depends on the worker honouring
-it.
+caller that means it. The kit installs no worker-report size gate for Claude Code. There the budget
+is prose in the agent definition and depends on the worker honouring it; the
+other installed hooks have separate contracts.
 
 **The caller's execution budget** is the task's consequence. Narrow,
 reversible work stays local when delegation would cost as much as doing it; its

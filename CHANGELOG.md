@@ -8,6 +8,21 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- Harness v9 consolidates repository delivery instructions into one managed
+  AGENTS.md block. Explicit migration preserves project content, verifies
+  compatibility evidence, recognizes exact legacy templates, and supports
+  rollback; customized CLAUDE files stop migration.
+- Ordinary requests now select documentation entry and closure by task scope.
+  Compact startup output preserves findings without loading unrelated histories;
+  read-only and artifact-only requests stay limited.
+- Completion checks bind real commands and review references to task/worktree
+  content, reject stale evidence, recover pending obligations, and finalize only
+  reviewed baseline/status metadata. Task locks prevent concurrent lost updates.
+  These checks do not force a host to invoke them or authenticate model judgment.
+- Installed workflows, generated roles, and copy/symlink ownership checks use
+  the v9 contract. Release requires explicit task authorization. Runtime support,
+  measured startup costs, and bypasses are recorded separately from source tests.
+
 ## v8.2.0 — 2026-10-01
 
 - `shared/scripts/release.sh`: the one way to cut a release. It runs every

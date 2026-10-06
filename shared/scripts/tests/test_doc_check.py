@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import subprocess
 import tempfile
 import unittest
@@ -10,7 +11,7 @@ from pathlib import Path
 CHECKER = Path(__file__).parents[1] / "doc-check.py"
 COMMANDS = Path(__file__).parents[2] / "commands"
 HARNESS_DOC = Path(__file__).parents[3] / "docs" / "documentation-harness.md"
-HARNESS_TEMPLATE = Path(__file__).parents[2] / "templates" / "CLAUDE.md"
+HARNESS_TEMPLATE = Path(__file__).parents[2] / "templates" / "AGENTS.block.md"
 SCOPE = (
     "<!-- doc-scope:start -->\n"
     "Scope: Test routing document.\n"
@@ -50,13 +51,12 @@ class DocCheckTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         (self.root / "docs" / "execution-plans").mkdir(parents=True)
         (self.root / "README.md").write_text("# Readme\n", encoding="utf-8")
-        (self.root / "CLAUDE.md").write_text(harness_rules(), encoding="utf-8")
-        (self.root / "AGENTS.md").write_text("# Index\n\n" + SCOPE, encoding="utf-8")
+        (self.root / "AGENTS.md").write_text(harness_rules() + "# Index\n\n" + SCOPE, encoding="utf-8")
         (self.root / "docs" / "README.md").write_text(
             "# Docs\n\n" + SCOPE, encoding="utf-8"
         )
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n"
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\n"
             "inventory_ignore =\n",
             encoding="utf-8",
         )
@@ -88,22 +88,21 @@ class DocCheckTests(unittest.TestCase):
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
         self.assertIn("MECHANICAL GATE CLEAN", result.stdout)
-        self.assertIn("harness v8", result.stdout)
+        self.assertIn("harness v9", result.stdout)
 
     def test_all_commands_embed_the_checker_harness_version(self) -> None:
         checker_source = CHECKER.read_text(encoding="utf-8")
-        self.assertIn("HARNESS_VERSION = 8", checker_source)
+        self.assertIn("HARNESS_VERSION = 9", checker_source)
         for name in ("doc-create.md", "doc-start.md", "doc-end.md"):
             command = (COMMANDS / name).read_text(encoding="utf-8")
-            self.assertIn("implements `harness_version = 8`", command, name)
+            expected = "This workflow is v9" if name == "doc-start.md" else "implements `harness_version = 9`"
+            self.assertIn(expected, command, name)
 
-    def test_doc_create_carries_managed_template_and_explicit_v5_migration(self) -> None:
+    def test_doc_create_calls_explicit_migration_helper(self) -> None:
         create = flowed(COMMANDS / "doc-create.md")
-        self.assertIn("CLAUDE.template.md", create)
-        self.assertIn("project-owned `AGENTS.md`", create)
-        self.assertIn("From `7`", create)
-        self.assertIn("From `5`", create)
-        self.assertIn("There is no implicit migration in `doc-start` or `doc-end`", create)
+        self.assertIn("doc-migrate.py", create)
+        self.assertIn("dry-run", create)
+        self.assertIn("compatibility", create)
 
     def test_doc_critic_semantically_checks_scope_declarations(self) -> None:
         critic = flowed(Path(__file__).parents[2] / "skills" / "doc-critic" / "SKILL.md")
@@ -113,7 +112,6 @@ class DocCheckTests(unittest.TestCase):
 
     def test_required_routing_docs_each_need_one_valid_scope(self) -> None:
         for rel in (
-            "CLAUDE.md",
             "AGENTS.md",
             "docs/README.md",
             "docs/active-context.md",
@@ -191,7 +189,7 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("obsolete external index-scope", self.check().stdout)
 
     def test_configured_index_owns_inline_scope_and_full_line_budget(self) -> None:
-        (self.root / "AGENTS.md").write_text(SCOPE + ("repository owned\n" * 197), encoding="utf-8")
+        (self.root / "AGENTS.md").write_text(harness_rules() + SCOPE + ("repository owned\n" * (197 - len(harness_rules().splitlines()))), encoding="utf-8")
         result = self.check()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("doc-scope", (self.root / "AGENTS.md").read_text(encoding="utf-8"))
@@ -200,16 +198,16 @@ class DocCheckTests(unittest.TestCase):
         (self.root / "CLAUDE.md").write_text(harness_rules() + "project rule\n", encoding="utf-8")
         result = self.check()
         self.assertIn("[HARNESS TEMPLATE]", result.stdout)
-        self.assertIn("put repository guidance in `AGENTS.md`", result.stdout)
+        self.assertIn("single-entry compatibility unresolved", result.stdout)
 
     def test_managed_harness_comparison_does_not_normalize_crlf(self) -> None:
-        (self.root / "CLAUDE.md").write_bytes(
+        (self.root / "AGENTS.md").write_bytes(
             HARNESS_TEMPLATE.read_bytes().replace(b"\n", b"\r\n")
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
         self.assertIn("[HARNESS TEMPLATE]", result.stdout)
-        self.assertIn("differs from the installed template", result.stdout)
+        self.assertIn("differs from canonical template", result.stdout)
 
     def test_obsolete_v5_sidecar_is_rejected(self) -> None:
         sidecar = self.root / ".claude" / "rules" / "doc-harness.md"
@@ -217,7 +215,7 @@ class DocCheckTests(unittest.TestCase):
         sidecar.write_text("# Obsolete\n", encoding="utf-8")
         result = self.check()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("obsolete harness v5 sidecar remains", result.stdout)
+        self.assertIn("single-entry compatibility unresolved", result.stdout)
 
     def test_dead_links_are_checked_recursively(self) -> None:
         nested = self.root / "docs" / "briefs" / "nested"
@@ -270,7 +268,7 @@ class DocCheckTests(unittest.TestCase):
 
     def test_profile_schema_rejects_unknown_invalid_and_empty_values(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = other\nindex_file = missing.md\nharness_file = CLAUDE.md\n"
+            "harness_version = 9\nmode = other\nindex_file = missing.md\n"
             "build =\nunknown = yes\nindex_max_lines = no\n",
             encoding="utf-8",
         )
@@ -283,7 +281,7 @@ class DocCheckTests(unittest.TestCase):
 
     def test_release_key_is_optional_and_must_not_be_empty(self) -> None:
         profile = self.root / "docs" / ".doc-profile"
-        base = "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n"
+        base = "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\n"
         profile.write_text(base, encoding="utf-8")
         self.assertEqual(self.check().returncode, 0)  # absent: the release phase is not configured
         profile.write_text(base + "release = scripts/release.sh\n", encoding="utf-8")
@@ -294,7 +292,7 @@ class DocCheckTests(unittest.TestCase):
     def test_index_file_must_be_markdown(self) -> None:
         (self.root / "INDEX.txt").write_text("index\n", encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = INDEX.txt\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 9\nmode = leaf\nindex_file = INDEX.txt\n", encoding="utf-8"
         )
         self.assertIn("must be a Markdown (`.md`) file", self.check().stdout)
 
@@ -302,82 +300,74 @@ class DocCheckTests(unittest.TestCase):
         profile = self.root / "docs" / ".doc-profile"
         self.assertEqual(self.check().returncode, 0)  # schema_version is independent and optional
         profile.write_text(
-            "harness_version = 8\nschema_version = 1\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
+            "harness_version = 9\nschema_version = 1\nmode = leaf\nindex_file = AGENTS.md\n",
             encoding="utf-8",
         )
         self.assertEqual(self.check().returncode, 0)
         profile.write_text(
-            "harness_version = 8\nschema_version = 2\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
+            "harness_version = 9\nschema_version = 2\nmode = leaf\nindex_file = AGENTS.md\n",
             encoding="utf-8",
         )
         self.assertIn("`schema_version` must be `1`", self.check().stdout)
 
-    def test_harness_file_is_required_and_distinct_from_index(self) -> None:
-        profile = self.root / "docs" / ".doc-profile"
-        profile.write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\n",
-            encoding="utf-8",
-        )
-        self.assertIn("missing required `harness_file`", self.check().stdout)
-        profile.write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\n"
-            "harness_file = AGENTS.md\n",
-            encoding="utf-8",
-        )
-        self.assertIn("must be distinct", self.check().stdout)
+    def test_harness_file_is_removed_in_v9(self) -> None:
+        profile = self.root / "docs/.doc-profile"
+        profile.write_text(profile.read_text() + "harness_file = CLAUDE.md\n")
+        self.assertIn("removes `harness_file`", self.check().stdout)
 
     def test_v6_profile_paths_are_fixed_by_ownership_contract(self) -> None:
         (self.root / "PROJECT.md").write_text("# Project\n\n" + SCOPE, encoding="utf-8")
         (self.root / "HARNESS.md").write_text(harness_rules(), encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = PROJECT.md\n"
+            "harness_version = 9\nmode = leaf\nindex_file = PROJECT.md\n"
             "harness_file = HARNESS.md\n",
             encoding="utf-8",
         )
         result = self.check()
         self.assertIn("requires `index_file = AGENTS.md`", result.stdout)
-        self.assertIn("requires `harness_file = CLAUDE.md`", result.stdout)
+        self.assertIn("removes `harness_file`", result.stdout)
 
     def test_thin_index_limit_is_configurable_and_zero_disables_it(self) -> None:
-        (self.root / "AGENTS.md").write_text(SCOPE, encoding="utf-8")
+        (self.root / "AGENTS.md").write_text(harness_rules() + SCOPE, encoding="utf-8")
         profile = self.root / "docs" / ".doc-profile"
-        profile.write_text("harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 2\n", encoding="utf-8")
+        profile.write_text("harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\nindex_max_lines = 2\n", encoding="utf-8")
         self.assertIn("[THIN INDEX]", self.check().stdout)
-        profile.write_text("harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 0\n", encoding="utf-8")
+        profile.write_text("harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\nindex_max_lines = 0\n", encoding="utf-8")
         self.assertEqual(self.check().returncode, 0)
 
-    def test_missing_harness_version_requires_docs_migration(self) -> None:
+    def test_missing_harness_version_is_unsupported_legacy(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "mode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "mode = leaf\nindex_file = AGENTS.md\n", encoding="utf-8"
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
         self.assertIn("missing `harness_version`", result.stdout)
-        self.assertIn("migrate docs/", result.stdout)
+        self.assertIn("doc-create cannot migrate", result.stdout)
+        self.assertNotIn("migrate docs/ with", result.stdout)
 
     def test_non_positive_harness_version_is_rejected(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 0\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 0\nmode = leaf\nindex_file = AGENTS.md\n", encoding="utf-8"
         )
         result = self.check()
         self.assertIn("positive integer", result.stdout)
 
     def test_newer_harness_version_requires_command_upgrade(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 10\nmode = leaf\nindex_file = AGENTS.md\n", encoding="utf-8"
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("newer than installed version 8", result.stdout)
+        self.assertIn("newer than installed version 9", result.stdout)
         self.assertIn("upgrade the installed", result.stdout)
 
     def test_older_harness_version_requires_docs_upgrade(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n", encoding="utf-8"
+            "harness_version = 7\nmode = leaf\nindex_file = AGENTS.md\n", encoding="utf-8"
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
-        self.assertIn("docs harness version 7 is older than installed version 8", result.stdout)
+        self.assertIn("docs harness version 7 is older than installed version 9", result.stdout)
         self.assertIn("migrate docs/", result.stdout)
 
     def test_execution_plan_requires_enumerated_status(self) -> None:
@@ -512,7 +502,7 @@ class DocCheckTests(unittest.TestCase):
         (project / "small.md").write_text("filler\n" * 50, encoding="utf-8")
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -522,7 +512,7 @@ class DocCheckTests(unittest.TestCase):
         )
         self.assertNotIn("small.md", result.stdout)
         profile.write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 0\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = 0\n",
             encoding="utf-8",
         )
         self.assertNotIn("advisory", self.check().stdout)
@@ -549,7 +539,7 @@ class DocCheckTests(unittest.TestCase):
 
     def test_invalid_doc_max_lines_is_a_profile_error(self) -> None:
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = abc\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = abc\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -565,7 +555,7 @@ class DocCheckTests(unittest.TestCase):
         doc = self.root / "docs" / "edge.md"
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         doc.write_text("filler\n" * 100, encoding="utf-8")
@@ -584,7 +574,7 @@ class DocCheckTests(unittest.TestCase):
         )
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         self.assertIn("feed.md: 102 lines", self.check().stdout)
@@ -601,7 +591,7 @@ class DocCheckTests(unittest.TestCase):
         docs = self.root / "docs"
         (docs / "long.md").write_text("filler\n" * 150, encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -633,7 +623,7 @@ class DocCheckTests(unittest.TestCase):
         """
         (self.root / "docs" / "crlf.md").write_bytes(b"filler\r\n" * 150)
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -650,29 +640,28 @@ class DocCheckTests(unittest.TestCase):
         expensive item a session loads, so the failure message reports the same
         three numbers as the advisory.
         """
-        (self.root / "AGENTS.md").write_text(SCOPE, encoding="utf-8")
+        (self.root / "AGENTS.md").write_text(harness_rules() + SCOPE, encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\nindex_max_lines = 2\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\nindex_max_lines = 2\n",
             encoding="utf-8",
         )
         result = self.check()
         self.assertEqual(result.returncode, 1)
         self.assertIn("[THIN INDEX]", result.stdout)
         self.assertIn(
-            "AGENTS.md has 3 lines, ",
+            f"AGENTS.md has {len(harness_rules().splitlines()) + 3} lines, ",
             result.stdout,
         )
 
     def test_contract_records_the_token_figure_as_a_convention(self) -> None:
         """The estimate must never be presentable as a tokenizer result.
 
-        It is bytes/4, it is right within a small factor, and the contract has to
-        say so — otherwise the first person to compare it with a real tokenizer
-        reads the gate as broken.
+        The contract must label bytes/4 as an estimate and distinguish usage
+        totals from actual context occupancy.
         """
         contract = flowed(HARNESS_DOC)
-        self.assertIn("bytes divided by four", contract)
-        self.assertIn("never a tokenizer result", contract)
+        self.assertIn("Bytes divided by four are only a token estimate.", contract)
+        self.assertIn("Cumulative billed tokens and visible text totals are not actual context occupancy.", contract)
 
     def test_oversized_docs_have_a_recorded_consumer(self) -> None:
         """The advisory's actuator is prose, so a future edit must not drop it.
@@ -681,7 +670,9 @@ class DocCheckTests(unittest.TestCase):
         while being reported at every session: `doc-end` owns the verdict,
         `doc-start` deliberately owns nothing, and the contract records both.
         """
-        self.assertIn("## Oversized docs — reviewed", flowed(HARNESS_DOC))
+        contract = flowed(HARNESS_DOC)
+        self.assertIn("`Oversized docs — reviewed` ledger in `docs/harness-backlog.md`", contract)
+        self.assertIn("`doc-start` reports size advisories without editing files. During `doc-end`", contract)
         end = flowed(COMMANDS / "doc-end.md")
         self.assertIn("## Oversized docs — reviewed", end)
         self.assertIn("`docs/harness-backlog.md`", end)
@@ -702,8 +693,8 @@ class DocCheckTests(unittest.TestCase):
         self.assertIn("belongs in the template that produces the file", end)
         # The contract records that the rule exists; the command file states it.
         contract = flowed(HARNESS_DOC)
-        self.assertIn("a deletion decision before it is anything else", contract)
-        self.assertIn("never an append target", contract)
+        self.assertIn("deletion-first split rules in the closure workflow", contract)
+        self.assertIn("do not relocate redundant prose into existing or generated documents", contract)
         self.assertIn("keep whole", end)
         self.assertIn("split logs, never split indexes", end)
         start = flowed(COMMANDS / "doc-start.md")
@@ -716,7 +707,7 @@ class DocCheckTests(unittest.TestCase):
         (docs / "alpha.md").write_text("filler\n" * 200, encoding="utf-8")
         profile = self.root / "docs" / ".doc-profile"
         profile.write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = 100\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = 100\n",
             encoding="utf-8",
         )
         listed = [
@@ -736,7 +727,7 @@ class DocCheckTests(unittest.TestCase):
         """
         (self.root / "docs" / "any.md").write_text("filler\n" * 5, encoding="utf-8")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ndoc_max_lines = -1\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ndoc_max_lines = -1\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -761,7 +752,7 @@ class DocCheckTests(unittest.TestCase):
         )
         # the unreadable doc is skipped, and the scan carries on past it
         self.assertEqual(
-            warnings,
+            [w for w in warnings if not w.startswith("AGENTS.md:")],
             ["docs/fine.md: 50 lines, 350 bytes, ~87 tokens (advisory limit: 10 lines)"],
         )
 
@@ -876,16 +867,10 @@ class DocCheckTests(unittest.TestCase):
         self.assertNotIn("def456", result.stdout)
 
     def test_doc_start_never_opens_project_folders(self) -> None:
-        """The read-scope rule is load-bearing, so a future edit must not drop it.
-
-        `docs/projects/**` is per-customer working material: opening it at session
-        start makes start-up cost scale with the number of customers, which is the
-        one thing doc-start must never do.
-        """
         command = (COMMANDS / "doc-start.md").read_text(encoding="utf-8")
-        self.assertIn("## Read scope — `docs/projects/**` is never opened here", command)
-        self.assertIn("`docs/execution-plans/**/*.md` and nothing else", command)
-        self.assertIn("`docs/sessions/**`", command)
+        self.assertIn("docs/projects/**", command)
+        self.assertIn("docs/sessions/**", command)
+        self.assertIn("--startup", command)
 
     # --- ORIENTATION HEADS (meta mode, advisory) ---
 
@@ -896,11 +881,11 @@ class DocCheckTests(unittest.TestCase):
         own, which is the case the fallback to `AGENTS.md` must not swallow.
         """
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = meta\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ninventory_ignore =\n",
+            "harness_version = 9\nmode = meta\nindex_file = AGENTS.md\ninventory_ignore =\n",
             encoding="utf-8",
         )
         (self.root / "AGENTS.md").write_text(
-            "# Index\n\n" + SCOPE + "\n## Services\n\n"
+            harness_rules() + "# Index\n\n" + SCOPE + "\n## Services\n\n"
             "| Service | Path | Role |\n"
             "|---------|------|------|\n"
             "| sub | `sub/` | a sub-repo |\n",
@@ -936,7 +921,7 @@ class DocCheckTests(unittest.TestCase):
         """A leaf repo has no sub-repos, so the check has nothing to say."""
         self._meta_with_sub_repo("# Sub\n\n## Docs\n")
         (self.root / "docs" / ".doc-profile").write_text(
-            "harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\ninventory_ignore =\n",
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ninventory_ignore =\n",
             encoding="utf-8",
         )
         result = self.check()
@@ -947,7 +932,7 @@ class DocCheckTests(unittest.TestCase):
         """A sub-repo with its own profile is judged on the index it declares."""
         self._meta_with_sub_repo(
             "# Sub\n\n## Docs\n",
-            profile="harness_version = 8\nmode = leaf\nindex_file = AGENTS.md\nharness_file = CLAUDE.md\n",
+            profile="harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\n",
         )
         result = self.check()
         self.assertIn("sub/AGENTS.md: no orientation head", result.stdout)
@@ -963,6 +948,110 @@ class DocCheckTests(unittest.TestCase):
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("[PLAN STATUS]", result.stdout)
         self.assertIn("sub/AGENTS.md: no orientation head", result.stdout)
+
+    def startup(self, structured=True):
+        args = ["python3", str(CHECKER), "--repo", str(self.root), "--startup"]
+        if structured:
+            args.append("--json")
+        result = subprocess.run(args, text=True, capture_output=True)
+        return result, json.loads(result.stdout) if structured else result.stdout
+
+    def test_startup_text_json_share_every_fact_and_diagnostic(self):
+        (self.root / "docs/known-issues").mkdir()
+        (self.root / "docs/known-issues/open.md").write_text("---\nstatus: open\n---\n")
+        (self.root / "docs/known-issues/missing.md").write_text("No status\n")
+        (self.root / "docs/execution-plans/invalid.md").write_text("---\nstatus: invalid\n---\n[bad](missing.md)\n")
+        (self.root / "docs/large.md").write_text("filler\n" * 401)
+        json_result, facts = self.startup()
+        text_result, output = self.startup(False)
+        self.assertEqual(json_result.returncode, 1)
+        self.assertEqual(text_result.returncode, 1)
+        parsed = {line.split(": ", 1)[0]: json.loads(line.split(": ", 1)[1]) for line in output.splitlines()[1:]}
+        for key in facts.keys() - {"harness_version", "indexed_docs", "mechanical_gate"}:
+            self.assertEqual(parsed[key], facts[key], key)
+        self.assertIn("DEAD LINKS", facts["violations"])
+        self.assertIn("PLAN STATUS", facts["violations"])
+        self.assertIn("oversized", facts["advisories"])
+        self.assertIn("unstated_issues", facts["advisories"])
+        self.assertEqual(facts["open_plans"][0]["status"], "unknown")
+        self.assertEqual(len(facts["open_issues"]), 2)
+
+    def test_startup_duplicate_closed_statuses_remain_unknown_and_visible(self):
+        (self.root / "docs/known-issues").mkdir()
+        (self.root / "docs/known-issues/duplicate.md").write_text("---\nstatus: open\nstatus: fixed\n---\n")
+        (self.root / "docs/execution-plans/duplicate.md").write_text("---\nstatus: active\nstatus: completed\n---\n")
+        _, facts = self.startup()
+        self.assertEqual(facts["open_issues"][0]["status"], "unknown")
+        self.assertEqual(facts["open_plans"][0]["status"], "unknown")
+        self.assertIn("duplicate", facts["advisories"]["unstated_issues"][0])
+
+    def test_startup_separates_staged_unstaged_and_untracked(self):
+        self.git("add", ".")
+        self.git("commit", "-m", "context")
+        (self.root / "README.md").write_text("# Staged\n")
+        self.git("add", "README.md")
+        (self.root / "README.md").write_text("# Also unstaged\n")
+        (self.root / "untracked.txt").write_text("new\n")
+        _, facts = self.startup()
+        self.assertEqual(facts["working_tree"], {"dirty": True, "staged": 1, "unstaged": 1, "untracked": 1})
+        self.assertEqual(facts["baseline"]["content_drift_commits"], 0)
+
+    def test_startup_drift_covers_merged_content_history_without_docs_only_commits(self):
+        self.git("add", ".")
+        self.git("commit", "-m", "context")
+        branch = self.git("branch", "--show-current").stdout.strip()
+        self.git("checkout", "-b", "feature")
+        (self.root / "feature.py").write_text("print(1)\n")
+        self.git("add", ".")
+        self.git("commit", "-m", "feature")
+        self.git("checkout", branch)
+        (self.root / "docs/note.md").write_text("# Docs only\n")
+        self.git("add", ".")
+        self.git("commit", "-m", "docs only")
+        self.git("merge", "--no-ff", "feature", "-m", "merge feature")
+        _, facts = self.startup()
+        self.assertTrue(facts["baseline"]["valid"])
+        self.assertEqual(facts["baseline"]["content_drift_commits"], 2)
+
+    def test_startup_irrelevant_bodies_do_not_enter_orientation_output(self):
+        self.git("add", ".")
+        self.git("commit", "-m", "context")
+        _, initial = self.startup()
+        (self.root / "docs/projects").mkdir()
+        for number in range(15):
+            (self.root / f"docs/projects/{number}.md").write_text("PRIVATE_SENTINEL\n" * 10)
+        self.git("add", ".")
+        self.git("commit", "-m", "project documents")
+        _, grown = self.startup()
+        initial.pop("indexed_docs")
+        grown.pop("indexed_docs")
+        self.assertEqual(initial, grown)
+        self.assertNotIn("PRIVATE_SENTINEL", json.dumps(grown))
+
+    def test_managed_block_rejects_duplicate_partial_malformed_and_fenced_markers(self):
+        index = self.root / "AGENTS.md"
+        canonical = index.read_bytes()
+        cases = [canonical + HARNESS_TEMPLATE.read_bytes(), canonical.replace(b"delivery:end", b"delivery:broken"), b"```\n" + canonical + b"```\n", canonical.replace(b"<!-- mrcall-ai-kit:delivery:start -->", b" <!-- mrcall-ai-kit:delivery:start -->")]
+        for data in cases:
+            index.write_bytes(data)
+            self.assertIn("[HARNESS TEMPLATE]", self.check().stdout)
+
+    def test_v8_is_rejected_without_silent_reinterpretation(self):
+        profile = self.root / "docs/.doc-profile"
+        profile.write_text(profile.read_text().replace("harness_version = 9", "harness_version = 8"))
+        _, facts = self.startup()
+        self.assertEqual(facts["profile_version"], "8")
+        self.assertIn("older than installed version 9", facts["violations"]["PROFILE"][0])
+
+    def test_status_only_reader_does_not_read_body(self):
+        checker = load_checker()
+        from unittest.mock import mock_open, patch
+        stream = mock_open(read_data="---\nstatus: active\n---\nDO NOT READ BODY\n")
+        with patch.object(Path, "open", stream):
+            self.assertEqual(checker.read_frontmatter(Path("plan.md")), ({"status": "active"}, set()))
+            self.assertEqual(stream().read.call_count, 0)
+            self.assertEqual(stream().readline.call_count, 1)
+
 
 
 if __name__ == "__main__":

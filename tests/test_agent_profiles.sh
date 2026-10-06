@@ -47,13 +47,13 @@ reviewer="$KIT_DIR/opencode/agents/medium/reviewer.md"
 command="$KIT_DIR/opencode/commands/orchestrator.md"
 skill="$KIT_DIR/opencode/skills/orchestrator/SKILL.md"
 architecture="$KIT_DIR/opencode/skills/orchestrator/ARCHITECTURE.md"
-template="$KIT_DIR/shared/templates/CLAUDE.md"
+template="$KIT_DIR/shared/templates/AGENTS.block.md"
 grep -q "CTO" "$primary"
 grep -q "CTO" "$skill"
 grep -q "CTO" "$template"
 grep -q 'Never delegate a trivial local edit' "$primary"
 grep -q 'Do not delegate a trivial local edit' "$skill"
-grep -q 'never delegate a trivial local edit' "$template" \
+grep -Fq 'no decomposition/delegation' "$template" \
   || fail "template lost the trivial-delegation guard"
 
 for banned in \
@@ -112,27 +112,20 @@ hook_out="$(printf '{"session_id":"tiny","cwd":"/nonexistent","transcript_path":
   || fail "router reprints standing instructions the session already holds"
 echo "router's real hook output carries no standing directive: PASS"
 
-# Those guarantees are not gone: their carrier is the managed template, which
-# every managed repository installs as its own CLAUDE.md and every session
-# therefore already holds. Each assertion below fails if the rule leaves it.
-grep -q 'Implement directly when fastest' "$template" \
+grep -Fq 'one focused real check proves it. Implement and' "$template" \
   || fail "template does not keep narrow work local"
-grep -q 'coordination, waiting, and review' "$template" \
+grep -Fq 'parallelism, expertise, or isolation exceeds coordination cost' "$template" \
   || fail "template lacks positive-value delegation gate"
-grep -q 'Use the fast path only when every' "$template" \
+grep -Fq 'Fast path requires ALL:' "$template" \
   || fail "template lacks strict fast-path criteria"
-grep -q 'Do not plan until it returns' "$template" \
+grep -Fq 'Order: brief → fresh reviewer APPROVED → plan → fresh reviewer APPROVED →' "$template" \
   || fail "template can plan before brief approval"
-grep -q 'Do not delegate or implement until it' "$template" \
+grep -Fq 'implementation → milestone integration review before dependent work → separate' "$template" \
   || fail "template can delegate or implement before plan approval"
-grep -q 'separate final end-to-end review' "$template" \
+grep -Fq 'final review through the final-user path' "$template" \
   || fail "template lacks separate final review"
-grep -q 'A review returns exactly one of' "$template" \
+grep -Fq 'Verdicts: APPROVED, REVISE, FAST_PATH' "$template" \
   || fail "template lacks bounded review verdicts"
-# The eighth guarantee — that nothing tells the session to delegate ordinary
-# work by default — is asserted positively at the top of this file, where the
-# template must still say `never delegate a trivial local edit`. Asserting the
-# absence of the hook's old phrasing here would be a test that cannot fail.
 echo "the managed template carries what the router stopped reprinting: PASS"
 
 for mode in copy symlink; do
@@ -141,7 +134,7 @@ for mode in copy symlink; do
   HOME="$test_home" "$KIT_DIR/install.sh" \
     --environment all --features doc-harness,orchestration,workers,router \
     --mode "$mode" --on-exist skip --yes >/dev/null
-  grep -q 'human CTO' "$test_home/.config/mrcall-ai-kit/CLAUDE.template.md"
+  grep -q 'human CTO' "$test_home/.config/mrcall-ai-kit/AGENTS.block.md"
   grep -q 'Never delegate a trivial local edit' "$test_home/.config/opencode/agents/orchestrator.md"
   grep -q 'reviewer: allow' "$test_home/.config/opencode/agents/build.md"
   grep -q 'Do not draft the plan until' "$test_home/.config/opencode/agents/plan.md"

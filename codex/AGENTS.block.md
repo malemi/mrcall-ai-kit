@@ -1,9 +1,14 @@
 <!-- mrcall-ai-kit:codex-agents:start -->
 If you are the lead Codex session in a repository with `docs/.doc-profile`,
-load that repository's `CLAUDE.md` before substantial work and follow its reviewed delivery flow. The short order
-is brief, fresh `reviewer` verdict, plan, fresh `reviewer` verdict, reviewed
-milestones, then a separate final review. Use the direct fast path only when
-the conditions in `CLAUDE.md` all hold.
+follow the managed lifecycle block in that repository's `AGENTS.md`. Before
+source investigation for any repository request, personally run the applicable
+`doc-start` orientation and read relevant durable docs, reusing valid context.
+Respect the request-kind limits: brief-only and review-only requests return only
+the requested artifact or verdict; documentation-only changes run `doc-end`;
+fast-path changes state documentation impact. Substantial development follows
+brief, fresh reviewer, plan, fresh reviewer, reviewed milestones, documentation
+closure, then separate final review before baseline advancement. Release needs
+separate task authorization. Never load a legacy `CLAUDE.md` as the v9 protocol.
 
 The kit installs Codex custom agents `reviewer`, `verify`, `execute`, and
 `plan` in `~/.codex/agents/`. As lead, for a lifecycle gate, spawn `reviewer` by name

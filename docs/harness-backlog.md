@@ -36,6 +36,17 @@ budget-driven model resolution plan. Closing it: `uninstall.sh` looks back to
 the last recorded backup for the path, or an overwrite install carries it
 forward.
 
+## OPEN — a client can skip the complete documentation lifecycle
+
+**Logged**: 2026-10-05. Native Codex tests can complete an explicitly requested
+whole-lifecycle bypass without creating a completion record or receiving a
+host denial. The completion CLI refuses missing or stale evidence only when
+invoked; model instructions and stored attestations do not force invocation.
+The measured client/configuration limits are in
+[`harness-runtime-support.md`](harness-runtime-support.md). Closing this gap
+requires an independently supported runtime interception point with an actual
+denial and compliant retry; no such control is claimed by v9.
+
 ## Oversized docs — reviewed
 
 One line per document the gate's oversized advisory has named, with the verdict

@@ -9,7 +9,7 @@ set -euo pipefail
 #
 # Content is routed by tool-compatibility:
 #   shared/    cross-tool  — the doc-harness (doc-* commands, doc-critic skill)
-#              + doc-check.py, doc-keywords.py and the managed CLAUDE.md template
+#              + documentation checker, keywords, migration helper and assets
 #                (installed once to ~/.config/mrcall-ai-kit/)
 #              + ai-help / ai-tutorial (installed with doc-harness; introspect whatever is
 #                actually installed rather than a list that goes stale)
@@ -112,7 +112,7 @@ EOF
   echo "  doc-harness    [cross-tool → Claude Code + Codex + OpenCode]"
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
-  echo "     scripts:    doc-check.py + doc-keywords.py + CLAUDE.template.md, and the scripts of ai-help, ai-tutorial and"
+  echo "     scripts:    doc-check.py + doc-evidence.py + doc-keywords.py + doc-migrate.py + AGENTS.block.md + legacy/, and ai-help, ai-tutorial and"
   echo "                 ai-budget  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
@@ -345,10 +345,14 @@ add_agent() { # $1=runtime (claude|opencode) $2=agent name $3=the runtime's agen
 if $DO_DOC; then
   # doc-check.py → kit-global, once (the commands call it from here)
   add_one "$SCRIPT_DIR/shared/scripts/doc-check.py" "$KIT_GLOBAL/doc-check.py"
+  add_one "$SCRIPT_DIR/shared/scripts/doc-evidence.py" "$KIT_GLOBAL/doc-evidence.py"
   add_one "$SCRIPT_DIR/shared/scripts/doc-keywords.py" "$KIT_GLOBAL/doc-keywords.py"
-  # One source for the harness-managed repository CLAUDE.md. doc-create and the
-  # gate both read this installed artifact; project guidance lives in AGENTS.md.
-  add_one "$SCRIPT_DIR/shared/templates/CLAUDE.md" "$KIT_GLOBAL/CLAUDE.template.md"
+  add_one "$SCRIPT_DIR/shared/scripts/doc-migrate.py" "$KIT_GLOBAL/doc-migrate.py"
+  add_one "$SCRIPT_DIR/shared/templates/AGENTS.block.md" "$KIT_GLOBAL/AGENTS.block.md"
+  for legacy_asset in legacy/manifest.json legacy/codex-agents.block.md legacy/v6/CLAUDE.md legacy/v7/CLAUDE.md legacy/v8/CLAUDE.md legacy/v8/CLAUDE.initial.md legacy/v8/CLAUDE.review.md; do
+    [[ -f "$SCRIPT_DIR/shared/templates/$legacy_asset" ]] || { echo "Missing install source: $SCRIPT_DIR/shared/templates/$legacy_asset" >&2; exit 1; }
+  done
+  add_one "$SCRIPT_DIR/shared/templates/legacy" "$KIT_GLOBAL/legacy"
   # ai-help emits its own listing from here rather than inline in the command:
   # Claude Code delimits an injected shell block with backticks, and the script
   # needs backticks of its own to format a model column.
@@ -569,6 +573,20 @@ while IFS=$'\t' read -r r_src r_rel || [[ -n "${r_src:-}" ]]; do
   fi
 done < "$RETIRED_LIST"
 
+if $DO_DOC && [[ -e "$KIT_GLOBAL/CLAUDE.template.md" || -L "$KIT_GLOBAL/CLAUDE.template.md" ]]; then
+  legacy_owned=false
+  for legacy_asset in "$SCRIPT_DIR"/shared/templates/legacy/v*/CLAUDE*.md; do
+    if cmp -s "$KIT_GLOBAL/CLAUDE.template.md" "$legacy_asset"; then legacy_owned=true; break; fi
+  done
+  if $legacy_owned; then
+    RET_DST+=("$KIT_GLOBAL/CLAUDE.template.md")
+    RET_SRC+=("$SCRIPT_DIR/shared/templates/CLAUDE.md")
+    RET_WHY+=("exact recognized historical template")
+  else
+    KEEP_DST+=("$KIT_GLOBAL/CLAUDE.template.md")
+  fi
+fi
+
 # ── Preview ────────────────────────────────────────────────────────────────
 echo "── Plan (mode: $MODE, on-exist: $ON_EXIST$($DRY_RUN && echo ', DRY-RUN' || true)) ──"
 i=0
@@ -621,9 +639,29 @@ if ! $DRY_RUN && ! $ASSUME_YES; then
 fi
 
 # ── Execute ────────────────────────────────────────────────────────────────
+item_digest() {
+  python3 - "$1" <<'DIGEST'
+from pathlib import Path
+import hashlib, json, os, stat, sys
+root = Path(sys.argv[1])
+items = [root]
+if root.is_dir() and not root.is_symlink():
+    for base, directories, files in os.walk(root, followlinks=False):
+        items.extend(Path(base) / name for name in directories + files)
+records = []
+for item in sorted(items):
+    mode = item.lstat().st_mode
+    payload = os.readlink(item) if item.is_symlink() else hashlib.sha256(item.read_bytes()).hexdigest() if item.is_file() else ''
+    records.append([str(item.relative_to(root)), stat.S_IFMT(mode), stat.S_IMODE(mode), payload])
+print(hashlib.sha256(json.dumps(records, ensure_ascii=True, separators=(',', ':')).encode()).hexdigest())
+DIGEST
+}
+
 record_install() { # $1=mode $2=dest $3=src $4=backup — append one manifest line
   mkdir -p "$KIT_GLOBAL"
-  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3" "${4:-}" >> "$MANIFEST"
+  local content_hash=""
+  if [[ "$1" == copy ]]; then content_hash="$(item_digest "$2")"; fi
+  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "$1" "$2" "$3" "${4:-}" "$content_hash" >> "$MANIFEST"
 }
 
 move_aside() { # $1=path $2=its backup — one generation: an older backup is replaced
@@ -690,7 +728,11 @@ install_item() { # $1=src $2=dst
 retire_item() { # $1=destination $2=the source the kit shipped it from — under skip, never called
   local dst="$1" bak=""
   case "$ON_EXIST" in
-    backup)    bak="$(backup_path "$dst")"; $DRY_RUN || move_aside "$dst" "$bak"; echo "  backup   $dst -> $bak (retired)" ;;
+    backup)
+      bak="$(backup_path "$dst")"
+      if [[ -e "$bak" || -L "$bak" ]]; then bak="$(next_backup_path "$bak")"; fi
+      $DRY_RUN || move_aside "$dst" "$bak"
+      echo "  backup   $dst -> $bak (retired)" ;;
     overwrite) $DRY_RUN || rm -rf "$dst"; echo "  remove   $dst (retired)" ;;
   esac
   # The log's last line for the path now says the kit put nothing there: a file

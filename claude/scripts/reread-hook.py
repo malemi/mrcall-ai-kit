@@ -13,7 +13,7 @@ case, and it costs nothing when unused. `/sc on` sets a flag that stays until
 
 What it is for. The rules about how to answer — run the check you just named,
 say what a thing is before naming it, one idea per sentence — already exist, in
-the managed `CLAUDE.md` and in this kit's own docs. They are good rules and they
+the shipped checklist and role instructions. They are good rules and they
 are forgotten, because by the end of a long turn they sit twenty thousand tokens
 back. Nothing is wrong with the rule; it is simply out of sight at the moment it
 applies. So this hook does not judge the answer and does not classify anything.
