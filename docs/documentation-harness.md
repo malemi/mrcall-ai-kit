@@ -273,7 +273,9 @@ the checkout the installed `doc-check.py` resolves into, on every branch and
 detached HEAD — a constant different from the newest tag's major is a
 blocking violation, except that an ahead constant with a `## vN.x.y` heading
 in `CHANGELOG.md` (a release in flight, or retained pending an authorized
-retry) downgrades to a named advisory. Recorded limits: a raw push from
+retry) downgrades to a named advisory; when no release tag is visible at all
+(a fresh or shallow clone), the finding is likewise an advisory, not a
+violation. Recorded limits: a raw push from
 another clone is caught only when this checkout pulls it; a retained version
 section whose release run died stays an advisory until an authorized retry
 completes it; the gate reads local tags only and never fetches.

@@ -1,5 +1,5 @@
 ---
-status: active
+status: completed
 brief: docs/briefs/2026-10-06-protocol-release-invariant.md
 ---
 
@@ -345,7 +345,27 @@ checker on it — expect the migrate-with-doc-create refusal; run the installed
 
 ## State
 
-- 2026-10-06: plan APPROVED at round 3. M1a done: T1 finalized (completion
-  qualified — two nonblocking UNVERIFIABLE deferrals in the critic report),
-  baseline advanced to edc784b, consolidation commit c7eee0d pushed. M1b
-  committing the work trace; M1c (Phase 5, v9.0.0) next.
+- 2026-10-06: plan APPROVED at round 3 (approved bytes retained, sha256
+  76d43151…2bd8). M1 done: T1 closed edc784b (consolidation c7eee0d,
+  baseline advanced); work trace 8611bc8; Phase 5 ran verbatim (changelog
+  commit 5d46af7 alone, T2 completion task, consolidation 1d197ce, both
+  pushed); release.sh v9.0.0 printed PASS for all nine checks — tag and
+  GitHub Release published (logs/release-v9.0.0.log); install refreshed with
+  the tarball snapshot as rollback (v9 assets verified symlinks; router.on,
+  scope-guard plugin, settings.json/opencode.json untouched; llms.md kept as
+  operator-owned); fixture probe: installed checker refuses a v8 profile
+  with the migrate-with-doc-create message and installed doc-migrate.py
+  operates. M1 integration review: APPROVED (reports/m1-review.txt).
+  Interleaved operator task (plan/reviewer anti-truncation rules) landed as
+  4390ab0 + 2e76872 with its own finalized fast-path record
+  t-role-notrunc-20261006; it is outside the v9.0.0 tag and listed under
+  Unreleased.
+- 2026-10-06: M2 done and pushed as d8cdbca: invariant check in
+  doc-check.py + 12 tests (196 pytest green), Phase 5 amendments
+  byte-identical in both workflow copies, "Releasing" rule text, changelog
+  entry; 17/17 shell sweep; live probe passed all five expectations
+  (logs/probe-invariant-output.log). T3 initialized (scope_digest
+  f00515c2…989d); brief/plan/M1/M2 verdicts recorded. M2 integration
+  review: APPROVED (reports/m2-review.txt); its non-blocking note 1 (no-tag
+  advisory missing from the Releasing text) repaired in M3's reconciliation.
+  M3 in progress.

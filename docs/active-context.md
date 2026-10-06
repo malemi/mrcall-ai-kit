@@ -1,5 +1,5 @@
 ---
-doc_baseline_commit: 4390ab0e1654b35fc151f1c89f5dbbc3d9eeb40b
+doc_baseline_commit: d8cdbcaadb10fe413cbd0a83ad71f147bf200e07
 doc_baseline_date: 2026-10-06
 ---
 
@@ -20,9 +20,10 @@ judgment.
 
 The installed commands, skills, and checker on this machine are symlinks into
 this checkout, so doc-start, doc-end, and the checker run v9 for every
-repository here. The installation predates v9: `~/.config/mrcall-ai-kit` lacks
-`doc-migrate.py`, `doc-evidence.py`, `AGENTS.block.md`, and `legacy/`, so the
-installed `doc-create` cannot migrate until `./install.sh` runs again. Every
+repository here. The installation was refreshed on 2026-10-06 (symlink
+mode): `~/.config/mrcall-ai-kit` now carries the v9 migration assets
+(`doc-migrate.py`, `doc-evidence.py`, `AGENTS.block.md`, `legacy/`), so the
+installed `doc-create` migration path is operable. Every
 other repository on this machine carries an older profile (mostly v8; some v3,
 v2, or none); its doc gates refuse until it is migrated, and only v6–v8 can
 migrate through `doc-create`.
@@ -38,9 +39,11 @@ private reasoning is not observable. Installed-client verification and its
 limits remain in the corresponding durable contracts.
 
 Release requires task authorization in addition to the profile command.
-The v9 adoption is committed and pushed (edc784b); release v9.0.0 is
-authorized in-task on 2026-10-06 and is being cut through doc-end Phase 5
-in this run.
+v9.0.0 was cut on 2026-10-06 (tag on the pushed release-flow HEAD), and the
+kit's gate now enforces the protocol/release invariant: `HARNESS_VERSION`
+must equal the newest release tag's major — on `main`, and on every branch
+of the installed checkout — with an in-flight release (a `## vN.x.y`
+changelog heading, no tag yet) downgraded to a named advisory.
 
 ## Unresolved
 
@@ -75,11 +78,12 @@ in this run.
 
 ## Next
 
-- Rerun `./install.sh` so the installed `doc-create` finds the v9 migration
-  assets.
 - Migrate downstream repositories one at a time with `doc-create`, starting
   with the `/home/mal/hb` meta-repository (after trimming its AGENTS.md to at
   most 138 lines) so its CLAUDE.md stops shadowing sub-repository AGENTS.md files.
 - Complete the remaining scope-guard plan with installed-client evidence.
 - Refresh resolved models when their evidence changes, using the documented
   resolver and generation workflow.
+- Cut v9.1.0 when the next release is authorized: Unreleased carries the
+  protocol/release invariant enforcement and the plan/reviewer
+  anti-truncation rules.
