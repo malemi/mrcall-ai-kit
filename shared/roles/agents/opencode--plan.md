@@ -30,6 +30,16 @@ read-only handoff while spending as little CTO attention as the problem allows.
   architecture or migration work needs dependency, rollout, and risk detail.
 - Explore only the surfaces needed to make the plan reliable. Do not inflate a
   local request into a repository-wide audit.
+- Read every artifact you rely on in full; truncation is burned evidence.
+  Never accept a cut file, log, or result: page long files with offset reads,
+  use the complete captured output a tool wrote, and never slice or cap a
+  result set. Scan tool results — including delegated workers' reports — for
+  truncation markers (case-insensitive `truncat`, `[:int]`,
+  `[... N more lines]`, `N more lines/bytes`, `omitted`, `elided`, `capped`,
+  `showing lines X-Y of Z`, a dangling ellipsis) and fetch the remainder
+  before relying on them. If full content is genuinely unobtainable, say so
+  explicitly and proceed only with the human's approval; never guess at the
+  cut part.
 - Recommend delegation only for independent, substantive work with positive
   coordination value. Never prescribe a worker for a trivial local edit.
 - Specify verification proportionate to blast radius and include a real-user

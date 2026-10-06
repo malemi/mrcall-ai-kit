@@ -8,6 +8,12 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- The `plan` (architect) and `reviewer` role prompts now treat truncation as
+  evidence loss: read artifacts whole, scan tool results for truncation
+  markers (`truncat`, `[:int]`, `[... N more lines]`, capped-output notices)
+  and fetch the remainder, and use partial content only with the operator's
+  explicit approval. Regenerated the Claude Code, Codex, and OpenCode agents.
+
 ## v9.0.0 — 2026-10-06
 
 - Harness v9 consolidates repository delivery instructions into one managed
