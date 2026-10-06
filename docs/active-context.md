@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: c88b024275eb78a79c399979ae0eab9cd94fbc08
-doc_baseline_date: 2026-10-05
+doc_baseline_commit: edc784b4767883f1972e81db6b454d64b2d27f42
+doc_baseline_date: 2026-10-06
 ---
 
 # Active Context
@@ -38,7 +38,9 @@ private reasoning is not observable. Installed-client verification and its
 limits remain in the corresponding durable contracts.
 
 Release requires task authorization in addition to the profile command.
-The v9 adoption is uncommitted in the working tree; no release is cut.
+The v9 adoption is committed and pushed (edc784b); release v9.0.0 is
+authorized in-task on 2026-10-06 and is being cut through doc-end Phase 5
+in this run.
 
 ## Unresolved
 
