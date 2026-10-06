@@ -8,6 +8,15 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- The kit repository now mechanically enforces the protocol/release
+  invariant: the gate refuses `main` — and every branch of the checkout the
+  installed `doc-check.py` resolves into — when `HARNESS_VERSION` differs
+  from the newest release tag's major, downgrading to an advisory while a
+  release is in flight (a `## vN.x.y` changelog section with no tag yet).
+  `doc-end` Phase 5 gains the matching lifecycle: a fast-forward-only merge
+  entry for protocol releases, a retry exit for a retained untagged version
+  section, and a major-release recovery that keeps the section as the
+  pending-release marker.
 - The `plan` (architect) and `reviewer` role prompts now treat truncation as
   evidence loss: read artifacts whole, scan tool results for truncation
   markers (`truncat`, `[:int]`, `[... N more lines]`, capped-output notices)

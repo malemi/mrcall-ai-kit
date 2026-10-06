@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -1052,6 +1053,183 @@ class DocCheckTests(unittest.TestCase):
             self.assertEqual(stream().read.call_count, 0)
             self.assertEqual(stream().readline.call_count, 1)
 
+
+
+class ProtocolReleaseInvariantTests(unittest.TestCase):
+    """Kit-self invariant: HARNESS_VERSION equals the newest release tag's major.
+
+    The fixture is a complete clean leaf harness repo plus the kit marker
+    (shared/scripts/doc-check.py with a HARNESS_VERSION line), so CLI exit
+    codes reflect only this check.
+    """
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temp.cleanup)
+        self.root = Path(self.temp.name)
+        (self.root / "docs").mkdir()
+        (self.root / "shared" / "scripts").mkdir(parents=True)
+        (self.root / "AGENTS.md").write_text(harness_rules() + "# Index\n\n" + SCOPE, encoding="utf-8")
+        (self.root / "docs" / "README.md").write_text("# Docs\n\n" + SCOPE, encoding="utf-8")
+        (self.root / "docs" / ".doc-profile").write_text(
+            "harness_version = 9\nmode = leaf\nindex_file = AGENTS.md\ninventory_ignore =\n",
+            encoding="utf-8",
+        )
+        self.git("init", "-b", "main")
+        self.git("config", "user.email", "tests@example.invalid")
+        self.git("config", "user.name", "Tests")
+        self.git("add", ".")
+        self.git("commit", "-m", "initial")
+        baseline = self.git("rev-parse", "HEAD").stdout.strip()
+        (self.root / "docs" / "active-context.md").write_text(
+            f"---\ndoc_baseline_commit: {baseline}\n---\n# Context\n\n{SCOPE}", encoding="utf-8"
+        )
+        self.set_constant(9)
+        self.git("add", ".")
+        self.git("commit", "-m", "kit marker and living context")
+
+    def git(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            ["git", *args], cwd=self.root, text=True, capture_output=True, check=True
+        )
+
+    def set_constant(self, value: int) -> None:
+        (self.root / "shared" / "scripts" / "doc-check.py").write_text(
+            f'"""Fixture stub."""\n\nHARNESS_VERSION = {value}\n', encoding="utf-8"
+        )
+
+    def check(self, kit_home: str | None = None) -> tuple[subprocess.CompletedProcess[str], dict]:
+        env = dict(os.environ)
+        if kit_home is not None:
+            env["MRCALL_KIT_HOME"] = kit_home
+        result = subprocess.run(
+            ["python3", str(CHECKER), "--repo", str(self.root), "--json"],
+            text=True, capture_output=True, env=env,
+        )
+        return result, json.loads(result.stdout)
+
+    def violations(self, payload: dict) -> list[str]:
+        return payload["violations"].get("PROTOCOL RELEASE", [])
+
+    def advisories(self, payload: dict) -> list[str]:
+        return payload["advisories"].get("protocol_release", [])
+
+    def with_kit_home(self):
+        """An MRCALL_KIT_HOME whose doc-check.py resolves inside the fixture:
+        the fixture is the installed checkout."""
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        (Path(home.name) / "doc-check.py").symlink_to(self.root / "shared" / "scripts" / "doc-check.py")
+        return home.name
+
+    def with_foreign_kit_home(self):
+        """An MRCALL_KIT_HOME that resolves nowhere near the fixture."""
+        home = tempfile.TemporaryDirectory()
+        self.addCleanup(home.cleanup)
+        (Path(home.name) / "doc-check.py").write_text("HARNESS_VERSION = 9\n", encoding="utf-8")
+        return home.name
+
+    def test_equal_protocol_and_tag_is_clean(self) -> None:
+        self.git("tag", "v9.0.0")
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.violations(payload), [])
+        self.assertEqual(self.advisories(payload), [])
+
+    def test_ahead_without_changelog_section_blocks(self) -> None:
+        self.git("tag", "v8.2.0")
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 1)
+        errors = self.violations(payload)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("ahead of the newest release tag v8.2.0", errors[0])
+        self.assertIn("revert the bump", errors[0])
+        self.assertIn("git fetch --tags", errors[0])
+
+    def test_ahead_with_version_heading_is_advisory(self) -> None:
+        self.git("tag", "v8.2.0")
+        (self.root / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## Unreleased\n\n## v9.0.0 — 2026-10-06\n\n- notes\n", encoding="utf-8"
+        )
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.violations(payload), [])
+        advisories = self.advisories(payload)
+        self.assertEqual(len(advisories), 1)
+        self.assertIn("release pending", advisories[0])
+
+    def test_version_heading_of_other_major_does_not_exempt(self) -> None:
+        self.git("tag", "v8.2.0")
+        (self.root / "CHANGELOG.md").write_text(
+            "# Changelog\n\n## Unreleased\n\n## v10.0.0 — 2026-10-06\n\n- notes\n", encoding="utf-8"
+        )
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(self.violations(payload)), 1)
+
+    def test_behind_newest_tag_blocks(self) -> None:
+        self.set_constant(8)
+        self.git("tag", "v9.0.0")
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 1)
+        errors = self.violations(payload)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("behind the newest release tag v9.0.0", errors[0])
+        self.assertIn("revert the downgrade", errors[0])
+
+    def test_non_kit_repository_is_silent(self) -> None:
+        (self.root / "shared" / "scripts" / "doc-check.py").unlink()
+        self.git("tag", "v3.4.5")
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertNotIn("PROTOCOL RELEASE", payload["violations"])
+        self.assertEqual(self.advisories(payload), [])
+
+    def test_no_visible_tag_is_advisory(self) -> None:
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.violations(payload), [])
+        advisories = self.advisories(payload)
+        self.assertEqual(len(advisories), 1)
+        self.assertIn("no release tag is visible", advisories[0])
+
+    def test_highest_semver_wins_over_newest_created(self) -> None:
+        self.git("tag", "v9.0.0")
+        self.git("tag", "v8.9.0")  # created last, but lower
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.violations(payload), [])
+        self.assertEqual(self.advisories(payload), [])
+
+    def test_non_main_branch_silent_outside_installed_checkout(self) -> None:
+        self.git("tag", "v8.2.0")
+        self.git("checkout", "-b", "protocol-v10")
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.violations(payload), [])
+
+    def test_detached_head_silent_outside_installed_checkout(self) -> None:
+        self.git("tag", "v8.2.0")
+        self.git("checkout", "--detach")
+        result, payload = self.check(self.with_foreign_kit_home())
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(self.violations(payload), [])
+
+    def test_installed_checkout_enforces_every_branch(self) -> None:
+        self.git("tag", "v8.2.0")
+        self.git("checkout", "-b", "protocol-v10")
+        result, payload = self.check(self.with_kit_home())
+        self.assertEqual(result.returncode, 1)
+        errors = self.violations(payload)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("ahead of the newest release tag v8.2.0", errors[0])
+
+    def test_installed_checkout_enforces_detached_head(self) -> None:
+        self.git("tag", "v8.2.0")
+        self.git("checkout", "--detach")
+        result, payload = self.check(self.with_kit_home())
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(self.violations(payload)), 1)
 
 
 if __name__ == "__main__":

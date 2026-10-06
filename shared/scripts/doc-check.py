@@ -634,6 +634,80 @@ def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run(["git", *args], cwd=root, capture_output=True, text=True)
 
 
+def check_protocol_release(root: Path) -> tuple[list[str], list[str]]:
+    """Kit-self invariant: the enforced protocol equals the released protocol.
+
+    Only the kit checkout carries `shared/scripts/doc-check.py` at its root, so
+    this is silent in every other repository. The installed checkout — the one
+    the machine's `${MRCALL_KIT_HOME:-~/.config/mrcall-ai-kit}/doc-check.py`
+    resolves into — is enforced on every branch and detached HEAD, because
+    symlinks expose its working tree machine-wide the moment it changes; any
+    other checkout (linked worktree, clone, copy-mode install) is enforced
+    only on `main`, the release source, so development worktrees legitimately
+    precede a release. Ahead of the newest tag is a violation unless
+    `CHANGELOG.md` carries a `## vN.x.y` heading — the state doc-end Phase 5
+    stages before the release command runs — which downgrades to an advisory;
+    behind the newest tag is always a violation. Highest semver among local
+    tags wins; the gate never fetches, so every message names the staleness
+    caveat.
+    """
+    gate = root / "shared" / "scripts" / "doc-check.py"
+    if not gate.is_file():
+        return [], []
+    match = re.search(
+        r"^HARNESS_VERSION = (\d+)$",
+        gate.read_text(encoding="utf-8", errors="replace"),
+        re.M,
+    )
+    if not match:
+        return [], []
+    protocol = int(match.group(1))
+    kit_home = Path(os.environ.get("MRCALL_KIT_HOME") or (Path.home() / ".config" / "mrcall-ai-kit"))
+    installed = kit_home / "doc-check.py"
+    try:
+        installed_checkout = installed.exists() and installed.resolve().is_relative_to(root.resolve())
+    except OSError:
+        installed_checkout = False
+    branch = run_git(root, "rev-parse", "--abbrev-ref", "HEAD").stdout.strip()
+    if not installed_checkout and branch != "main":
+        return [], []
+    versions = []
+    for name in run_git(root, "tag", "--list").stdout.split():
+        parsed = re.fullmatch(r"v(\d+)\.(\d+)\.(\d+)", name)
+        if parsed:
+            versions.append((tuple(int(part) for part in parsed.groups()), name))
+    if not versions:
+        return [], [
+            f"HARNESS_VERSION {protocol} but no release tag is visible: the protocol/release "
+            "invariant cannot be verified (fresh or shallow clone? run `git fetch --tags`)"
+        ]
+    newest_version, newest_tag = max(versions)
+    if newest_version[0] == protocol:
+        return [], []
+    stale = " If local tags are stale, run `git fetch --tags`."
+    if newest_version[0] > protocol:
+        return [
+            f"HARNESS_VERSION {protocol} is behind the newest release tag {newest_tag}: this "
+            "checkout enforces a protocol older than its own release — restore the released "
+            f"protocol with an ordinary commit (revert the downgrade).{stale}"
+        ], []
+    changelog = root / "CHANGELOG.md"
+    pending = changelog.is_file() and re.search(
+        rf"^## v{protocol}\.\d+\.\d+",
+        changelog.read_text(encoding="utf-8", errors="replace"),
+        re.M,
+    )
+    if pending:
+        return [], [
+            f"protocol v{protocol} release pending: CHANGELOG.md carries a v{protocol} section but no "
+            f"v{protocol}.x tag exists — complete the authorized release (doc-end Phase 5 retry exit).{stale}"
+        ]
+    return [
+        f"HARNESS_VERSION {protocol} is ahead of the newest release tag {newest_tag}: unreleased "
+        "protocol — cut the authorized release via doc-end Phase 5, or revert the bump." + stale
+    ], []
+
+
 def check_baseline(root: Path) -> list[str]:
     context = root / "docs" / "active-context.md"
     if not context.is_file():
@@ -890,6 +964,8 @@ def main() -> int:
         ("BASELINE", check_baseline(root)),
         ("LIVING CONTEXT", check_living_context(root)),
     ]
+    protocol_errors, protocol_advisories = check_protocol_release(root)
+    groups.append(("PROTOCOL RELEASE", protocol_errors))
     if meta:
         groups.append(("INVENTORY DRIFT", check_inventory(root, index_file, ignore)))
         groups.append(("DUPLICATE INDEX", check_no_dup_index(root, index_file)))
@@ -913,7 +989,7 @@ def main() -> int:
             "indexed_docs": len(index_docs(root, index_file, harness_file)),
             "mechanical_gate": "failed" if failed else "clean",
             "violations": {name: errors for name, errors in failed},
-            "advisories": {name: warnings for name, warnings in (("oversized", oversized), ("undated_traces", undated), ("open_sessions", open_sessions), ("unstated_issues", unstated_issues), ("unoriented_indexes", unoriented)) if warnings},
+            "advisories": {name: warnings for name, warnings in (("oversized", oversized), ("undated_traces", undated), ("open_sessions", open_sessions), ("unstated_issues", unstated_issues), ("unoriented_indexes", unoriented), ("protocol_release", protocol_advisories)) if warnings},
             **facts,
         }
         if args.json:
@@ -961,6 +1037,10 @@ def main() -> int:
             f"orientation head, NOT a gate failure:"
         )
         for warning in unoriented:
+            print(f"    - {warning}")
+    if protocol_advisories:
+        print("advisory — protocol/release invariant, NOT a gate failure:")
+        for warning in protocol_advisories:
             print(f"    - {warning}")
     return 1 if failed else 0
 
