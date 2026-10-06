@@ -8,6 +8,8 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.0.0 — 2026-10-06
+
 - Harness v9 consolidates repository delivery instructions into one managed
   AGENTS.md block. Explicit migration preserves project content, verifies
   compatibility evidence, recognizes exact legacy templates, and supports
