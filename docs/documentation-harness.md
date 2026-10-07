@@ -205,6 +205,11 @@ recovery; rollback refuses unrelated subsequent edits. Customized or ambiguous
 legacy layouts stop untouched instead of guessing a merge. Installing the kit
 does not migrate repositories or change client instruction-loading settings.
 
+Explicit operator deferral permits `--allow-unverified` to skip compatibility
+report validation. Transactions label this mode `operator-authorized-unverified`;
+it establishes no measured runtime support. Ownership, staging, publication and
+rollback checks remain enforced. A refusal alone never authorizes this option.
+
 ## Reconciliation, evidence, and baseline
 
 `doc-end` gathers committed changes since the valid baseline plus staged,
@@ -292,3 +297,5 @@ changelog section, clean tracked tree, `main` at `origin/main`, the mechanical
 gate, all shell tests, and Python suites before tagging, pushing, and publishing.
 `--dry-run` runs checks and prints publication commands. Its fixture tests use
 a bare remote and a `gh` stub; those tests are not a production release.
+An explicit operator request to defer tests permits `--skip-tests`; the script
+reports shell/Python testing as deferred and retains all other release checks.

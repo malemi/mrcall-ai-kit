@@ -41,6 +41,11 @@ judgment.
   only when the affected surface warrants them.
 - Fix in-scope problems instead of merely reporting them. After a worker or
   command fails, diagnose and choose another safe path before escalating.
+- A missing external prerequisite or installed-tool refusal stops that
+  operation. Use only documented authorized preflight/recovery commands; do not
+  inspect/edit AI-kit source through installation symlinks, change dependency
+  policy/configuration, or invent evidence during a downstream task. Report
+  the exact refusal. Kit diagnosis/repair requires a separate explicit kit task.
 - Keep updates useful and reports outcome-first.
 
 Before source investigation, personally perform the managed AGENTS lifecycle's

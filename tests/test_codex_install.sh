@@ -31,8 +31,10 @@ for mode in copy symlink; do
   test -f "$test_home/.config/mrcall-ai-kit/doc-evidence.py"
   test -f "$keywords"
   test -f "$test_home/.config/mrcall-ai-kit/doc-migrate.py"
+  test -f "$test_home/.config/mrcall-ai-kit/doc-compat.py"
   diff -qr "$KIT_DIR/shared/templates/legacy" "$test_home/.config/mrcall-ai-kit/legacy"
   python3 "$test_home/.config/mrcall-ai-kit/doc-migrate.py" --help > /dev/null
+  python3 "$test_home/.config/mrcall-ai-kit/doc-compat.py" --help > /dev/null
   test ! -e "$test_home/.config/mrcall-ai-kit/CLAUDE.template.md"
   (cd "$test_home" && python3 "$keywords" --repo "$KIT_DIR" --json >/dev/null)
   # /ai-help calls this from the kit-global home; without it the command is dead.
@@ -115,6 +117,7 @@ cp "$KIT_DIR/install.sh" "$missing_kit/install.sh"
 cp "$KIT_DIR/shared/scripts/doc-check.py" "$missing_kit/shared/scripts/doc-check.py"
 cp "$KIT_DIR/shared/scripts/doc-evidence.py" "$missing_kit/shared/scripts/doc-evidence.py"
 cp "$KIT_DIR/shared/scripts/doc-keywords.py" "$missing_kit/shared/scripts/doc-keywords.py"
+cp "$KIT_DIR/shared/scripts/doc-compat.py" "$missing_kit/shared/scripts/doc-compat.py"
 cp "$KIT_DIR/shared/scripts/doc-migrate.py" "$missing_kit/shared/scripts/doc-migrate.py"
 missing_home="$TEST_ROOT/missing-home"
 mkdir -p "$missing_home"

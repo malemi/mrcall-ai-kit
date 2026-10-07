@@ -282,6 +282,48 @@ class MigrationTests(unittest.TestCase):
         self.run_action("apply", "--mode", "leaf", "--transaction", self.root / "transaction", expected=1)
         self.assertEqual(before, self.tree())
 
+    def test_prerequisite_diagnostics_name_bounded_next_action(self):
+        self.legacy()
+        before = self.tree()
+        result = self.invoke("dry-run", expected=1)
+        self.assertEqual(result["next_action"]["steps"], ["prepare", "collect", "independent-review", "report"])
+        for client, version, mode in (("opencode", "1.18.34", "run-explicit-dir"), ("codex", "0.160.1", "native-app-server")):
+            self.evidence["clients"][0].update(client=client, version=version, mode=mode)
+            self.save_evidence()
+            result = self.run_action("dry-run", expected=1)
+            self.assertIn("require extended environment_files evidence", result["reasons"][0])
+            self.assertIn("Do not inspect or edit AI-kit", result["next_action"]["instruction"])
+        self.assertEqual(before, self.tree())
+        self.assertFalse(self.transaction.exists())
+
+    def test_extended_environment_inventory_detects_added_removed_changed_inputs(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("compat_inventory_test", SCRIPTS / "doc-compat.py")
+        collector = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(collector)
+        self.legacy()
+        ancestor = self.base / "AGENTS.md"
+        ancestor.write_text("Ancestor fixture instructions.\n")
+        self.evidence["environment_files"] = collector.environment_files(self.root)
+        self.save_evidence()
+        self.run_action("dry-run")
+        mutations = ((ancestor, None), (ancestor, "Changed instructions.\n"), (self.root / "AGENTS.md", "Changed target.\n"), (self.base / "CLAUDE.local.md", "Added instructions.\n"))
+        for path, replacement in mutations:
+            original = path.read_bytes() if path.exists() else None
+            if replacement is None:
+                path.unlink()
+            else:
+                path.write_text(replacement)
+            before = self.tree()
+            result = self.run_action("dry-run", expected=1)
+            self.assertIn("environment_files differ", result["reasons"][0])
+            self.assertEqual(before, self.tree())
+            self.assertFalse(self.transaction.exists())
+            if original is None:
+                path.unlink()
+            else:
+                path.write_bytes(original)
+
     @unittest.skipIf(os.geteuid() == 0, "permission regression requires a nonprivileged process")
     def test_unwritable_profile_directory_refuses_before_mutation(self):
         self.legacy()

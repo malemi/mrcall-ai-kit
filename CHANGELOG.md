@@ -8,6 +8,18 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.1.0 — 2026-10-07
+
+- Migration supports explicit operator deferral through `--allow-unverified`,
+  retaining ownership checks, staged mechanical validation and exact rollback.
+  Codex 0.160.1 and OpenCode 1.18.34 version identities are accepted; fresh
+  native compatibility verification remains pending.
+- Added the bounded OpenCode compatibility collector/report CLI and explicit
+  stop instructions for downstream agents encountering missing prerequisites.
+- Release accepts explicit `--skip-tests` for operator-authorized test deferral;
+  other release checks remain enforced. This release defers regression and
+  native testing at the operator's request.
+
 - The kit repository now mechanically enforces the protocol/release
   invariant: the gate refuses `main` — and every branch of the checkout the
   installed `doc-check.py` resolves into — when `HARNESS_VERSION` differs
@@ -93,4 +105,3 @@ First tagged release of MrCall AI-Kit, a reusable configuration for Claude Code,
 The release commit passed 15 shell test scripts, 47 repository Python tests, 87 shared-script Python tests, the generated-agent check, and the documentation gate. OpenCode and Codex re-read entry points were exercised in isolated real clients; the operator also reported that `$sc` works in their installed Codex session. Claude Code's existing Stop hook passed its local checks, but this port did not receive a repeat live Claude Code test.
 
 OpenCode and Codex have no pre-delivery interception or always-on re-read mode. Claude Code skips the re-read pass for answers shorter than 500 characters by default. See `docs/reread-guard.md` for the runtime evidence and boundaries.
-

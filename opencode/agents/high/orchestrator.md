@@ -118,6 +118,13 @@ missing authority.
 
 ## Failure handling
 
+External prerequisites and installed-tool refusals are scope boundaries, not
+authority to investigate or repair the tool's repository. Stop the blocked
+operation, report its exact reason, and use only documented authorized
+preflight/recovery commands. Never follow kit-home symlinks into AI-kit source,
+relax compatibility policy, change client configuration or invent evidence
+during a downstream task. Kit diagnosis/repair requires an explicit kit task.
+
 Diagnose failures and change approach. Do not ask the CTO merely because one
 worker or command failed. Reassign, implement directly, or use another safe
 path when useful. Escalate only when further progress needs product judgment,

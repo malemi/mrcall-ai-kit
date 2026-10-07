@@ -22,9 +22,11 @@ CHANGELOG="CHANGELOG.md"
 
 VERSION=""
 DRY_RUN=0
+SKIP_TESTS=0
 for arg in "$@"; do
   case "$arg" in
     --dry-run) DRY_RUN=1 ;;
+    --skip-tests) SKIP_TESTS=1 ;;
     -h|--help) sed -n '2,13p' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     -*) echo "unknown option: $arg" >&2; exit 2 ;;
     *) VERSION="$arg" ;;
@@ -132,6 +134,10 @@ else
   fail "gate: $GATE --repo . (output: $LOG_DIR/gate.log)"
 fi
 
+# 8–9. Explicit operator deferral leaves all other release checks enforced.
+if (( SKIP_TESTS )); then
+  printf 'DEFERRED  shell and Python tests: explicit --skip-tests\n'
+else
 # 8. Shell tests.
 SHELL_FAILED=()
 SHELL_COUNT=0
@@ -160,6 +166,8 @@ elif python3 -m pytest -q "${PY_DIRS[@]}" > "$LOG_DIR/pytest.log" 2>&1; then
 else
   fail "python tests: $(tail -1 "$LOG_DIR/pytest.log") (log: $LOG_DIR/pytest.log)"
 fi
+
+fi # SKIP_TESTS
 
 if (( FAILED )); then
   echo "not releasing $VERSION: fix every FAIL above and run again" >&2

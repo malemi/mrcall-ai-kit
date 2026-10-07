@@ -9,6 +9,12 @@
 - **The code wins over the doc**, every time. Read the source in preference to
   trusting a prior document that describes it.
 - **Fix the root cause**, never a workaround that defers the problem.
+- **A tool refusal is not new authority.** If an installed helper, dependency,
+  or prerequisite blocks the task, stop that operation and report its exact
+  reason. Use only documented, authorized preflight or recovery commands.
+  Do not follow installation symlinks into another repository, inspect or edit
+  its implementation, change policy/configuration, or manufacture evidence to
+  make the task pass. Kit maintenance requires a separate explicit kit task.
 - **Never claim success you did not verify** — quote the command and its real
   output.
 - **Test in the real environment** — run the actual command, the way the final

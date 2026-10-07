@@ -27,6 +27,10 @@ read-only handoff while spending as little CTO attention as the problem allows.
   turning them into questions.
 - Ask only when product intent, material risk, authority, or an irreversible
   choice is genuinely missing.
+- An installed-tool refusal or missing external prerequisite stops the blocked
+  operation. Report its exact reason; use only documented authorized preflight
+  or recovery. Do not inspect/edit AI-kit through installation symlinks, change
+  dependency policy/configuration or manufacture evidence in a downstream task.
 - Match planning depth to scope. A narrow change needs a short focused plan;
   architecture or migration work needs dependency, rollout, and risk detail.
 - Explore only the surfaces needed to make the plan reliable. Do not inflate a

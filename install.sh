@@ -112,7 +112,7 @@ EOF
   echo "  doc-harness    [cross-tool → Claude Code + Codex + OpenCode]"
   echo "     commands:   $(list_entries "$SCRIPT_DIR/shared/commands")"
   echo "     skills:     $(list_entries "$SCRIPT_DIR/shared/skills")"
-  echo "     scripts:    doc-check.py + doc-evidence.py + doc-keywords.py + doc-migrate.py + AGENTS.block.md + legacy/, and ai-help, ai-tutorial and"
+  echo "     scripts:    doc-check.py + doc-compat.py + doc-evidence.py + doc-keywords.py + doc-migrate.py + AGENTS.block.md + legacy/, and ai-help, ai-tutorial and"
   echo "                 ai-budget  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
@@ -347,6 +347,7 @@ if $DO_DOC; then
   add_one "$SCRIPT_DIR/shared/scripts/doc-check.py" "$KIT_GLOBAL/doc-check.py"
   add_one "$SCRIPT_DIR/shared/scripts/doc-evidence.py" "$KIT_GLOBAL/doc-evidence.py"
   add_one "$SCRIPT_DIR/shared/scripts/doc-keywords.py" "$KIT_GLOBAL/doc-keywords.py"
+  add_one "$SCRIPT_DIR/shared/scripts/doc-compat.py" "$KIT_GLOBAL/doc-compat.py"
   add_one "$SCRIPT_DIR/shared/scripts/doc-migrate.py" "$KIT_GLOBAL/doc-migrate.py"
   add_one "$SCRIPT_DIR/shared/templates/AGENTS.block.md" "$KIT_GLOBAL/AGENTS.block.md"
   for legacy_asset in legacy/manifest.json legacy/codex-agents.block.md legacy/v6/CLAUDE.md legacy/v7/CLAUDE.md legacy/v8/CLAUDE.md legacy/v8/CLAUDE.initial.md legacy/v8/CLAUDE.review.md; do

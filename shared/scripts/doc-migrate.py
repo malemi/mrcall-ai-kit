@@ -23,6 +23,11 @@ SPEC.loader.exec_module(CHECK)
 OWNED = ("AGENTS.md", "CLAUDE.md", "docs/.doc-profile")
 SCOPES = {"explanation", "development", "documentation", "brief", "review", "fastpath", "startup"}
 LIMIT = "Compatibility is a finite observed configuration policy plus caller attestation; artifact hashes do not authenticate runtime behavior. Whole-lifecycle bypass remains possible."
+NEXT_ACTION = {
+    "operation": "installed-doc-compat-preflight",
+    "steps": ["prepare", "collect", "independent-review", "report"],
+    "instruction": "Use only installed doc-compat.py documented commands on external disposable fixtures. Stop on refusal; report the exact missing prerequisite. Do not inspect or edit AI-kit source, symlink targets, compatibility policy or client configuration during a downstream task.",
+}
 
 
 class Refusal(Exception):
@@ -78,15 +83,31 @@ def instruction_files(root):
     return result
 
 
-def compatibility(root, filename, observed):
+def compatibility(root, filename, observed, allow_unverified=False):
+    if allow_unverified:
+        return {"sha256": None, "clients": [], "required_scopes": [],
+                "status": "operator-authorized-unverified",
+                "limit": "Compatibility verification explicitly deferred by operator; no runtime compatibility is claimed. " + LIMIT}
     if not filename:
-        raise Refusal("compatibility evidence is required; inspect reports current instruction_files for the attestation")
+        raise Refusal("compatibility evidence is required; obtain measured evidence through installed doc-compat.py prepare/collect/review/report; stop if preflight refuses")
     path = Path(filename)
     data = json.loads(path.read_text())
     if not isinstance(data, dict) or data.get("schema_version") != 1 or data.get("repo") != str(root):
         raise Refusal("compatibility evidence schema or repository binding does not match")
     if data.get("instruction_files") != observed:
         raise Refusal("compatibility instruction_files differ from current ancestor/local/user observations")
+    # Additive inventory: old measured reports retain their bounded contract.
+    # New collector reports bind additions/removals as well as existing bytes.
+    if "environment_files" in data:
+        spec = importlib.util.spec_from_file_location("doc_compat_inventory", SCRIPT.with_name("doc-compat.py"))
+        collector = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(collector)
+        try:
+            current_environment = collector.environment_files(root)
+        except collector.Refusal as exc:
+            raise Refusal(str(exc)) from exc
+        if data["environment_files"] != current_environment:
+            raise Refusal("compatibility environment_files differ from current target/ancestor/user/config observations")
     requested = data.get("required_scopes", ["startup", "documentation"])
     if not isinstance(requested, list) or not requested or any(s not in SCOPES for s in requested):
         raise Refusal("invalid compatibility required_scopes")
@@ -99,11 +120,13 @@ def compatibility(root, filename, observed):
         if not isinstance(client, dict):
             raise Refusal("each compatibility client must be an object")
         identity = (client.get("client"), client.get("version"), client.get("mode"))
+        if identity in {("codex", "0.160.1", "native-app-server"), ("opencode", "1.18.34", "run-explicit-dir")} and "environment_files" not in data:
+            raise Refusal("current client versions require extended environment_files evidence, or explicit operator --allow-unverified authorization")
         config = client.get("configuration")
-        if identity == ("codex", "0.160.0", "native-app-server"):
+        if identity in {("codex", "0.160.0", "native-app-server"), ("codex", "0.160.1", "native-app-server")}:
             allowed = SCOPES
             expected = {"ambient": "tested"}
-        elif identity == ("opencode", "1.18.32", "run-explicit-dir"):
+        elif identity in {("opencode", "1.18.32", "run-explicit-dir"), ("opencode", "1.18.34", "run-explicit-dir")}:
             allowed = SCOPES - {"development", "fastpath"}
             expected = {"ambient": "tested", "explicit_dir": True}
         elif client.get("client") == "claude":
@@ -420,15 +443,16 @@ def main():
         "repo realpath, instruction_files [{path,sha256}], optional required_scopes "
         "(default startup+documentation), and clients [{client,version,mode,scopes," 
         "instruction_loading:'observed',lifecycle:'pass',configuration,evidence:[{path,sha256}]}]. "
-        "Every client must cover startup+documentation and required_scopes. Observed policy: "
+        "Every client must cover startup+documentation and required_scopes unless the operator explicitly defers verification with --allow-unverified. Observed policy: "
         "Codex 0.160.0 native-app-server configuration {ambient:'tested'}; "
         "OpenCode 1.18.32 run-explicit-dir {ambient:'tested',explicit_dir:true}, "
         "development/fastpath untested. Claude 2.1.280 print startup/closure unsupported; "
-        "combined-setting loading alone is insufficient. " + LIMIT))
+        "combined-setting loading alone is insufficient. Current Codex 0.160.1 and OpenCode 1.18.34 identities are accepted with extended environment evidence; native verification is pending. " + LIMIT))
     parser.add_argument("action", choices=("inspect", "dry-run", "apply", "rollback"))
     parser.add_argument("--repo", required=True)
     parser.add_argument("--mode", choices=("leaf", "meta"))
     parser.add_argument("--compatibility", help="schema 1 scoped compatibility evidence and configuration attestation JSON")
+    parser.add_argument("--allow-unverified", action="store_true", help="explicit operator authorization to defer compatibility verification; preserves ownership, staged mechanical validation and rollback checks")
     parser.add_argument("--transaction", help="new saved transaction directory outside repository content")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
@@ -452,7 +476,7 @@ def main():
             result["from_version"] = version
             result["to_version"] = 9
             result["changes"] = [c["path"] for c in changes]
-            compat = compatibility(root, args.compatibility, observed)
+            compat = compatibility(root, args.compatibility, observed, args.allow_unverified)
             result["compatibility"] = compat
             publication_preflight(root, changes)
             result["mechanical_validation"] = validate_stage(root, changes, directory)
@@ -462,6 +486,8 @@ def main():
     except (Refusal, ValueError, OSError, KeyError, TypeError) as exc:
         result["ready"] = False
         result["reasons"].append(str(exc))
+        if args.action != "rollback":
+            result["next_action"] = NEXT_ACTION
     if args.json:
         print(json.dumps(result, sort_keys=True))
     else:

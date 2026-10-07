@@ -10,6 +10,18 @@ closure, or a version mismatch does not authorize migration.
 
 ## Preflight and compatibility
 
+### Explicit operator deferral
+
+When the operator explicitly authorizes migration before compatibility testing,
+add `--allow-unverified` to the installed helper's inspect, dry-run and apply
+commands. No compatibility report is required in that mode. The transaction
+records `operator-authorized-unverified`; this is not measured client support.
+Ownership checks, staged mechanical validation, atomic publication and rollback
+remain enforced. Do not invoke this option autonomously after a refusal.
+OpenCode 1.18.34 and Codex 0.160.1 are accepted version identities; fresh native
+evidence for those versions is still pending. The strict path below remains
+the default when testing has not been explicitly deferred.
+
 This workflow implements `harness_version = 9`. Read an existing
 `docs/.doc-profile` completely. A newer version stops without changes; upgrade
 the installed kit. v6/v7/v8 require an explicitly requested upgrade. v9 may be
@@ -23,6 +35,15 @@ absolute `shared/templates/AGENTS.block.md` path. Missing assets are setup
 failures. The helper imports its sibling checker and resolves historical data
 beside the canonical block. Do not reproduce managed prose or remove CLAUDE
 files by hand.
+
+**Stop on a missing prerequisite or refusal.** A downstream upgrade authorizes
+only the target migration and this documented preflight, not kit maintenance.
+Kit-home symlinks do not expand scope: never open their source implementation,
+search unrelated experiment/history directories, edit the AI-kit, relax policy,
+change client configuration or fabricate a report to get past a failure.
+Report the exact reason and the bounded next action; when that action fails,
+stop before target writes. Diagnose/fix the kit only in a separately explicit
+AI-kit maintenance task.
 
 Run the read-only inspection with an absolute repository root:
 
@@ -48,6 +69,33 @@ scopes; Claude print currently fails the measured lifecycle policy. An
 attestation plus matching hashes does not authenticate model behavior or block
 a client that skips the lifecycle. If the required evidence is unavailable,
 stop before bootstrap writes and report that missing prerequisite.
+
+For OpenCode, obtain current evidence using the installed `doc-compat.py`.
+Choose a new absolute external evidence directory with an existing parent:
+
+```sh
+python3 "${MRCALL_KIT_HOME:-$HOME/.config/mrcall-ai-kit}/doc-compat.py" prepare --repo "$repo_root" --output "$evidence_dir" --json
+python3 "${MRCALL_KIT_HOME:-$HOME/.config/mrcall-ai-kit}/doc-compat.py" collect --repo "$repo_root" --output "$evidence_dir" --json
+```
+
+These commands never modify the target. They run bounded native startup and
+documentation trials on disposable v9 fixtures under the observed ancestor/user
+instruction environment. A completed command is not a passing lifecycle.
+Have an independent reviewer inspect the complete collection manifest, native
+logs, tool ordering, changes, mechanical/critic/completion results, and scope
+preservation. Record its actual APPROVED judgment using the review schema
+reported by `doc-compat.py --help`; failed or ambiguous trials stop here.
+
+```sh
+python3 "${MRCALL_KIT_HOME:-$HOME/.config/mrcall-ai-kit}/doc-compat.py" report --repo "$repo_root" --output "$evidence_dir" --review "$review_json" --json
+```
+
+Use the resulting `compatibility.json` in the dry-run/apply commands below.
+Changed bound inputs require new evidence, not new hashes on an old verdict.
+The collector supports only OpenCode's explicit-directory mode and the scopes
+it actually tests. Codex still requires measured native-app-server evidence;
+`codex exec` is not that mode. Unsupported current versions are a kit-maintenance
+prerequisite, not permission for downstream agents to edit the allowlist.
 
 ## Prepare only missing project content
 
