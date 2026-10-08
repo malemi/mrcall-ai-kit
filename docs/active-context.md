@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: d8cdbcaadb10fe413cbd0a83ad71f147bf200e07
-doc_baseline_date: 2026-10-06
+doc_baseline_commit: b34a7371d0149a05cb32f6404befc198c1b54a9d
+doc_baseline_date: 2026-10-08
 ---
 
 # Active Context
