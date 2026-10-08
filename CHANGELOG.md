@@ -8,6 +8,22 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.2.0 — 2026-10-08
+
+- Customized CLAUDE upgrades request concrete preservation/adoption consent
+  instead of ending as refused. Explicit hash-bound adoption retains original
+  instruction bytes/mode in the transaction and rejects stale authorization.
+
+- Documentation upgrades no longer require native compatibility reports or an
+  escape flag. Supplied reports remain strictly validated; ordinary upgrades
+  record compatibility as not evaluated. The workflow resolves routine local
+  documentation defects within upgrade scope. Staging references application
+  and child-repository trees instead of copying their contents.
+
+- Verification: seven focused CLI scenarios passed on the installed helper
+  and release checkout, including exact rollback and consent boundaries. Native
+  client compatibility and broad regression suites are explicitly deferred.
+
 ## v9.1.0 — 2026-10-07
 
 - Migration supports explicit operator deferral through `--allow-unverified`,
