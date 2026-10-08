@@ -13,12 +13,12 @@ inventory, ownership, commands, and links. The default 200-line thin-index limit
 counts the complete file, including the managed block.
 
 The kit does not require a live root `CLAUDE.md`. Exact historical v6/v7/v8
-templates remain migration data. A customized or foreign `CLAUDE.md` is a
-compatibility conflict to preserve and resolve explicitly, never a file to
-silently delete. The mechanical gate fails while a root `CLAUDE.md`,
+templates remain migration data. A customized or foreign `CLAUDE.md` requires a
+concrete preservation proposal and explicit adoption consent, never silent
+deletion or a terminal refusal without recovery. The mechanical gate fails while a root `CLAUDE.md`,
 `CLAUDE.local.md`, or `.claude/rules/doc-harness.md` exists in a v9 repository.
-Loading `AGENTS.md` depends on the client and configuration; the compatibility
-checks apply before migration, and measured conditions are in
+Loading `AGENTS.md` depends on the client and configuration; optional report
+validation is separate from layout migration, and measured conditions are in
 [`harness-runtime-support.md`](harness-runtime-support.md).
 
 - `docs/README.md` routes readers without duplicating the root inventory.
@@ -196,19 +196,47 @@ an implicit migration or downgrade. Codex wrappers use their installed shared
 WORKFLOW version.
 
 Migration uses the deterministic `doc-migrate.py` helper, with inspection,
-dry-run, apply, and exact rollback. It validates compatibility evidence,
-ownership, scopes, symlinks, collisions, markers, and recognized historical
+dry-run, apply, and exact rollback. It validates ownership, scopes, symlinks,
+collisions, markers, and recognized historical
 bytes before mutation. It preserves project bytes and optional profile
-settings, validates staged v9 content, removes only a recognized managed
-CLAUDE, and publishes the profile version last. Saved transactions permit
-recovery; rollback refuses unrelated subsequent edits. Customized or ambiguous
-legacy layouts stop untouched instead of guessing a merge. Installing the kit
+settings, validates staged v9 content, retires recognized managed CLAUDE or an
+exact customized file adopted with explicit consent, and publishes the profile
+version last. Saved transactions permit
+recovery; rollback refuses unrelated subsequent edits. Customized files remain
+untouched while the agent proposes preservation and requests consent; ambiguous
+layouts require a concrete resolution question instead of a guessed merge. Installing the kit
 does not migrate repositories or change client instruction-loading settings.
 
-Explicit operator deferral permits `--allow-unverified` to skip compatibility
-report validation. Transactions label this mode `operator-authorized-unverified`;
-it establishes no measured runtime support. Ownership, staging, publication and
-rollback checks remain enforced. A refusal alone never authorizes this option.
+Compatibility reports are optional for deterministic layout migration. Without
+a report, the result and transaction record `not-evaluated`, with no claim of
+measured runtime support. An explicitly supplied `--compatibility` report must
+validate; failed evidence never silently falls back. Legacy explicit
+`--allow-unverified` retains `operator-authorized-unverified` and cannot be
+combined with a report. Ownership, staging, publication and rollback remain
+enforced in every mode. Native client experiments are a separate task.
+
+Migration staging references application and child-repository trees instead of
+copying them. Managed files are isolated copies; documentation directories are
+recreated with read-only checker references to their source files. Mechanical
+refusals return structured violations and `repair-target-documentation` as the
+next action. These local preflight repairs belong to the authorized upgrade.
+Agents reconcile local links, lifecycle states, inventory and index duplication
+from actual content, then retry without another routine approval. Unresolved
+ownership, meaning or external setup remains a real blocker. Project-prose
+repairs remain outside the helper's three-file transaction.
+
+For a customized root CLAUDE, `inspect` returns `awaiting-authorization` with
+`next_action.operation: request-claude-adoption` and the source hash. The agent
+reads both instruction files, proposes preservation of project rules outside
+the managed AGENTS block and retirement of obsolete protocol prose, then asks
+for that specific approval. After approval, it reconciles project prose and
+uses `--adopt-claude-sha256` with the approved hash for inspect, dry-run and
+apply. The transaction retains original custom bytes/mode and records the
+adoption binding. A changed source requires renewed consent; symlinks, sidecars
+and other layout checks remain enforced. The option is a caller attestation,
+not authenticated proof of consent or semantic preservation. The workflow
+verifies the approved mapping with doc-critic. Waiting for an answer leaves the
+task pending; it is not a completed refused upgrade.
 
 ## Reconciliation, evidence, and baseline
 

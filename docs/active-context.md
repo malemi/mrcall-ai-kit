@@ -18,15 +18,22 @@ no repository CLAUDE.md, compact startup checks, deterministic migration
 It cannot force a client to invoke the lifecycle or authenticate an agent's
 judgment.
 
-The installed commands, skills, and checker on this machine are symlinks into
-this checkout, so doc-start, doc-end, and the checker run v9 for every
-repository here. The installation was refreshed on 2026-10-06 (symlink
-mode): `~/.config/mrcall-ai-kit` now carries the v9 migration assets
-(`doc-migrate.py`, `doc-evidence.py`, `AGENTS.block.md`, `legacy/`), so the
-installed `doc-create` migration path is operable. Every
-other repository on this machine carries an older profile (mostly v8; some v3,
-v2, or none); its doc gates refuse until it is migrated, and only v6–v8 can
-migrate through `doc-create`.
+The operator's installed commands, skills and checker run v9.
+The meta-repository, Desktop, kernel and support clone now have v9 profiles;
+other downstream repositories still declare v8, v3 or no profile. Each target's
+profile and current startup output determine its own prerequisite. The ancestor
+meta-repository CLAUDE.md is absent; this resolves that recorded shadowing cause
+without establishing new native-client compatibility.
+
+Installed doc-create upgrades require no runtime compatibility report or escape
+flag. Supplied reports remain strictly validated; ordinary layout migration
+records compatibility as not evaluated. Routine local documentation repairs
+belong to the authorized upgrade. Installed leaf/meta CLI fixtures cover
+upgrade, clean checker, exact rollback, scoped refusals and opaque child data;
+native client compatibility and broad regression suites remain deferred.
+Customized CLAUDE migration offers a concrete preservation proposal and explicit
+exact-file adoption consent, with original bytes/mode retained for rollback.
+Authorization waits remain pending tasks rather than terminal refusals.
 
 The prototype passed 20 ordinary/boundary Codex app-server trials. Its startup
 median incremental input fell from 19,611 to 7,875 bytes; this is not a measure
@@ -38,27 +45,17 @@ Codex custom roles inherit the session model; Claude and OpenCode roles follow
 private reasoning is not observable. Installed-client verification and its
 limits remain in the corresponding durable contracts.
 
-Release requires task authorization in addition to the profile command.
-v9.0.0 was cut on 2026-10-06 (tag on the pushed release-flow HEAD), and the
-kit's gate now enforces the protocol/release invariant: `HARNESS_VERSION`
-must equal the newest release tag's major — on `main`, and on every branch
-of the installed checkout — with an in-flight release (a `## vN.x.y`
-changelog heading, no tag yet) downgraded to a named advisory.
+Release versions are recorded in CHANGELOG.md and matching Git tags. Native
+compatibility verification remains explicitly deferred; the migration-prerequisite
+plan remains active. Release requires separate task authorization. The gate
+enforces `HARNESS_VERSION` against the newest release tag's major in the
+installed checkout, with a named advisory for an in-flight release.
 
 ## Unresolved
 
-- Claude Code 2.1.280 with default settings does not load this repository's
-  AGENTS.md: the ancestor `/home/mal/hb/CLAUDE.md` takes precedence (probe in
-  this checkout, 2026-10-05). Claude sessions here load that ancestor's v8
-  protocol and the meta-repository AGENTS.md instead of this repository's v9
-  block and project rules, until the ancestor file is removed or the
-  `agents-md` combined-instruction option is set.
 - The critic's documentation read boundary in the shipped build has no native
   trial evidence; native evidence covers the M2 prototype and the pre-repair
   integrated-v2 build. The operator waived a further native matrix.
-- Migrating `/home/mal/hb` is refused as it stands: its AGENTS.md has 185 lines
-  and the 61-line managed block plus its blank separator take it to 247, over
-  its `index_max_lines` of 200.
 - Whole-lifecycle bypass remains possible. The deliberate native bypass still
   completed without evidence creation or an independent runtime denial.
 - The tested Claude 2.1.280 print configuration fails startup/documentation
@@ -78,12 +75,8 @@ changelog heading, no tag yet) downgraded to a named advisory.
 
 ## Next
 
-- Migrate downstream repositories one at a time with `doc-create`, starting
-  with the `/home/mal/hb` meta-repository (after trimming its AGENTS.md to at
-  most 138 lines) so its CLAUDE.md stops shadowing sub-repository AGENTS.md files.
+- Continue downstream orientation from each target's actual profile; migration
+  remains an explicit task and legacy profiles must not be upgraded implicitly.
 - Complete the remaining scope-guard plan with installed-client evidence.
 - Refresh resolved models when their evidence changes, using the documented
   resolver and generation workflow.
-- Cut v9.1.0 when the next release is authorized: Unreleased carries the
-  protocol/release invariant enforcement and the plan/reviewer
-  anti-truncation rules.

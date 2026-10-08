@@ -37,7 +37,7 @@ class MigrationTests(unittest.TestCase):
         sha = self.git("rev-parse", "HEAD").stdout.strip()
         (self.root / "docs/active-context.md").write_bytes(f"---\ndoc_baseline_commit: {sha}\n---\n".encode() + SCOPE + b"## State now\nFixture.\n## Unresolved\nNone.\n## Next\nNone.\n")
         self.transaction = self.base / "transaction"
-        inspected = self.invoke("inspect", "--mode", "leaf", expected=1)
+        inspected = self.invoke("inspect", "--mode", "leaf")
         self.artifact = self.base / "observed-result.json"
         self.artifact.write_text('{"fixture":"simulated evidence for mechanical acceptance tests only"}\n')
         self.compat = self.base / "compatibility.json"
@@ -285,14 +285,15 @@ class MigrationTests(unittest.TestCase):
     def test_prerequisite_diagnostics_name_bounded_next_action(self):
         self.legacy()
         before = self.tree()
-        result = self.invoke("dry-run", expected=1)
-        self.assertEqual(result["next_action"]["steps"], ["prepare", "collect", "independent-review", "report"])
+        result = self.invoke("dry-run")
+        self.assertEqual(result["compatibility"]["status"], "not-evaluated")
+        self.assertNotIn("next_action", result)
         for client, version, mode in (("opencode", "1.18.34", "run-explicit-dir"), ("codex", "0.160.1", "native-app-server")):
             self.evidence["clients"][0].update(client=client, version=version, mode=mode)
             self.save_evidence()
             result = self.run_action("dry-run", expected=1)
             self.assertIn("require extended environment_files evidence", result["reasons"][0])
-            self.assertIn("Do not inspect or edit AI-kit", result["next_action"]["instruction"])
+            self.assertEqual(result["next_action"]["operation"], "review-supplied-compatibility")
         self.assertEqual(before, self.tree())
         self.assertFalse(self.transaction.exists())
 
@@ -391,7 +392,7 @@ class MigrationTests(unittest.TestCase):
         self.git("worktree", "add", "-b", "child", str(child))
         self.root = child
         self.evidence["repo"] = str(child)
-        inspected = self.invoke("inspect", expected=1)
+        inspected = self.invoke("inspect")
         self.evidence["instruction_files"] = inspected["instruction_files"]
         self.save_evidence()
         self.run_action()

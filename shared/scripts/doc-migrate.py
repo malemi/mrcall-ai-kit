@@ -24,14 +24,25 @@ OWNED = ("AGENTS.md", "CLAUDE.md", "docs/.doc-profile")
 SCOPES = {"explanation", "development", "documentation", "brief", "review", "fastpath", "startup"}
 LIMIT = "Compatibility is a finite observed configuration policy plus caller attestation; artifact hashes do not authenticate runtime behavior. Whole-lifecycle bypass remains possible."
 NEXT_ACTION = {
-    "operation": "installed-doc-compat-preflight",
-    "steps": ["prepare", "collect", "independent-review", "report"],
-    "instruction": "Use only installed doc-compat.py documented commands on external disposable fixtures. Stop on refusal; report the exact missing prerequisite. Do not inspect or edit AI-kit source, symlink targets, compatibility policy or client configuration during a downstream task.",
+    "operation": "resolve-target-layout",
+    "instruction": "Resolve the reported target layout or setup conflict within the authorized upgrade. Preserve customized/foreign files; ask only when ownership or intended content is ambiguous. Do not inspect or edit AI-kit source or client configuration during a downstream task.",
 }
 
 
 class Refusal(Exception):
     pass
+
+
+class AdoptionRequired(Refusal):
+    def __init__(self, source):
+        self.source = source
+        super().__init__("customized or foreign CLAUDE.md preserved; propose preservation of project instructions and request exact-file adoption consent")
+
+
+class MechanicalRefusal(Refusal):
+    def __init__(self, validation):
+        self.validation = validation
+        super().__init__("staged v9 mechanical validation failed; repair the reported target documentation, then retry: " + json.dumps(validation.get("violations", {}), ensure_ascii=False))
 
 
 def digest(data):
@@ -89,7 +100,9 @@ def compatibility(root, filename, observed, allow_unverified=False):
                 "status": "operator-authorized-unverified",
                 "limit": "Compatibility verification explicitly deferred by operator; no runtime compatibility is claimed. " + LIMIT}
     if not filename:
-        raise Refusal("compatibility evidence is required; obtain measured evidence through installed doc-compat.py prepare/collect/review/report; stop if preflight refuses")
+        return {"sha256": None, "clients": [], "required_scopes": [],
+                "status": "not-evaluated",
+                "limit": "Layout migration does not evaluate client runtime compatibility. " + LIMIT}
     path = Path(filename)
     data = json.loads(path.read_text())
     if not isinstance(data, dict) or data.get("schema_version") != 1 or data.get("repo") != str(root):
@@ -189,7 +202,7 @@ def profile_bytes(root, mode):
     return int(version), b"".join(lines)
 
 
-def proposed(root, mode):
+def proposed(root, mode, adopt_claude_sha256=None):
     for rel in OWNED:
         safe_path(root / rel)
     for rel in ("docs/README.md", "docs/active-context.md"):
@@ -208,15 +221,21 @@ def proposed(root, mode):
         raise Refusal("canonical AGENTS.block.md is not installed")
     legacy = template.parent / "legacy"
     before = {rel: snapshot(root / rel) for rel in OWNED}
+    if adopt_claude_sha256 is not None:
+        if before["CLAUDE.md"] is None or before["CLAUDE.md"]["sha256"] != adopt_claude_sha256:
+            raise Refusal("CLAUDE.md adoption hash is absent or stale; read the current file and renew the preservation proposal and consent")
     if before["AGENTS.md"] is None:
         raise Refusal("prepare project AGENTS.md with its scope before bootstrap")
     agents = (root / "AGENTS.md").read_bytes()
     if version in {6, 7, 8}:
         known = list((legacy / f"v{version}").glob("CLAUDE*.md"))
-        if before["CLAUDE.md"] is None or not any((root / "CLAUDE.md").read_bytes() == p.read_bytes() for p in known):
-            raise Refusal("customized or unrecognized legacy CLAUDE.md preserved; no migration writes")
+        if before["CLAUDE.md"] is None:
+            raise Refusal("legacy CLAUDE.md is missing; resolve the incomplete legacy layout")
+        if not adopt_claude_sha256 and not any((root / "CLAUDE.md").read_bytes() == p.read_bytes() for p in known):
+            raise AdoptionRequired(before["CLAUDE.md"])
     elif before["CLAUDE.md"] is not None:
-        raise Refusal("foreign CLAUDE.md preserved; single-entry compatibility conflict")
+        if not adopt_claude_sha256:
+            raise AdoptionRequired(before["CLAUDE.md"])
     old = CHECK.managed_block_span(agents, b"codex-agents")
     if old:
         legacy_block = legacy / "codex-agents.block.md"
@@ -252,7 +271,26 @@ def publication_preflight(root, changes):
 def validate_stage(root, changes, git_directory):
     with tempfile.TemporaryDirectory(prefix="doc-migrate-stage-") as temp:
         stage = Path(temp) / "repo"
-        shutil.copytree(root, stage, symlinks=True, ignore=lambda directory, names: [".git"] if Path(directory) == root else [])
+        stage.mkdir()
+        # The checker reads project trees only for link existence and meta
+        # inventory. Reference those trees instead of copying application data,
+        # dependencies, nested repositories and their Git object databases.
+        for entry in root.iterdir():
+            if entry.name == ".git":
+                continue
+            target = stage / entry.name
+            if entry.name == "docs":
+                shutil.copytree(entry, target, copy_function=os.symlink)
+            elif entry.name in OWNED:
+                shutil.copy2(entry, target)
+            elif entry.is_symlink():
+                target.symlink_to(os.readlink(entry), target_is_directory=entry.is_dir())
+            else:
+                target.symlink_to(entry, target_is_directory=entry.is_dir())
+        profile = stage / "docs/.doc-profile"
+        if profile.is_symlink():
+            profile.unlink()
+            shutil.copy2(root / "docs/.doc-profile", profile)
         (stage / ".git").write_text(f"gitdir: {git_directory}\n")
         for change in changes:
             path = stage / change["path"]
@@ -263,7 +301,11 @@ def validate_stage(root, changes, git_directory):
         env = dict(os.environ, MRCALL_DOC_HARNESS_TEMPLATE=str(CHECK.find_harness_template()))
         result = subprocess.run([sys.executable, str(SCRIPT.with_name("doc-check.py")), "--repo", str(stage), "--json"], capture_output=True, text=True, env=env)
         if result.returncode:
-            raise Refusal(f"staged v9 mechanical validation failed: {result.stdout.strip()} {result.stderr.strip()}")
+            try:
+                validation = json.loads(result.stdout)
+            except ValueError:
+                raise Refusal(f"staged checker failed: {result.stdout.strip()} {result.stderr.strip()}")
+            raise MechanicalRefusal(validation)
         return json.loads(result.stdout)
 
 
@@ -390,7 +432,7 @@ def rollback(root, transaction, git_directory):
     return {"state": "rolled_back", "transaction": str(transaction), "restored": paths}
 
 
-def apply(root, transaction, git_directory, changes, compat):
+def apply(root, transaction, git_directory, changes, compat, adoption=None):
     if not changes:
         return {"state": "unchanged", "changes": []}
     if transaction.exists():
@@ -405,6 +447,8 @@ def apply(root, transaction, git_directory, changes, compat):
             raise Refusal("temporary path collision")
     transaction.mkdir(mode=0o700)
     manifest = {"schema_version": 1, "repo": str(root), "git_dir": git_directory, "state": "prepared", "compatibility": compat, "changes": changes, "completed_steps": [], "created_directories": []}
+    if adoption:
+        manifest["claude_adoption"] = adoption
     manifest_write(transaction, manifest)
     try:
         for change in changes:
@@ -432,7 +476,7 @@ def apply(root, transaction, git_directory, changes, compat):
 def main():
     parser = argparse.ArgumentParser(description=__doc__, epilog=(
         "inspect and dry-run never write repository content or save transactions. "
-        "inspect without evidence reports ready=false and current instruction_files. "
+        "Client compatibility reports are optional; without a report compatibility is not evaluated. "
         "Fresh bootstrap requires prepared scoped AGENTS.md, docs/README.md, and "
         "docs/active-context.md plus --mode. Existing v6/v7/v8 profiles preserve mode "
         "and optional settings. apply requires a new external (or worktree Gitdir) "
@@ -443,7 +487,7 @@ def main():
         "repo realpath, instruction_files [{path,sha256}], optional required_scopes "
         "(default startup+documentation), and clients [{client,version,mode,scopes," 
         "instruction_loading:'observed',lifecycle:'pass',configuration,evidence:[{path,sha256}]}]. "
-        "Every client must cover startup+documentation and required_scopes unless the operator explicitly defers verification with --allow-unverified. Observed policy: "
+        "When a report is supplied, every declared client must cover startup+documentation and required_scopes. --allow-unverified retains explicit legacy deferral behavior. Observed report policy: "
         "Codex 0.160.0 native-app-server configuration {ambient:'tested'}; "
         "OpenCode 1.18.32 run-explicit-dir {ambient:'tested',explicit_dir:true}, "
         "development/fastpath untested. Claude 2.1.280 print startup/closure unsupported; "
@@ -451,13 +495,16 @@ def main():
     parser.add_argument("action", choices=("inspect", "dry-run", "apply", "rollback"))
     parser.add_argument("--repo", required=True)
     parser.add_argument("--mode", choices=("leaf", "meta"))
-    parser.add_argument("--compatibility", help="schema 1 scoped compatibility evidence and configuration attestation JSON")
-    parser.add_argument("--allow-unverified", action="store_true", help="explicit operator authorization to defer compatibility verification; preserves ownership, staged mechanical validation and rollback checks")
+    evidence_options = parser.add_mutually_exclusive_group()
+    evidence_options.add_argument("--compatibility", help="optional schema 1 scoped compatibility evidence; supplied reports must validate")
+    evidence_options.add_argument("--allow-unverified", action="store_true", help="legacy explicit compatibility deferral; ordinary migration needs neither flag nor report")
     parser.add_argument("--transaction", help="new saved transaction directory outside repository content")
+    parser.add_argument("--adopt-claude-sha256", help="exact CLAUDE.md hash explicitly approved for retirement after project-rule reconciliation; original bytes/mode are retained in the transaction")
     parser.add_argument("--json", action="store_true")
     args = parser.parse_args()
     root = Path(args.repo).absolute()
     result = {"action": args.action, "repo": str(root), "ready": False, "reasons": [], "limit": LIMIT}
+    phase = "layout"
     try:
         for item in (root, *root.parents):
             if item.is_symlink():
@@ -472,26 +519,55 @@ def main():
             observed = instruction_files(root)
             result["instruction_files"] = observed
             result["existing_paths"] = [rel for rel in OWNED if (root / rel).exists() or (root / rel).is_symlink()]
-            version, changes = proposed(root, args.mode)
+            version, changes = proposed(root, args.mode, args.adopt_claude_sha256)
+            adoption = None
+            if args.adopt_claude_sha256:
+                adoption = {"path": "CLAUDE.md", "sha256": args.adopt_claude_sha256,
+                            "authorization": "caller-attested-exact-file-consent",
+                            "limit": "The caller must obtain consent for the preservation proposal; this CLI does not authenticate operator approval or semantic reconciliation."}
+                result["claude_adoption"] = adoption
             result["from_version"] = version
             result["to_version"] = 9
             result["changes"] = [c["path"] for c in changes]
+            phase = "compatibility"
             compat = compatibility(root, args.compatibility, observed, args.allow_unverified)
             result["compatibility"] = compat
+            phase = "layout"
             publication_preflight(root, changes)
             result["mechanical_validation"] = validate_stage(root, changes, directory)
             result["ready"] = True
             if args.action == "apply":
-                result.update(apply(root, transaction_path(root, directory, args.transaction), directory, changes, compat))
+                result.update(apply(root, transaction_path(root, directory, args.transaction), directory, changes, compat, adoption))
     except (Refusal, ValueError, OSError, KeyError, TypeError) as exc:
         result["ready"] = False
         result["reasons"].append(str(exc))
-        if args.action != "rollback":
+        if isinstance(exc, AdoptionRequired):
+            result["state"] = "awaiting-authorization"
+            result["next_action"] = {
+                "operation": "request-claude-adoption",
+                "approval_required": True,
+                "path": "CLAUDE.md",
+                "sha256": exc.source["sha256"],
+                "instruction": "Read CLAUDE.md and AGENTS.md fully. Present a concrete mapping preserving project rules outside the managed AGENTS block and retiring obsolete harness prose. Ask the operator to authorize that exact proposal; remain pending and resume after consent, do not conclude the task as refused. After consent reconcile project prose, then use --adopt-claude-sha256 with this hash consistently for inspect, dry-run and apply. Retain the transaction containing the original CLAUDE bytes/mode. Project-prose repairs have a separate recovery boundary. Changed source requires renewed consent. Do not manually delete or replace CLAUDE.md."
+            }
+        elif isinstance(exc, MechanicalRefusal):
+            result["mechanical_validation"] = exc.validation
+            result["next_action"] = {
+                "operation": "repair-target-documentation",
+                "instruction": "Within the authorized migration, reconcile target documentation links, valid statuses and inventory with actual content; retry inspect/dry-run/apply. Preserve project meaning and historical text. Do not modify AI-kit or client configuration."
+            }
+        elif phase == "compatibility":
+            result["next_action"] = {
+                "operation": "review-supplied-compatibility",
+                "instruction": "The explicitly supplied compatibility report failed validation. Correct or recollect its actual evidence; never fabricate results or silently fall back to migration without the requested report. Do not inspect or edit AI-kit source or client configuration."
+            }
+        elif args.action != "rollback":
             result["next_action"] = NEXT_ACTION
     if args.json:
         print(json.dumps(result, sort_keys=True))
     else:
-        print(f"doc-migrate: {args.action.upper()} {'READY' if result['ready'] else 'REFUSED'}")
+        status = 'READY' if result['ready'] else 'AWAITING AUTHORIZATION' if result.get('state') == 'awaiting-authorization' else 'REFUSED'
+        print(f"doc-migrate: {args.action.upper()} {status}")
         for key, value in result.items():
             if key not in {"action", "ready"}:
                 print(f"{key}: {json.dumps(value, ensure_ascii=False)}")

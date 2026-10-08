@@ -5,6 +5,48 @@ newest first, preserved verbatim. Cold storage: never read by `/doc-start`,
 queried on demand to answer "when did we do X" without reconstructing it from
 `git log -p`.
 
+## 2026-10-06 — Superseded release snapshot
+
+Release requires task authorization in addition to the profile command.
+v9.0.0 was cut on 2026-10-06 (tag on the pushed release-flow HEAD), and the
+kit's gate now enforces the protocol/release invariant: `HARNESS_VERSION`
+must equal the newest release tag's major — on `main`, and on every branch
+of the installed checkout — with an in-flight release (a `## vN.x.y`
+changelog heading, no tag yet) downgraded to a named advisory.
+
+- Cut v9.1.0 when the next release is authorized: Unreleased carries the
+  protocol/release invariant enforcement and the plan/reviewer
+  anti-truncation rules.
+
+
+## 2026-10-06 — Superseded downstream migration prerequisites
+
+The installed commands, skills, and checker on this machine are symlinks into
+this checkout, so doc-start, doc-end, and the checker run v9 for every
+repository here. The installation was refreshed on 2026-10-06 (symlink
+mode): `~/.config/mrcall-ai-kit` now carries the v9 migration assets
+(`doc-migrate.py`, `doc-evidence.py`, `AGENTS.block.md`, `legacy/`), so the
+installed `doc-create` migration path is operable. Every
+other repository on this machine carries an older profile (mostly v8; some v3,
+v2, or none); its doc gates refuse until it is migrated, and only v6–v8 can
+migrate through `doc-create`.
+
+- Claude Code 2.1.280 with default settings does not load this repository's
+  AGENTS.md: the ancestor `/home/mal/hb/CLAUDE.md` takes precedence (probe in
+  this checkout, 2026-10-05). Claude sessions here load that ancestor's v8
+  protocol and the meta-repository AGENTS.md instead of this repository's v9
+  block and project rules, until the ancestor file is removed or the
+  `agents-md` combined-instruction option is set.
+
+- Migrating `/home/mal/hb` is refused as it stands: its AGENTS.md has 185 lines
+  and the 61-line managed block plus its blank separator take it to 247, over
+  its `index_max_lines` of 200.
+
+- Migrate downstream repositories one at a time with `doc-create`, starting
+  with the `/home/mal/hb` meta-repository (after trimming its AGENTS.md to at
+  most 138 lines) so its CLAUDE.md stops shadowing sub-repository AGENTS.md files.
+
+
 ## 2026-10-05 — Replaced v8 operational snapshot
 
 ````markdown

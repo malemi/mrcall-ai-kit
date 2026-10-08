@@ -1,8 +1,9 @@
 # Documentation runtime support
 
 Instruction delivery, workflow compliance, and runtime interception are distinct.
-The v9 migration helper accepts only the bounded compatibility policy it knows;
-an executable version alone is not compatibility evidence.
+Layout migration does not require client compatibility evidence. Optional
+reports are validated against the bounded policy; an executable version alone
+is not compatibility evidence.
 
 ## Measured modes
 
@@ -45,17 +46,18 @@ The migration helper must preserve these files and never change the settings.
 
 ## Compatibility reports
 
-An operator can explicitly defer compatibility verification with
-`doc-migrate.py --allow-unverified`. This skips report validation and records
-`operator-authorized-unverified` in the transaction; it claims no measured
-runtime support. Ownership, staged mechanical validation, publication and
-rollback checks still apply. Agents must not choose this mode autonomously.
+Ordinary `doc-migrate.py` upgrades need no report or deferral flag. The result
+and transaction record compatibility as `not-evaluated`; successful file
+migration establishes no native client support. Ownership, staged mechanical
+validation, publication and rollback checks still apply. Legacy explicit
+`--allow-unverified` records `operator-authorized-unverified` and cannot be
+combined with a report.
 Codex 0.160.1 and OpenCode 1.18.34 version identities are accepted on the strict
 report path with an extended `environment_files` inventory. Their native
 verification is pending; the measured-mode table remains historical evidence.
 
-Migration inspection can report missing evidence without changing files.
-Dry-run and apply require a report bound to the target repository, observed
+When separately requested, `--compatibility` supplies a report bound to the
+target repository, observed
 instruction files, requested scopes, tested runtime/configuration, and readable
 evidence artifacts with matching hashes. Every declared client must cover at
 least startup and documentation closure; additional requested scopes must also
@@ -65,7 +67,8 @@ substantial development. The measured Claude print configuration is refused.
 The report is an evidence reference plus a caller attestation about current
 configuration. Hashes detect changes; they do not authenticate an agent's
 judgment or prove it executed a workflow. Missing, stale, unsupported, or
-ambiguous evidence stops migration before managed files change. Installing the
+ambiguous supplied evidence stops migration before managed files change;
+omitting an optional report does not. Installing the
 kit does not migrate repositories or silently repair client configuration.
 
 ## Cost and bypass observations

@@ -40,8 +40,11 @@ Then:
 2. In each repo you want covered, run `doc-create` (`/doc-create` as a
    slash command; `$doc-create` in Codex) to bootstrap or explicitly migrate
    its documentation. Version 9 uses one managed block in `AGENTS.md`.
-   Migration checks client compatibility and saves a rollback transaction;
-   customized `CLAUDE.md` files and ownership conflicts stop it before edits.
+   Migration validates the documentation layout and saves a rollback transaction;
+   customized `CLAUDE.md` files require a concrete preservation proposal and
+   explicit adoption consent before retirement; unresolved ownership is preserved.
+   Client compatibility reports are optional. Routine local documentation
+   repairs are included in the requested upgrade.
 
 Repository instructions invoke `doc-start` before source investigation and
 the appropriate `doc-end` checks before delivering changes. You can still call

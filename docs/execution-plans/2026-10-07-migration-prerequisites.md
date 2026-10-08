@@ -131,3 +131,18 @@ No native compatibility claim, downstream migration, commit or release is made.
 Collector hardening and later migration tests remain unexecuted. The earlier
 migration suite completed before deferral (15 tests passed); this does not
 verify the subsequent operator-deferral change. Baseline is not advanced.
+
+Post-release staging repair: validate_stage no longer copies application trees,
+child repositories or Git databases into temporary staging. On the actual
+`/home/mal/hb` target, installed inspect now returns its documentation
+violations in approximately 0.5 seconds without applying migration. Mechanical
+refusals expose structured violations and an actionable target-documentation
+repair instruction. Remaining target errors are obsolete CLAUDE links, index
+length, a session lifecycle status and missing inventory rows. No target edits
+or apply were performed by this kit session. This repair is local and untagged.
+
+The mandatory acquisition direction is superseded by the approved
+[upgrade UX workstream](2026-10-08-doc-create-upgrade-ux.md): layout migration
+does not need a compatibility report. The collector and strict report path
+remain optional tools; outstanding native measurements are not prerequisites
+for downstream upgrades. No missing historical review is asserted complete.
