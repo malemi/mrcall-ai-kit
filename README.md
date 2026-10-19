@@ -30,6 +30,9 @@ cd mrcall-ai-kit
 ./install.sh
 ```
 
+Requirements: bash 3.2 or later (the `/bin/bash` a Mac ships is enough) and
+`python3`.
+
 That's the whole install. The script detects which tools you already have,
 asks what you want. It installs **globally** (your `~/.claude`,
 `~/.codex`, `~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside

@@ -8,6 +8,12 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- `install.sh` and `uninstall.sh` run on bash 3.2, the bash a Mac ships: the
+  installer no longer stops on an empty array under `set -u`, and the
+  uninstaller, which did not parse there, holds its manifest in indexed arrays.
+  Same output, files and manifest as before on bash 5; `tests/test_bash32_scripts.sh`
+  runs both installers and the installed help scripts under `/bin/bash`.
+
 ## v9.3.1 — 2026-10-18
 
 - Resolve filesystem skills from their declared catalog paths; repository-local

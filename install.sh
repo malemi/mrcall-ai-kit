@@ -683,7 +683,7 @@ if [[ ${#RET_DST[@]} -gt 0 || ${#WAIT_DST[@]} -gt 0 || ${#KEEP_DST[@]} -gt 0 ]];
   echo
 fi
 
-for runtime in "${WARNING_RUNTIMES[@]}"; do echo "  activate verification warnings for $runtime"; done
+for runtime in ${WARNING_RUNTIMES[@]+"${WARNING_RUNTIMES[@]}"}; do echo "  activate verification warnings for $runtime"; done
 
 # ── Confirm ────────────────────────────────────────────────────────────────
 if ! $DRY_RUN && ! $ASSUME_YES; then
@@ -824,7 +824,7 @@ if $DO_SCOPE; then
 $ACTIVATE_CODEX && register_scope_guard codex "$HOME/.codex/hooks.json"
   $ACTIVATE_OC && register_scope_guard opencode "$OC_DIR/plugins/mrcall-scope-guard.ts"
 fi
-for runtime in "${WARNING_RUNTIMES[@]}"; do
+for runtime in ${WARNING_RUNTIMES[@]+"${WARNING_RUNTIMES[@]}"}; do
   if $DRY_RUN; then echo "  [dry] register verification warnings for $runtime"
   else python3 "$KIT_GLOBAL/verification-warnings/register.py" "$runtime" on
   fi

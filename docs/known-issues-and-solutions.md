@@ -128,3 +128,29 @@ and in symlink mode.
 
 **Not covered**: a machine installed before an agent gained its `skills:` line
 is not checked; see [`harness-backlog.md`](harness-backlog.md).
+
+## The uninstaller exits 1 when `HOME` goes through a symlink
+
+**Symptom** (2026-10-19, macOS): `uninstall.sh --yes` after an install with
+`--features all`, in a `HOME` made by `mktemp -d` (under `/var/folders`, and
+`/var` is a symlink to `/private/var`), prints `symlink state path refused` and
+exits 1. The same happens with the uninstaller before and after its bash 3.2
+change, under bash 5.
+
+**Root cause**: `shared/scripts/verification_warnings.py:92` refuses a state
+path any of whose components is a symlink, and the warnings' unregistration
+resolves its state under `HOME`.
+
+**Effect on the suite** (measured 2026-10-19, identical at `v9.3.1` with bash 5
+first on `PATH` and after the bash 3.2 change with either bash): on macOS `tests/test_verification_warnings_delivery.py`
+fails 4 cases on this refusal, and `tests/test_skill_path.py` fails 1 case and
+errors in 4 (its uninstall exits 1; one comparison sees `/var/...` against
+`/private/var/...`). Both build their `HOME` with Python's temporary directory.
+
+**Workaround in the tests**: `tests/test_bash32_scripts.sh` resolves its
+temporary root with `pwd -P`. A real `HOME` under `/Users` has no symlinked
+component.
+
+**Not covered**: an operator whose `HOME` itself goes through a symlink; whether
+the refusal should accept a symlinked `HOME` prefix is undecided.
+

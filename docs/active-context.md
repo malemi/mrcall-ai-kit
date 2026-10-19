@@ -76,7 +76,17 @@ registration roundtrips and real adapter callbacks have focused acceptance
 evidence. Installed notification adapters remain dormant on all three clients;
 native display and Codex hook trust are unverified.
 
+The installers run on bash 3.2, the `/bin/bash` a Mac ships, as well as on
+bash 5, with the same output, files and manifest; `tests/test_bash32_scripts.sh`
+is their gate under the oldest bash on the machine
+([plan](execution-plans/2026-10-19-bash-3-2-installers.md)).
+
 ## Unresolved
+
+- On macOS two Python suites fail 9 cases because the verification warnings
+  helper refuses a state path through a symlink and their temporary `HOME` sits
+  under `/var` (`known-issues-and-solutions.md`); whether a symlinked `HOME`
+  prefix is acceptable is undecided.
 
 - The critic's documentation read boundary in the shipped build has no native
   trial evidence; native evidence covers the M2 prototype and the pre-repair
