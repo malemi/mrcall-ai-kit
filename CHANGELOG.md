@@ -8,6 +8,8 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.4.0 — 2026-10-20
+
 - Restrict mandatory Codex completion review to explicit current-turn task
   delivery (`bind --delivery`) or checked exec. Ordinary questions, clarifications
   and status answers no longer trigger review or a second response. Tracking an
