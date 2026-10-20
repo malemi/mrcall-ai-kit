@@ -84,7 +84,7 @@ def serve(directory, responder=None):
     return server
 
 
-def capture_tui(argv, env, workspace, directory):
+def capture_tui(argv, env, workspace, directory, stop_count=3):
     import fcntl
     import termios
     master, slave = pty.openpty()
@@ -107,10 +107,10 @@ def capture_tui(argv, env, workspace, directory):
                 if b'\x1b[6n' in chunk:
                     os.write(master, b'\x1b[1;1R')
             hooks = directory / 'hook-events.jsonl'
-            if hooks.exists() and sum(json.loads(line).get('hook_event_name') == 'Stop' for line in hooks.read_text().splitlines()) >= 3:
+            if hooks.exists() and sum(json.loads(line).get('hook_event_name') == 'Stop' for line in hooks.read_text().splitlines()) >= stop_count:
                 settled = settled or time.monotonic()
             if settled and time.monotonic()-settled >= 2:
-                reason = 'fixture observation complete after three Stop callbacks'
+                reason = 'fixture observation complete after three Stop callbacks' if stop_count == 3 else f'fixture observation complete after {stop_count} Stop callback'
                 break
             if time.monotonic()-started >= 60:
                 reason = '60-second native transport cap'

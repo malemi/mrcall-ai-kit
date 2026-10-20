@@ -18,20 +18,27 @@ spec.loader.exec_module(transport)
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def run(out, case):
+def run(out, case, scoped=False):
     out.mkdir(parents=True, exist_ok=True)
     require = lambda ok, message: None if ok else (_ for _ in ()).throw(AssertionError(message))
-    attempts = list(out.glob('M2-attempt-*.json'))
-    require(len(attempts) < 7, 'seven-process production acceptance allowance exhausted')
-    directory = out / f'M2-case-{len(attempts)+1}-{case}'
+    prefix = 'scope' if scoped else 'M2'
+    allowance = 4 if scoped else 7
+    attempts = list(out.glob(prefix + '-attempt-*.json'))
+    started = list(out.glob(prefix + '-case-*/invocation.json'))
+    require(len(started) < allowance, f'{allowance}-process production acceptance allowance exhausted')
+    require(len(attempts) < allowance * 2, 'bounded preflight attempt allowance exhausted')
+    directory = out / f'{prefix}-case-{len(attempts)+1}-{case}'
     directory.mkdir()
-    (out / f'M2-attempt-{len(attempts)+1}.json').write_text(json.dumps({'case': case, 'paid': False, 'started': time.time()}))
+    (out / f'{prefix}-attempt-{len(attempts)+1}.json').write_text(json.dumps({'case': case, 'paid': False, 'started': time.time()}))
     home = directory / 'home'
     codex = home / '.codex'
     codex.mkdir(parents=True)
     workspace = directory / 'workspace'
     workspace.mkdir()
     env = dict(os.environ, HOME=str(home), CODEX_HOME=str(codex), XDG_CONFIG_HOME=str(home / '.config'))
+    if case == 'tui-skip':
+        # Legacy strict TUI fixture explicitly declares a review-required run.
+        env['MRCALL_COMPLETION_REQUIRE_REVIEW'] = '1'
     for key in ('OPENAI_API_KEY', 'CODEX_API_KEY', 'OPENROUTER_API_KEY'):
         env.pop(key, None)
     subprocess.run([str(ROOT / 'install.sh'), '--environment', 'codex', '--features', 'doc-harness',
@@ -41,6 +48,9 @@ def run(out, case):
     # Independently observe native callbacks; leave every shipped hook intact.
     logger = directory / 'observe.py'
     logger.write_text("import json,sys\nfrom pathlib import Path\np=json.load(sys.stdin)\nwith Path(__file__).with_name('hook-events.jsonl').open('a') as f: f.write(json.dumps(p)+'\\n')\nprint('{}')\n")
+    if case == 'bound-skip':
+        with logger.open('a') as handle:
+            handle.write("import subprocess\nif p['hook_event_name']=='UserPromptSubmit':\n subprocess.run([sys.executable," + repr(str(script)) + ", 'bind', '--delivery', '--session', p['session_id'], '--turn', p['turn_id'], '--repo', p['cwd'], '--task', 'explicit-fixture-delivery', '--context', 'fixture'],check=True,stdout=subprocess.DEVNULL)\n")
     registry = codex / 'hooks.json'
     hooks = json.loads(registry.read_text())
     for event in ('UserPromptSubmit', 'Stop', 'SessionEnd'):
@@ -87,7 +97,9 @@ def run(out, case):
         args.append('--dangerously-bypass-hook-trust')
     args.append(prompt)
     argv = [sys.executable, str(script), 'exec', *args]
-    tui = case == 'tui-skip'
+    if case in ('conversation', 'tui-conversation', 'bound-skip'):
+        argv = ['codex', 'exec', '--json', *args]
+    tui = case in ('tui-skip', 'tui-conversation')
     if tui:
         with (codex / 'config.toml').open('a') as handle:
             handle.write(f'\n[projects.{json.dumps(str(workspace))}]\ntrust_level="trusted"\n')
@@ -97,7 +109,7 @@ def run(out, case):
     started = time.monotonic()
     reason = None
     if tui:
-        code, reason = transport.capture_tui(argv, env, workspace, directory)
+        code, reason = transport.capture_tui(argv, env, workspace, directory, stop_count=1 if case == 'tui-conversation' else 3)
     else:
         with (directory / 'events.jsonl').open('w') as stdout, (directory / 'stderr.log').open('w') as stderr:
             process = subprocess.Popen(argv, env=env, cwd=workspace, stdout=stdout, stderr=stderr, start_new_session=True)
@@ -118,6 +130,9 @@ def run(out, case):
               'events': events, 'submitted_reviews': len(calls)}
     (directory / 'result.json').write_text(json.dumps(result, indent=2))
     print(json.dumps({'case': case, 'exit': code, 'outcome': audit and audit['outcome'], 'reviews': len(calls), 'events': [e['hook_event_name'] for e in events]}))
+    if scoped:
+        verify_scoped_case(directory, result)
+        return result
     if case in ('complete', 'limited', 'nr', 'changed'):
         require(code == 0 and audit is not None, 'valid native completion was refused; inspect retained evidence')
         require(audit['outcome'] == ('limited' if case == 'limited' else 'exempt' if case == 'nr' else 'complete'), 'unexpected accepted outcome')
@@ -129,6 +144,43 @@ def run(out, case):
     else:
         require(reason == 'fixture observation complete after three Stop callbacks' and audit['outcome'] == 'failed', 'TUI failure not observed')
     return result
+
+
+def verify_scoped_case(directory, result):
+    import re
+    case = result['case']
+    stops = [e for e in result['events'] if e['hook_event_name'] == 'Stop']
+    assert stops and stops[0]['stop_hook_active'] is False
+    if case in ('conversation', 'tui-conversation'):
+        assert len(stops) == 1 and result['audit'] is None and result['submitted_reviews'] == 0
+        if case == 'conversation':
+            assert result['exit'] == 0
+            events = [json.loads(x) for x in (directory / 'events.jsonl').read_text().splitlines()]
+            finals = [e for e in events if e.get('type') == 'item.completed' and e.get('item', {}).get('type') == 'agent_message']
+            assert len(finals) == 1 and not any(e.get('item', {}).get('type') == 'command_execution' for e in events)
+        else:
+            assert result['exit'] == -9 and result['stop_reason'] == 'fixture observation complete after 1 Stop callback'
+            terminal = re.sub(r'\x1b\[[0-?]*[ -/]*[@-~]', '', (directory / 'terminal.log').read_text(errors='replace'))
+            assert 'REVIEWED_FINAL' in terminal and 'Blocked by hook' not in terminal and 'Completion check required' not in terminal
+    else:
+        assert len(stops) == 3 and all(e['stop_hook_active'] is True for e in stops[1:])
+        assert result['audit']['outcome'] == 'failed' and result['submitted_reviews'] == 0
+        assert result['exit'] == (3 if case == 'skip' else 0)
+
+
+def verify_scope(out):
+    cases = []
+    for directory in sorted(out.glob('scope-case-*')):
+        if (directory / 'preflight-failure.json').exists():
+            failure = json.loads((directory / 'preflight-failure.json').read_text())
+            assert failure['native_started'] is False and not (directory / 'invocation.json').exists()
+            continue
+        result = json.loads((directory / 'result.json').read_text())
+        assert result['paid'] is False
+        verify_scoped_case(directory, result)
+        cases.append(result['case'])
+    assert sorted(cases) == sorted(['conversation', 'tui-conversation', 'skip', 'bound-skip'])
+    print(json.dumps({'verified_scoped_native_cases': cases, 'paid_calls': 0}))
 
 
 def verify(out):
@@ -178,10 +230,11 @@ if __name__ == '__main__':
     modes = parser.add_mutually_exclusive_group(required=True)
     modes.add_argument('--run', type=Path)
     modes.add_argument('--verify', type=Path)
-    parser.add_argument('--case', choices=('complete', 'limited', 'skip', 'untrusted', 'nr', 'changed', 'tui-skip'))
+    parser.add_argument('--scoped', action='store_true')
+    parser.add_argument('--case', choices=('complete', 'limited', 'skip', 'untrusted', 'nr', 'changed', 'tui-skip', 'conversation', 'tui-conversation', 'bound-skip'))
     args = parser.parse_args()
     if args.verify:
-        verify(args.verify.resolve())
+        (verify_scope if args.scoped else verify)(args.verify.resolve())
     else:
         parser.error('--case is required with --run') if args.case is None else None
-        run(args.run.resolve(), args.case)
+        run(args.run.resolve(), args.case, scoped=args.scoped)

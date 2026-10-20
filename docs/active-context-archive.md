@@ -1,3 +1,12 @@
+## 2026-10-20 — Blanket completion adapter state superseded
+
+Codex doc-harness includes a native Stop completion adapter with nonce-bound
+review receipts and bounded refusal. Seven zero-inference native fixtures cover
+trusted execution, repeated bypass, missing trust, changed answers, legitimate
+limits and TUI failure. The strict exec wrapper rejects missing/failed audits.
+Operator native trust and active-session reload remain pending; this profile is
+not established as protected. See `runtime-completion.md` for measured limits.
+
 # Active Context Archive
 
 Pruned session narrative from [`active-context.md`](active-context.md), dated,

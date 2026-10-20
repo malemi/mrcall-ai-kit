@@ -16,8 +16,9 @@ pass is an instruction, not observable runtime enforcement.
 ## Mandate completion
 
 Codex doc-harness separately registers the [runtime completion check](runtime-completion.md).
-When its definition is trusted, native Stop invokes a validator and requires a
-current completion-review receipt, with bounded failure when omitted. This is
+When its definition is trusted, explicitly declared current-turn delivery or
+checked exec requires a current completion-review receipt, with bounded failure
+when omitted. Ordinary chat and tracked tasks without delivery require no review. This is
 separate from optional `sc` and the six-item clarity checklist. Installation or
 model instructions alone do not establish native execution.
 

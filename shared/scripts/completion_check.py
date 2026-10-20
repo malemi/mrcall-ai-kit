@@ -196,6 +196,12 @@ def hook(payload):
         if state.get('nr'):
             audit(payload, 'exempt', 'explicit operator $nr')
             return {}
+        # A turn ending is not a declaration that work has been delivered.
+        # Only explicit current-turn delivery or checked exec arms review.
+        # A tracked task alone must not make its clarifications/status chat pay
+        # for another model pass. Undeclared work is instruction-only coverage.
+        if state.get('delivery') is not True and os.environ.get('MRCALL_COMPLETION_REQUIRE_REVIEW') != '1':
+            return {}
         reason = 'a current whole-assignment review is missing'
         challenge = state.get('challenge')
         if challenge:
@@ -316,6 +322,7 @@ def registration(action, dry_run=False):
         observed_path = Path.home() / '.config/mrcall-ai-kit/completion-check/runtime/last-observed.json'
         observed = read(observed_path) if observed_path.exists() else None
         return {'installed': installed_script().is_file(), 'registered_events': list(EVENTS) if action == 'on' else [] if action == 'off' else registered,
+                'policy': 'explicit current-turn delivery or checked exec; unbound chat is not reviewed',
                 'trust': 'unknown: approve the current definition in native /hooks; never inferred from registration',
                 'observed': observed, 'dry_run': dry_run, 'registry': str(registry)}
 
@@ -332,7 +339,7 @@ def strict_audit(value, run_id, started, session, answer, cwd):
 def exec_checked(args):
     run_id = secrets.token_hex(32)
     started = time.time()
-    env = dict(os.environ, MRCALL_COMPLETION_RUN_ID=run_id)
+    env = dict(os.environ, MRCALL_COMPLETION_RUN_ID=run_id, MRCALL_COMPLETION_REQUIRE_REVIEW='1')
     # JSON is necessary to bind the native session and final result. Never parse
     # assistant prose or internal transcripts to discover the assignment.
     process = subprocess.Popen(['codex', 'exec', '--json', *args], env=env, stdout=subprocess.PIPE, text=True)
@@ -385,6 +392,7 @@ def main(argv=None):
     parser.add_argument('--repo', type=Path)
     parser.add_argument('--task')
     parser.add_argument('--context')
+    parser.add_argument('--delivery', action='store_true', help='declare delivery for this exact session/turn; tracking alone does not arm Stop')
     parser.add_argument('--dry-run', action='store_true')
     args = parser.parse_args(argv)
     try:
@@ -404,9 +412,11 @@ def main(argv=None):
             with locked():
                 path = private_dir(root() / 'state') / (key + '.json')
                 state = read(path) if path.exists() else {'attempts': 0}
+                if args.delivery:
+                    state['delivery'] = True
                 state['binding'] = {'repo': str(args.repo.resolve()), 'task': args.task, 'context': args.context}
                 write(path, state)
-            result = {'bound': state['binding']}
+            result = {'bound': state['binding'], 'delivery': state.get('delivery') is True}
         else:
             result = registration(args.action, args.dry_run)
         print(json.dumps(result, ensure_ascii=False))

@@ -1,5 +1,5 @@
 ---
-doc_baseline_commit: b92dc5c4cf9c5d8cc5a343b55cbb78254b20f434
+doc_baseline_commit: e0f7317cddc85c1a65adb29fe09c0c1e60ceea56
 doc_baseline_date: 2026-10-20
 ---
 
@@ -76,12 +76,12 @@ registration roundtrips and real adapter callbacks have focused acceptance
 evidence. Installed notification adapters remain dormant on all three clients;
 native display and Codex hook trust are unverified.
 
-Codex doc-harness includes a native Stop completion adapter with nonce-bound
-review receipts and bounded refusal. Seven zero-inference native fixtures cover
-trusted execution, repeated bypass, missing trust, changed answers, legitimate
-limits and TUI failure. The strict exec wrapper rejects missing/failed audits.
-Operator native trust and active-session reload remain pending; this profile is
-not established as protected. See `runtime-completion.md` for measured limits.
+Codex runtime review is scoped to explicit current-turn `bind --delivery` or
+checked exec. Ordinary questions and tracked tasks without delivery require no
+review; undeclared work remains instruction-only. Four zero-inference native
+cases cover quiet exec/TUI conversation and refused declared-work bypass. Strict
+receipt and bound-harness validation remain checked. Native trust, semantic
+truth and subagent coverage are separate limits in `runtime-completion.md`.
 
 ## Unresolved
 

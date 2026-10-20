@@ -21,7 +21,7 @@ class Completion(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.home = Path(self.temp.name) / 'home'
         self.home.mkdir()
-        self.env = patch.dict(os.environ, {'HOME': str(self.home), 'CODEX_HOME': str(self.home / '.codex')})
+        self.env = patch.dict(os.environ, {'HOME': str(self.home), 'CODEX_HOME': str(self.home / '.codex'), 'MRCALL_COMPLETION_REQUIRE_REVIEW': '1'})
         self.env.start()
         self.handoff = patch.object(core, 'handoffs', lambda: core.private_dir(Path(self.temp.name) / 'handoffs'))
         self.handoff.start()
@@ -132,6 +132,26 @@ class Completion(unittest.TestCase):
             candidate = dict(value, **change) if change else None
             with self.assertRaises(ValueError):
                 core.strict_audit(candidate, 'run', now-1, 'session', 'Done.', self.home)
+
+    def test_chat_and_tracked_question_need_no_review(self):
+        with patch.dict(os.environ, {'MRCALL_COMPLETION_REQUIRE_REVIEW': ''}):
+            self.assertEqual(core.hook(self.payload), {})
+            path = core.private_dir(core.root() / 'state') / (core.identity(self.payload) + '.json')
+            core.write(path, {'attempts': 0, 'binding': {'task': 'still-open'}})
+            self.assertEqual(core.hook(self.payload), {})
+            self.assertFalse((core.root() / 'last-observed.json').exists())
+            self.assertFalse(list(core.handoffs().glob('*.request.json')))
+
+    def test_explicit_delivery_is_turn_bound_and_tracking_cannot_clear_it(self):
+        with patch.dict(os.environ, {'MRCALL_COMPLETION_REQUIRE_REVIEW': ''}):
+            args = ['bind', '--session', 'one', '--turn', 'first', '--repo', str(self.home),
+                    '--task', 'open-task', '--context', 'lead']
+            self.assertEqual(core.main(args), 0)
+            self.assertEqual(core.hook(self.payload), {})
+            self.assertEqual(core.main(args + ['--delivery']), 0)
+            self.assertEqual(core.main(args), 0)
+            self.assertEqual(core.hook(self.payload)['decision'], 'block')
+            self.assertEqual(core.hook(dict(self.payload, turn_id='question-next')), {})
 
     def test_session_end_cleans_only_own_pending_state(self):
         request = self.challenge()

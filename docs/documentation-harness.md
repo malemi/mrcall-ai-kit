@@ -300,8 +300,10 @@ an attestation. Preserve actual result references, pending obligations, and
 unverifiable findings across delegation and resumption.
 
 Codex doc-harness also registers a [native Stop completion check](runtime-completion.md).
-Trusted main-session callbacks require a current model review; an explicitly
-bound task additionally invokes this completion CLI. Registration is not trust,
+Trusted main-session callbacks require a current model review for explicit
+current-turn delivery or checked exec; an explicitly declared task delivery also
+invokes this completion CLI. Normal conversation and merely tracking an open task
+do not arm review. Undeclared work remains instruction-only. Registration is not trust,
 and an unbound review does not enforce lifecycle coverage or semantic truth.
 
 The optional [verification advisory](verification-warnings.md) reads required

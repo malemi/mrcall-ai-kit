@@ -8,7 +8,12 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
-- Register Codex native completion hooks with doc-harness. Trusted Stop requires
+- Restrict mandatory Codex completion review to explicit current-turn task
+  delivery (`bind --delivery`) or checked exec. Ordinary questions, clarifications
+  and status answers no longer trigger review or a second response. Tracking an
+  open task does not declare delivery; undeclared work remains instruction-only.
+
+- Register Codex native completion hooks with doc-harness. Declared delivery and checked exec require
   a fresh session/turn/answer-bound model review, refuses repeated omission and
   reports a bounded failure. Explicit harness binding runs the existing gate.
 - Add strict exec status from a matching terminal audit; missing or untrusted

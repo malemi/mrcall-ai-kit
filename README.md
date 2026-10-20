@@ -35,7 +35,9 @@ asks what you want. It installs **globally** (your `~/.claude`,
 `~/.codex`, `~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
 your repos.
 
-Codex doc-harness also registers a runtime completion check. Approve its current
+Codex doc-harness also registers a scoped runtime completion check. Ordinary
+conversation does not require a review: explicit current-turn `bind --delivery`
+or the checked-exec wrapper arms it. Undeclared work remains instruction-only. Approve its current
 definition in native `/hooks`; registration alone does not activate protection.
 See [runtime behavior and strict automation](docs/runtime-completion.md).
 
@@ -70,7 +72,8 @@ See [entry points, update steps and measured limits](docs/reread-guard.md#mandat
 
 These instructions and the completion checker improve observable compliance;
 they do not make every client intercept a skipped workflow. The separately
-registered Codex completion hook executes at Stop only when trusted; an explicitly
+registered Codex completion hook requires review at Stop only for declared
+delivery or checked exec and only when trusted; an explicitly
 bound task also runs the existing completion gate. Support depends on
 the runtime and configuration. See the
 [harness contract](docs/documentation-harness.md) for ownership, compatibility,

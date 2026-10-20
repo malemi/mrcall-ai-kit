@@ -8,8 +8,10 @@ is not compatibility evidence.
 ## Codex terminal review
 
 The [runtime completion adapter](runtime-completion.md) has separate native
-Codex 0.163.0 evidence: trusted main-session Stop invokes the check even when a
-deterministic response skips review. Missing review remains refused on subsequent
+Codex 0.163.0 evidence: trusted main-session Stop invokes the check for explicit
+current-turn delivery or checked exec even when a deterministic response skips
+review. Ordinary exec/TUI conversation needs no review; a tracked open task alone
+does not arm it. Undeclared work remains instruction-only. Missing review remains refused on subsequent
 attempts. UserPromptSubmit/SessionEnd and sandboxed review commands are observed.
 Untrusted registration produces no callback; the strict exec wrapper refuses a
 missing audit. Ordinary operator trust, reload and subagents remain unverified.

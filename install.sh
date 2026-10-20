@@ -122,7 +122,7 @@ EOF
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
   echo "     Codex:      execute, plan, reviewer, verify custom agents (-> ~/.codex/agents/)"
   echo "                 completion-check/completion_check.py + UserPromptSubmit/Stop/SessionEnd hooks"
-  echo "                 Required native /hooks trust; registration alone is not enforcement."
+  echo "                 Scoped to explicit current-turn delivery or checked exec; ordinary chat is not reviewed."
   echo
   echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
   echo "     commands:   nr, av  (-> ~/.claude/commands/, ~/.config/opencode/commands/)"
@@ -856,7 +856,7 @@ $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills and agents under ~/.agents/skills and ~/.codex/agents."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $AGENTS_PLANNED && echo "  Agents: Claude Code/OpenCode read the $BUDGET budget's renderings ($BUDGET_FROM)."
-$DO_DOC && $WANT_CODEX && echo "  Completion hooks registered: approve their current definition in native /hooks. Registration is not proof of execution."
+$DO_DOC && $WANT_CODEX && echo "  Scoped completion hooks registered: only bind --delivery or checked exec requires review. Native /hooks trust is still required."
 $DO_DOC && $WANT_CODEX && echo "  Codex agents: roles inherit the session model; /ai-budget does not switch them."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."

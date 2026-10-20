@@ -29,9 +29,15 @@ modified installed copies and unrelated hooks remain untouched.
 
 ## What executes
 
-Every supported main-session `Stop` invokes the validator, even when the model
-ignores the instructions. The first attempt without a current review is blocked
-with a concrete review command and request nonce. The agent must assess the
+A normal end of turn is not a declaration that work is complete. Unbound questions,
+clarifications and status answers require no review, continuation or repeated
+answer. Tracking an open task alone also does not arm review.
+
+Review is required only after an explicit `bind --delivery` for the exact current
+session/turn, or inside an explicit checked-exec invocation. Every supported
+main-session `Stop` then invokes the validator even when the model ignores the
+instructions. A declared delivery without a current review is blocked with a
+concrete review command and request nonce. The agent must assess the
 whole open assignment, earlier requests and later corrections, acceptance,
 actual evidence and remaining obligations. Useful authorized work remains work
 to do; a progress question does not cancel it. Questions, briefs and reviews keep
@@ -77,22 +83,28 @@ not that the model is honest or correct.
 
 ## Explicit harness binding
 
-A caller with the actual native identities can bind one existing completion task:
+A caller with the actual native identities can declare delivery of one existing
+completion task for the current turn:
 
 ```bash
 python3 ~/.config/mrcall-ai-kit/completion-check/completion_check.py bind \
   --session SESSION --turn TURN --repo /absolute/repository \
-  --task TASK --context CURRENT_LEAD_CONTEXT
+  --task TASK --context CURRENT_LEAD_CONTEXT --delivery
 ```
 
 This host-side administrative command writes owned runtime state outside a normal
 workspace sandbox. The review command instead uses a private per-user temporary
 handoff, which is writable from the measured workspace-write sandbox. Binding is
 explicit for that session/turn; it is never inferred or propagated to another
-turn. A bound `complete` decision additionally runs installed `doc-check.py
+turn. Omitting `--delivery` merely tracks the task and does not arm review. An open
+task does not turn its later clarification into a delivery. A declared
+`complete` decision additionally runs installed `doc-check.py
 --completion check`; missing, failing or stale evidence refuses completion.
 A `limited` outcome preserves outstanding obligations without claiming that gate
-passed. Without binding, the runtime review does not enforce the whole harness.
+passed. Without a delivery declaration or checked exec, work is governed by the agent
+instructions and is not independently intercepted. The adapter does not infer
+semantic completion or detect an undeclared claim of success. Checked exec without
+a task binding validates its review receipt but not the whole repository harness.
 
 State and terminal audits live under `completion-check/runtime/`, in mode-0700
 owned directories and mode-0600 files. Pending challenges use
@@ -113,7 +125,8 @@ python3 ~/.config/mrcall-ai-kit/completion-check/completion_check.py exec \
   --cd /absolute/repository 'Your task'
 ```
 
-It runs native exec with JSON events, retains native output and requires a fresh
+Selecting the wrapper explicitly requires review for that process. It runs
+native exec with JSON events, retains native output and requires a fresh
 matching terminal audit for its random run identity, native session, turn,
 workspace and final answer. Missing, malformed, stale, foreign, mismatched or
 failed audits return nonzero (3 on audit refusal); native process failures retain
@@ -124,6 +137,16 @@ that the entire assignment is complete. Plain native exec is not promoted to
 this stricter contract.
 
 ## Measured support and limits
+
+Four scoped Codex 0.163.0 native cases exercise plain exec and actual TUI
+conversation with one final answer/one Stop and zero review commands or
+continuations; checked-exec and explicitly declared bound delivery still refuse
+a deliberately omitted review. The scoped runner uses `--scoped --run` or
+`--scoped --verify`, at most four processes, with the same 60-second/2 MB limits.
+Evidence is retained under `/tmp/mrcall-ai-kit/completion-scope-20261020/native/`.
+The original seven-case matrix below describes the earlier blanket adapter and
+its strict validation paths; it does not establish the corrected ordinary-chat
+policy.
 
 Codex 0.163.0, isolated copy installations and a deterministic loopback Responses
 provider exercise actual native `UserPromptSubmit`, `Stop`, `SessionEnd` and
