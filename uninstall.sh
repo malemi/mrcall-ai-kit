@@ -140,6 +140,12 @@ if [[ -f "$WARNINGS_REGISTER" && -v SRC_OF["$WARNINGS_REGISTER"] ]] && owned_ite
     fi
   done
 fi
+COMPLETION_REGISTER="$KIT_GLOBAL/completion-check/completion_check.py"
+if [[ -f "$COMPLETION_REGISTER" && -v SRC_OF["$COMPLETION_REGISTER"] ]] && owned_item "$COMPLETION_REGISTER"; then
+  if $DRY_RUN; then python3 "$COMPLETION_REGISTER" off --dry-run
+  else python3 "$COMPLETION_REGISTER" off
+  fi
+fi
 CODEX_ROSTER="$KIT_GLOBAL/codex-agent-roster.py"
 CODEX_BLOCK="$KIT_GLOBAL/codex-AGENTS.block.md"
 if [[ -f "$CODEX_ROSTER" && -f "$CODEX_BLOCK" && -v SRC_OF["$CODEX_ROSTER"] && -v SRC_OF["$CODEX_BLOCK"] ]] && owned_item "$CODEX_ROSTER" && owned_item "$CODEX_BLOCK"; then

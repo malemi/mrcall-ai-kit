@@ -8,6 +8,14 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- Register Codex native completion hooks with doc-harness. Trusted Stop requires
+  a fresh session/turn/answer-bound model review, refuses repeated omission and
+  reports a bounded failure. Explicit harness binding runs the existing gate.
+- Add strict exec status from a matching terminal audit; missing or untrusted
+  hooks cannot silently count as accepted completion. Preserve foreign hooks and
+  native trust ownership. Seven zero-inference real-client cases cover accepted
+  and refused paths; semantic truth and operator trust remain separate limits.
+
 ## v9.3.1 — 2026-10-18
 
 - Resolve filesystem skills from their declared catalog paths; repository-local

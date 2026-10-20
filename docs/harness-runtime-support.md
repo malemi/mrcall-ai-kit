@@ -5,6 +5,17 @@ Layout migration does not require client compatibility evidence. Optional
 reports are validated against the bounded policy; an executable version alone
 is not compatibility evidence.
 
+## Codex terminal review
+
+The [runtime completion adapter](runtime-completion.md) has separate native
+Codex 0.163.0 evidence: trusted main-session Stop invokes the check even when a
+deterministic response skips review. Missing review remains refused on subsequent
+attempts. UserPromptSubmit/SessionEnd and sandboxed review commands are observed.
+Untrusted registration produces no callback; the strict exec wrapper refuses a
+missing audit. Ordinary operator trust, reload and subagents remain unverified.
+The adapter validates model attestations; it does not establish semantic truth
+or enforce an unbound repository lifecycle.
+
 ## Measured modes
 
 The initial candidate was tested on 2026-10-05. Its complete experiment record is

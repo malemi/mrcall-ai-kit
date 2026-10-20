@@ -28,6 +28,8 @@ Do not duplicate that inventory here.
   instruction-loading conditions, startup cost, and remaining bypasses.
 - [`scope-guard.md`](scope-guard.md) — scope declaration format, runtime guard
   behavior, capability levels, and known bypasses.
+- [`runtime-completion.md`](runtime-completion.md) — Codex Stop review receipts,
+  native trust, bounded refusal and strict exec outcomes.
 - [`reread-guard.md`](reread-guard.md) — per-runtime re-read behavior and
   installed-client verification status.
 - [`verification-warnings.md`](verification-warnings.md) — advisory execution

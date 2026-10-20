@@ -104,8 +104,9 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
               install log records the kit putting there, or when its bytes
               match a version this checkout's git history shipped at that
               path. Anything else stays, and the installer lists it.
-  --yes:      skip the final confirmation prompt. It never enables a hook or
-              chooses a feature for you — everything else must still be a flag.
+  --yes:      skip the final confirmation prompt. Feature choices remain explicit.
+              Codex doc-harness includes completion hook registration; native
+              /hooks approval is still required. Other hooks retain their opt-in.
   --dry-run:  print exactly what would be written, and write nothing.
   --help:     this text.
 
@@ -120,6 +121,8 @@ EOF
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
   echo "     Codex:      execute, plan, reviewer, verify custom agents (-> ~/.codex/agents/)"
+  echo "                 completion-check/completion_check.py + UserPromptSubmit/Stop/SessionEnd hooks"
+  echo "                 Required native /hooks trust; registration alone is not enforcement."
   echo
   echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
   echo "     commands:   nr, av  (-> ~/.claude/commands/, ~/.config/opencode/commands/)"
@@ -414,6 +417,7 @@ if $DO_DOC; then
         exit 1
       fi
     done
+    add_one "$SCRIPT_DIR/shared/scripts/completion_check.py" "$KIT_GLOBAL/completion-check/completion_check.py"
     add_one "$SCRIPT_DIR/codex/scripts/agent-roster.py" "$KIT_GLOBAL/codex-agent-roster.py"
     add_one "$SCRIPT_DIR/codex/AGENTS.block.md" "$KIT_GLOBAL/codex-AGENTS.block.md"
     python3 "$SCRIPT_DIR/codex/scripts/agent-roster.py" check --home "$HOME"
@@ -832,9 +836,11 @@ done
 if $DO_DOC && $WANT_CODEX; then
   if $DRY_RUN; then
     echo "  [dry]    install kit block in $HOME/.codex/AGENTS.md"
+    echo "  [dry]    register completion hooks; native /hooks approval required"
   else
     python3 "$KIT_GLOBAL/codex-agent-roster.py" on --home "$HOME" \
       --block "$KIT_GLOBAL/codex-AGENTS.block.md" --on-exist "$ON_EXIST"
+    python3 "$KIT_GLOBAL/completion-check/completion_check.py" on
   fi
 fi
 
@@ -850,6 +856,7 @@ $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills and agents under ~/.agents/skills and ~/.codex/agents."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $AGENTS_PLANNED && echo "  Agents: Claude Code/OpenCode read the $BUDGET budget's renderings ($BUDGET_FROM)."
+$DO_DOC && $WANT_CODEX && echo "  Completion hooks registered: approve their current definition in native /hooks. Registration is not proof of execution."
 $DO_DOC && $WANT_CODEX && echo "  Codex agents: roles inherit the session model; /ai-budget does not switch them."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."

@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: c5d4949b2370557746ae2046cbe41c1ae98e210f
-doc_baseline_date: 2026-10-18
+doc_baseline_commit: b92dc5c4cf9c5d8cc5a343b55cbb78254b20f434
+doc_baseline_date: 2026-10-20
 ---
 
 # Active Context
@@ -75,6 +75,13 @@ receipts for an explicitly selected task and never block a session. The CLI,
 registration roundtrips and real adapter callbacks have focused acceptance
 evidence. Installed notification adapters remain dormant on all three clients;
 native display and Codex hook trust are unverified.
+
+Codex doc-harness includes a native Stop completion adapter with nonce-bound
+review receipts and bounded refusal. Seven zero-inference native fixtures cover
+trusted execution, repeated bypass, missing trust, changed answers, legitimate
+limits and TUI failure. The strict exec wrapper rejects missing/failed audits.
+Operator native trust and active-session reload remain pending; this profile is
+not established as protected. See `runtime-completion.md` for measured limits.
 
 ## Unresolved
 

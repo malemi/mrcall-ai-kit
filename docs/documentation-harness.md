@@ -299,6 +299,11 @@ host-level guarantee that a model cannot bypass the entire lifecycle or invent
 an attestation. Preserve actual result references, pending obligations, and
 unverifiable findings across delegation and resumption.
 
+Codex doc-harness also registers a [native Stop completion check](runtime-completion.md).
+Trusted main-session callbacks require a current model review; an explicitly
+bound task additionally invokes this completion CLI. Registration is not trust,
+and an unbound review does not enforce lifecycle coverage or semantic truth.
+
 The optional [verification advisory](verification-warnings.md) reads required
 mechanical/focused receipts for an explicitly selected task and reports missing,
 failed or stale evidence without blocking a session. Finalized historical tasks
