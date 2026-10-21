@@ -8,6 +8,8 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.4.1 — 2026-10-21
+
 ### Fixed
 
 - Completion hooks admit unarmed Stop callbacks before validating the final
