@@ -153,6 +153,42 @@ class Completion(unittest.TestCase):
             self.assertEqual(core.hook(self.payload)['decision'], 'block')
             self.assertEqual(core.hook(dict(self.payload, turn_id='question-next')), {})
 
+    def test_missing_answer_admission_precedes_validation(self):
+        variants = [{}, {'last_assistant_message': None},
+                    {'last_assistant_message': []}, {'last_assistant_message': ''}]
+        base = {k: v for k, v in self.payload.items() if k != 'last_assistant_message'}
+        with patch.dict(os.environ, {'MRCALL_COMPLETION_REQUIRE_REVIEW': ''}):
+            path = core.private_dir(core.root() / 'state') / (core.identity(base) + '.json')
+            tracked = {'attempts': 0, 'binding': {'task': 'still-open'}}
+            for state in (None, tracked):
+                if state is not None:
+                    core.write(path, state)
+                for variant in variants:
+                    for _ in range(2):
+                        self.assertEqual(core.hook(dict(base, **variant)), {})
+                if state is None:
+                    self.assertFalse(path.exists())
+                else:
+                    self.assertEqual(core.read(path), tracked)
+            self.assertFalse((core.root() / 'last-observed.json').exists())
+            self.assertFalse(list(core.handoffs().glob('*.request.json')))
+            core.hook(dict(base, hook_event_name='UserPromptSubmit', prompt='$nr question'))
+            self.assertEqual(core.hook(base), {})
+            self.assertFalse((core.root() / 'last-observed.json').exists())
+            self.assertEqual(core.read(path)['attempts'], 0)
+
+    def test_armed_missing_answer_still_refuses(self):
+        base = {k: v for k, v in self.payload.items() if k != 'last_assistant_message'}
+        for variant in ({}, {'last_assistant_message': None}, {'last_assistant_message': []}):
+            with self.assertRaisesRegex(ValueError, 'missing final answer'):
+                core.hook(dict(base, **variant))
+        with patch.dict(os.environ, {'MRCALL_COMPLETION_REQUIRE_REVIEW': ''}):
+            core.main(['bind', '--session', 'one', '--turn', 'first', '--repo', str(self.home),
+                       '--task', 'open-task', '--context', 'lead', '--delivery'])
+            with self.assertRaisesRegex(ValueError, 'missing final answer'):
+                core.hook(base)
+        self.assertEqual(core.hook(dict(base, last_assistant_message=''))['decision'], 'block')
+
     def test_session_end_cleans_only_own_pending_state(self):
         request = self.challenge()
         other_request = self.challenge(dict(self.payload, session_id='other'))
@@ -197,6 +233,18 @@ class Completion(unittest.TestCase):
                 status = json.loads(subprocess.check_output(['python3', str(script), 'status']))
                 self.assertEqual(set(status['registered_events']), set(core.EVENTS))
                 self.assertIn('unknown', status['trust'])
+                base = dict(hook_event_name='Stop', session_id='installed',
+                            turn_id='no-answer', cwd=str(self.home))
+                cli_env = dict(os.environ, MRCALL_COMPLETION_REQUIRE_REVIEW='')
+                for variant in ({}, {'last_assistant_message': None},
+                                {'last_assistant_message': []}, {'last_assistant_message': ''}):
+                    response = subprocess.check_output(['python3', str(script), 'hook'],
+                                                       input=json.dumps(dict(base, **variant)).encode(), env=cli_env)
+                    self.assertEqual(json.loads(response), {})
+                strict = subprocess.check_output(['python3', str(script), 'hook'],
+                                                 input=json.dumps(base).encode())
+                self.assertFalse(json.loads(strict)['continue'])
+                self.assertIn('missing final answer', json.loads(strict)['stopReason'])
                 before = registry.read_bytes()
                 subprocess.run([str(ROOT / 'uninstall.sh'), '--yes', '--dry-run'], check=True, capture_output=True)
                 self.assertEqual(registry.read_bytes(), before)

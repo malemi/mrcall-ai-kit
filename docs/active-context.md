@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: c9514eb949dafa4c7cc0f0daf8f7e16bd9eb48eb
-doc_baseline_date: 2026-10-20
+doc_baseline_commit: 23802a4ea9a83ee6c515f3975407918112097807
+doc_baseline_date: 2026-10-21
 ---
 
 # Active Context
@@ -78,10 +78,11 @@ native display and Codex hook trust are unverified.
 
 Codex runtime review is scoped to explicit current-turn `bind --delivery` or
 checked exec. Ordinary questions and tracked tasks without delivery require no
-review; undeclared work remains instruction-only. Four zero-inference native
-cases cover quiet exec/TUI conversation and refused declared-work bypass. Strict
-receipt and bound-harness validation remain checked. Native trust, semantic
-truth and subagent coverage are separate limits in `runtime-completion.md`.
+review; undeclared work remains instruction-only. Unarmed callbacks tolerate a
+missing or non-string final answer; installed CLI probes cover this boundary.
+Four retained zero-inference native cases cover conversation and declared-work
+refusal. Native trust, semantic truth and subagent coverage remain separate
+limits in `runtime-completion.md`.
 
 ## Unresolved
 

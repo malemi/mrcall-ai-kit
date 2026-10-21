@@ -192,9 +192,11 @@ def hook(payload):
             state['session_id'] = payload['session_id']
             write(path, state)
             return {}
-        require(isinstance(payload.get('last_assistant_message'), str), 'missing final answer')
         if state.get('nr'):
-            audit(payload, 'exempt', 'explicit operator $nr')
+            # An internal/empty callback needs no invented final answer. Only
+            # an actual string answer can produce a bound exemption audit.
+            if isinstance(payload.get('last_assistant_message'), str):
+                audit(payload, 'exempt', 'explicit operator $nr')
             return {}
         # A turn ending is not a declaration that work has been delivered.
         # Only explicit current-turn delivery or checked exec arms review.
@@ -202,6 +204,7 @@ def hook(payload):
         # for another model pass. Undeclared work is instruction-only coverage.
         if state.get('delivery') is not True and os.environ.get('MRCALL_COMPLETION_REQUIRE_REVIEW') != '1':
             return {}
+        require(isinstance(payload.get('last_assistant_message'), str), 'missing final answer')
         reason = 'a current whole-assignment review is missing'
         challenge = state.get('challenge')
         if challenge:

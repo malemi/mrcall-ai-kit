@@ -31,7 +31,11 @@ modified installed copies and unrelated hooks remain untouched.
 
 A normal end of turn is not a declaration that work is complete. Unbound questions,
 clarifications and status answers require no review, continuation or repeated
-answer. Tracking an open task alone also does not arm review.
+answer. Tracking an open task alone also does not arm review. Admission precedes
+answer validation: these unarmed callbacks also return quietly when the final
+answer is absent, null, non-string or empty. An exempt `$nr` callback without a
+string answer creates no successful audit. Armed non-exempt callbacks still
+refuse an absent or non-string final answer.
 
 Review is required only after an explicit `bind --delivery` for the exact current
 session/turn, or inside an explicit checked-exec invocation. Every supported

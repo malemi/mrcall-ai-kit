@@ -8,6 +8,12 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+### Fixed
+
+- Completion hooks admit unarmed Stop callbacks before validating the final
+  answer, preventing `missing final answer` failures on answerless turns.
+  Explicit delivery and checked-exec validation remain strict.
+
 ## v9.4.0 — 2026-10-20
 
 - Restrict mandatory Codex completion review to explicit current-turn task

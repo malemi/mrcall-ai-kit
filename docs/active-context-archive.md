@@ -1,3 +1,10 @@
+## 2026-10-21 — Completion callback validation boundary
+
+review; undeclared work remains instruction-only. Four zero-inference native
+cases cover quiet exec/TUI conversation and refused declared-work bypass. Strict
+receipt and bound-harness validation remain checked. Native trust, semantic
+truth and subagent coverage are separate limits in `runtime-completion.md`.
+
 ## 2026-10-20 — Blanket completion adapter state superseded
 
 Codex doc-harness includes a native Stop completion adapter with nonce-bound
