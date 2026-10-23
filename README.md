@@ -35,11 +35,11 @@ asks what you want. It installs **globally** (your `~/.claude`,
 `~/.codex`, `~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
 your repos.
 
-Codex doc-harness also registers a scoped runtime completion check. Ordinary
-conversation does not require a review: explicit current-turn `bind --delivery`
-or the checked-exec wrapper arms it. Undeclared work remains instruction-only. Approve its current
-definition in native `/hooks`; registration alone does not activate protection.
-See [runtime behavior and strict automation](docs/runtime-completion.md).
+Doc-harness installs automatic av for analysis/result reports on the measured
+Codex, Claude Code and OpenCode 2 native paths. A semantic classifier selects the
+outgoing report; only positive selection resumes the original session with the
+canonical stance. Normally each nonempty answer costs one classifier call.
+Native trust/reload is still required. See [activation and measured limits](docs/runtime-completion.md).
 
 Then:
 
@@ -70,15 +70,12 @@ unmet, within scope and resource limits. Generated kit agents receive the same
 decision for their own assignment. Ordinary Claude leads are outside this route.
 See [entry points, update steps and measured limits](docs/reread-guard.md#mandate-completion).
 
-These instructions and the completion checker improve observable compliance;
-they do not make every client intercept a skipped workflow. The separately
-registered Codex completion hook requires review at Stop only for declared
-delivery or checked exec and only when trusted; an explicitly
-bound task also runs the existing completion gate. Support depends on
-the runtime and configuration. See the
-[harness contract](docs/documentation-harness.md) for ownership, compatibility,
-and evidence limits. Installation does not migrate other repositories or change
-their client settings.
+Instructions and repository completion evidence do not force every client to
+run a skipped workflow. Automatic av supplies the stance through native report
+continuations; it does not certify truth or replace lifecycle reviews. Support
+depends on runtime, configuration and native trust. See the
+[harness contract](docs/documentation-harness.md). Installation does not migrate
+other repositories or change their instruction-loading settings.
 
 ## Commands
 

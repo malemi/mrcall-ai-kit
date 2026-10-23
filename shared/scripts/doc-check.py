@@ -27,7 +27,7 @@ KNOWN_PROFILE_KEYS = {
     "harness_version", "schema_version", "mode", "index_file", "harness_file",
     "inventory_ignore", "build", "smoke", "release", "index_max_lines", "doc_max_lines",
 }
-PLAN_STATUSES = {"planned", "active", "blocked", "completed", "superseded"}
+PLAN_STATUSES = {"planned", "active", "blocked", "failed", "completed", "superseded"}
 SESSION_STATUSES = {"open", "closed"}
 CONTEXT_SECTIONS = {"state now", "unresolved", "next"}
 # Cold storage that grows by design — exempt from the advisory size report.
@@ -898,7 +898,7 @@ def startup_facts(root: Path, prof: dict[str, str]) -> dict:
         status = (parsed[0] if parsed else {}).get("status", "unknown").lower()
         if not parsed or "status" in parsed[1] or status not in PLAN_STATUSES:
             status = "unknown"
-        if status not in {"completed", "superseded"}:
+        if status not in {"failed", "completed", "superseded"}:
             plans.append({"path": path.relative_to(root).as_posix(), "status": status})
     issues = []
     for path in sorted((root / "docs/known-issues").glob("*.md")):

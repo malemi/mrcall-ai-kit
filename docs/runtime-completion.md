@@ -1,174 +1,147 @@
-# Codex runtime completion check
+# Automatic av for analysis and result reports
 
-Codex doc-harness installation registers owned `UserPromptSubmit`, `Stop` and
-`SessionEnd` commands in the selected `CODEX_HOME/hooks.json` (default
-`~/.codex/hooks.json`). The executable is
-`~/.config/mrcall-ai-kit/completion-check/completion_check.py`. Existing hook
-entries and operator configuration are preserved. No repository protocol change
-or engine modification is required.
+Production deployment is operator-authorized with a known OpenCode limitation:
+the configured verification provider refuses its isolated request. Successful
+real OpenCode acceptance is waived for this release, not claimed as passed.
 
-## Activation and status
+Doc-harness installs a semantic selector and routes positive reports to the
+canonical `shared/shortcuts/av.md` stance in the original answering session.
+The selection boundary is the outgoing response: activate if and only if it
+reports an analysis or result. Short results, mixed answers, status findings and
+analytical explanations qualify. Pure acknowledgments, greetings, clarification
+without findings, pause/cancel acknowledgments, quoted-only material, empty
+answers and internal coordination without a user-facing report do not.
 
-Update with `./install.sh --environment codex --features doc-harness --mode copy
---on-exist overwrite --yes` (or choose symlink mode). This changes the native hook
-definition. Review and approve that definition through Codex `/hooks`; installation
-and registration alone do not establish trust or execution. The installer never
-writes native trust storage or restarts running sessions. An existing session's
-reload/approval must be established in that client before claiming protection.
+Selection returns APPLY or SKIP; it is not an answering-agent completion review.
+There is no JSON self-certificate, task binding, delivery declaration or strict
+exec wrapper. The separate repository `doc-check.py --completion` evidence API
+and the documentation review lifecycle remain in force.
 
-```bash
-python3 ~/.config/mrcall-ai-kit/completion-check/completion_check.py status
-```
+## Native paths
 
-Status reports file presence, registered events, unknown native trust, and the
-last observed terminal audit with its timestamp and session/turn identity.
-An old observation does not establish approval of the current definition.
-`off` removes only this adapter's entries, `on` restores them, and the manifest
-uninstaller removes unchanged owned files and registrations. Foreign files,
-modified installed copies and unrelated hooks remain untouched.
+| Runtime measured for protocol | Selection | Positive continuation |
+|---|---|---|
+| Codex 0.163.0 | Ephemeral native CLI, inherited parent model where available, read-only and zero tools | Native Stop block resumes the original session with canonical av |
+| Claude Code 2.1.296 | Tools-disabled native CLI, installed verify-role model from the operator budget | Native Stop block resumes the original session with canonical av |
+| OpenCode 2.0.32 | Native stateless `generate.text` with the explicit installed verify-role model and isolated input; no tools/history | Native `session.prompt` with steer delivery into the original session |
 
-## What executes
+These version identities describe measured integrations, not compatibility with
+all versions. OpenCode 1 receives an explicit unavailable diagnostic and does
+not load the v2 plugin. OpenCode's physical installed bundle needs npm and the
+pinned `effect@4.0.0-beta.83` dependency.
 
-A normal end of turn is not a declaration that work is complete. Unbound questions,
-clarifications and status answers require no review, continuation or repeated
-answer. Tracking an open task alone also does not arm review. Admission precedes
-answer validation: these unarmed callbacks also return quietly when the final
-answer is absent, null, non-string or empty. An exempt `$nr` callback without a
-string answer creates no successful audit. Armed non-exempt callbacks still
-refuse an absent or non-string final answer.
+Codex and Claude register owned UserPromptSubmit, Stop and SessionEnd commands.
+They capture the current request and classify its complete text and the complete
+outgoing answer as untrusted data. OpenCode obtains the current request and
+answer from native session context. It resolves the installed verify agent model
+explicitly and uses that provider's native credentials. Missing role/model or
+credentials produce unavailable rather than a model switch. Doc-harness installs
+that verify role even without the full workers feature. No prose keywords or answer-size thresholds
+select reports. Missing or empty text returns quietly without classification.
 
-Review is required only after an explicit `bind --delivery` for the exact current
-session/turn, or inside an explicit checked-exec invocation. Every supported
-main-session `Stop` then invokes the validator even when the model ignores the
-instructions. A declared delivery without a current review is blocked with a
-concrete review command and request nonce. The agent must assess the
-whole open assignment, earlier requests and later corrections, acceptance,
-actual evidence and remaining obligations. Useful authorized work remains work
-to do; a progress question does not cancel it. Questions, briefs and reviews keep
-their requested scope.
+A positive selection supplies the canonical manual stance with a concrete
+automatic task wrapper. The parent keeps its assignment, tools and authority:
+it performs feasible authorized remaining work and verifies it. Adequate answers
+stay unchanged. Question, brief and review scope, pauses, missing authority and
+actual resource limits remain legitimate boundaries. It must not merely reply
+that av was received. No private reasoning or semantic truth is certified.
 
-The review command accepts JSON on stdin or through `--input FILE`:
+## Limits and failure behavior
 
-```json
-{
-  "assignment": "Answer the operator's bounded question.",
-  "acceptance": ["The requested answer is supplied."],
-  "evidence": [],
-  "remaining": [],
-  "decision": "complete",
-  "rationale": "The answer covers the requested question.",
-  "answer": "The exact intended final response."
-}
-```
+Normally each nonempty outgoing answer costs one classifier generation, including
+negative selections. OpenCode verification can use a paid provider even when
+the answering model is free: the installed verify-role budget determines its
+model; the plugin does not choose a cheaper model. A negative selection injects
+no av and creates no extra parent turn. An exact negative callback replay is cached; a changed draft can
+be selected again. At most one av continuation is sent per original user turn;
+a genuine later user turn gets its own selection. Other hooks' continuation
+flags do not count as this adapter's application.
 
-Use the exact `review --request PATH` command returned by the hook. The agent
-supplies its actual facts, not these example judgments. Review identity binds a
-random nonce, session, turn, invocation, workspace and intended answer digest;
-line endings and outer whitespace are normalized. Requests expire after ten
-minutes, and a consumed receipt cannot be reused. Changed answers require a fresh
-review. `stop_hook_active` never grants an automatic pass.
+Each selector gets one process/request attempt, 30 seconds including transport,
+and at most 2 KiB of label output. Command transports also cap native transport
+output at 256 KiB and kill/reap their process group on failure or cancellation.
+OpenCode uses native Effect interruption. Its stateless API exposes no per-call
+token setting: the 2 KiB returned label is validated after native completion.
+A native delayed-provider fixture observes the upstream socket closing at its
+30-second deadline.
+Native provider behavior and its internal retries remain distinct from the adapter's one-attempt policy.
 
-`continue` requires remaining obligations and refuses conclusion. `complete`
-requires an empty remaining list. `limited` requires remaining obligations, a
-rationale and `stop_condition` of `pause`, `cancel`, `input`, `authority`,
-`external` or `resource`. The literal operator command `$nr` at the start of a
-prompt has a turn-bound exemption, captured by `UserPromptSubmit`; the adapter
-does not classify ordinary prose or infer a task from recent repository work.
-An invocation of the skill by name without that literal command is not a native
-exemption. Operator interruption remains a host action outside normal Stop.
+Timeout, invalid output, missing context or unsupported capability produces an
+explicit availability diagnostic and no av injection. It never counts as a
+successful review. New prompts/session cancellation invalidate pending selection;
+obsolete results cannot inject av. The adapter does not guarantee perfect
+semantic classification, model obedience or completion of every assignment.
 
-At most two automatic continuations are allowed. A third unresolved attempt
-records failure and returns `continue:false` with an explicit failed-completion
-message. This bounds check-induced retries, not the duration or spending of work
-the agent performs between terminal attempts. The hook can run after a draft is
-already visible; it cannot retract that draft. Semantic judgments and legitimate
-stop reasons remain model attestations: the adapter proves execution and binding,
-not that the model is honest or correct.
+Stop/event continuations can occur after the draft has been displayed. Actual
+Codex JSON fixtures expose the draft and resumed response; Claude print fixtures
+emit the final response. Interactive pre-display suppression is unverified.
+Do not describe this integration as retracting or preventing a visible draft.
 
-## Explicit harness binding
+## Installation and ownership
 
-A caller with the actual native identities can declare delivery of one existing
-completion task for the current turn:
+Use the ordinary doc-harness installer for the selected runtimes:
 
 ```bash
-python3 ~/.config/mrcall-ai-kit/completion-check/completion_check.py bind \
-  --session SESSION --turn TURN --repo /absolute/repository \
-  --task TASK --context CURRENT_LEAD_CONTEXT --delivery
+./install.sh --environment all --features doc-harness --mode copy --on-exist backup --yes
 ```
 
-This host-side administrative command writes owned runtime state outside a normal
-workspace sandbox. The review command instead uses a private per-user temporary
-handoff, which is writable from the measured workspace-write sandbox. Binding is
-explicit for that session/turn; it is never inferred or propagated to another
-turn. Omitting `--delivery` merely tracks the task and does not arm review. An open
-task does not turn its later clarification into a delivery. A declared
-`complete` decision additionally runs installed `doc-check.py
---completion check`; missing, failing or stale evidence refuses completion.
-A `limited` outcome preserves outstanding obligations without claiming that gate
-passed. Without a delivery declaration or checked exec, work is governed by the agent
-instructions and is not independently intercepted. The adapter does not infer
-semantic completion or detect an undeclared claim of success. Checked exec without
-a task binding validates its review receipt but not the whole repository harness.
-
-State and terminal audits live under `completion-check/runtime/`, in mode-0700
-owned directories and mode-0600 files. Pending challenges use
-`/tmp/mrcall-completion-<uid>/` and random filenames; unsafe ownership, permissions
-or symlinks refuse validation. `SessionEnd` removes only its session's pending
-state, retaining terminal audits. Crashed-session challenges expire; terminal
-audits remain available for inspection. Same-user direct file mutation is outside
-the attestation boundary.
-
-## Strict automation exit status
-
-Native `codex exec` can return zero after a hook terminates at a failure cap, and
-untrusted hooks can be skipped entirely. Use the owned wrapper when process
-status matters:
+Assets live under `~/.config/mrcall-ai-kit/auto-av/`; command hook registries are
+Codex's selected `CODEX_HOME/hooks.json` and Claude's `~/.claude/settings.json`.
+OpenCode uses an owned symlink under `~/.config/opencode/plugins/` to its physical
+bundle. Registrations merge foreign entries. Preserved foreign or modified
+helper/shared assets prevent automatic registration; an occupied foreign OpenCode
+bundle is never passed to npm or claimed in the manifest. Installation does not
+approve native
+trust, edit trust stores or restart sessions. Establish reload and, for Codex,
+approve the current definition through native `/hooks` before claiming operation.
+Source-linked assets alone do not install newly added dependencies or registrations.
 
 ```bash
-python3 ~/.config/mrcall-ai-kit/completion-check/completion_check.py exec \
-  --cd /absolute/repository 'Your task'
+python3 ~/.config/mrcall-ai-kit/auto-av/auto_av.py status --runtime codex
+python3 ~/.config/mrcall-ai-kit/auto-av/auto_av.py status --runtime claude
+python3 ~/.config/mrcall-ai-kit/auto-av/auto_av.py status --runtime opencode
 ```
 
-Selecting the wrapper explicitly requires review for that process. It runs
-native exec with JSON events, retains native output and requires a fresh
-matching terminal audit for its random run identity, native session, turn,
-workspace and final answer. Missing, malformed, stale, foreign, mismatched or
-failed audits return nonzero (3 on audit refusal); native process failures retain
-their exit code. Accepted `complete`, `limited` and explicit `exempt` outcomes
-return zero and emit `completion.result` with the outcome and remaining
-obligations. Zero therefore means an accepted terminal outcome, not necessarily
-that the entire assignment is complete. Plain native exec is not promoted to
-this stricter contract.
+`off` removes only owned registrations; `on` restores them. Status establishes
+registration, not native trust or execution. Private command state uses owned
+0700 directories and 0600 files. `MRCALL_KIT_HOME` can isolate assets/state for
+native trials without copying credentials. Uninstall preserves foreign files and
+modified installed copies according to the installation manifest.
 
-## Measured support and limits
+The rejected completion adapter's owned registrations are removed. Existing
+owned executable paths become inert compatibility stubs returning `{}` for
+cached hook commands until native reload. Review/bind/exec/on refuse explicitly;
+modified foreign copies and historical audit data remain untouched. New installs
+never register the retired path.
 
-Four scoped Codex 0.163.0 native cases exercise plain exec and actual TUI
-conversation with one final answer/one Stop and zero review commands or
-continuations; checked-exec and explicitly declared bound delivery still refuse
-a deliberately omitted review. The scoped runner uses `--scoped --run` or
-`--scoped --verify`, at most four processes, with the same 60-second/2 MB limits.
-Evidence is retained under `/tmp/mrcall-ai-kit/completion-scope-20261020/native/`.
-The original seven-case matrix below describes the earlier blanket adapter and
-its strict validation paths; it does not establish the corrected ordinary-chat
-policy.
+## Evidence
 
-Codex 0.163.0, isolated copy installations and a deterministic loopback Responses
-provider exercise actual native `UserPromptSubmit`, `Stop`, `SessionEnd` and
-sandboxed review CLI execution. Seven production cases cover complete, limited,
-skipped review, untrusted registration, literal `$nr`, changed reviewed answer
-and TUI failure. A deliberately noncompliant response is refused repeatedly;
-there is no silent second-pass allowance. The TUI visibly reports the bounded
-failure; its observer shutdown is not a successful native process exit.
+The approved [brief](briefs/2026-10-21-automatic-av.md) and
+[plan](execution-plans/2026-10-21-automatic-av.md) define acceptance and limits.
+Free checks exercise real copy/symlink installation, migration, native callbacks,
+canonical body delivery, parent identity, classifier isolation, APPLY/SKIP counts,
+replay/later-turn routing and cancellation. Native loopback providers establish
+protocol execution, not semantic accuracy. Core tests and all 18 shell suites
+pass; refreshed command-native fixtures retain request context and zero selector
+tools, and the OpenCode positive fixture compares the actual canonical asset.
 
-`tests/runtime_completion_native.py --verify ABS_EVIDENCE_DIR` rechecks retained
-results without starting a client or buying inference. `--run ABS_EVIDENCE_DIR
---case NAME` starts one isolated native process, with a seven-process allowance,
-60-second timeout and 2 MB output cap. These cases use no model credentials or
-paid inference. The earlier four capability probes and the seven production
-cases are retained on the acceptance host under
-`/tmp/mrcall-ai-kit/completion-stop-20261020/native/`.
+Four real-model conversations pass on Codex and Claude: each positive receives
+one exact canonical av in the same parent, repairs and verifies the broken probe;
+each acknowledgment receives zero av and no extra parent turn.
 
-This establishes the measured trusted main-session paths only. Ordinary operator
-trust/reload, subagents, other clients, long sessions and semantic accuracy remain
-unverified. No engine or client-independent mechanism prevents hook disabling,
-an untrusted definition, a direct unwrapped exec, or an invented model attestation.
+OpenCode's configured native verify provider authenticates but returns an empty
+response with `content_filter` / `refusal`. It supplies no classification label;
+no av is injected and the negative trial does not start. The exact remote refusal
+predicate is unestablished. The answering provider and verification model are not
+silently changed to produce a passing result. Native free fixtures do establish
+explicit role selection, zero tools/history, supported credential loading,
+canonical same-parent delivery, actual shell repair and cancellation.
+
+Actual acceptance forwarding is 23 requests across seven attempts, including the
+retained provider-admission and test-authentication setup failures. The reviewed
+ceiling remains 27; the stop-on-first-failure rule leaves the remaining allowance
+unused. The operator authorizes release of this candidate with the disclosed
+OpenCode limitation. The [plan](execution-plans/2026-10-21-automatic-av.md) retains
+the failed evidence and qualified acceptance decision. No further inference is
+authorized by its unused allowance. Native installation status does not establish
+successful verification with the refusing provider or trust/reload in a session.

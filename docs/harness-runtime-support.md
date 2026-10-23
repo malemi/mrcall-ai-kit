@@ -5,18 +5,20 @@ Layout migration does not require client compatibility evidence. Optional
 reports are validated against the bounded policy; an executable version alone
 is not compatibility evidence.
 
-## Codex terminal review
+## Automatic av
 
-The [runtime completion adapter](runtime-completion.md) has separate native
-Codex 0.163.0 evidence: trusted main-session Stop invokes the check for explicit
-current-turn delivery or checked exec even when a deterministic response skips
-review. Ordinary exec/TUI conversation needs no review; a tracked open task alone
-does not arm it. Undeclared work remains instruction-only. Missing review remains refused on subsequent
-attempts. UserPromptSubmit/SessionEnd and sandboxed review commands are observed.
-Untrusted registration produces no callback; the strict exec wrapper refuses a
-missing audit. Ordinary operator trust, reload and subagents remain unverified.
-The adapter validates model attestations; it does not establish semantic truth
-or enforce an unbound repository lifecycle.
+The [automatic av contract](runtime-completion.md) records the semantic
+analysis/result selection boundary, native adapters, cost and cancellation.
+Codex 0.163.0, Claude Code 2.1.296 and OpenCode 2.0.32 pass actual native loopback
+protocol fixtures, including zero selector tools and positive-only continuation
+into the original session. These fixtures do not establish model classification
+accuracy. Codex/Claude real-model positive and negative cases pass; OpenCode
+configured native verification provider returns an empty content-filter refusal,
+so successful real OpenCode behavior remains unestablished. The operator accepts
+this limitation for production release and waives further OpenCode acceptance. Native trust,
+reload and interactive pre-display suppression remain unverified. The earlier
+runtime completion certificate is retired; repository completion evidence remains
+a separate refusing CLI when invoked.
 
 ## Measured modes
 

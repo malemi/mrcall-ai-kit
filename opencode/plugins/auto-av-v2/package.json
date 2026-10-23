@@ -1,0 +1,9 @@
+{
+  "name": "mrcall-auto-av",
+  "private": true,
+  "type": "module",
+  "main": "index.js",
+  "dependencies": {
+    "effect": "4.0.0-beta.83"
+  }
+}

@@ -15,12 +15,12 @@ pass is an instruction, not observable runtime enforcement.
 
 ## Mandate completion
 
-Codex doc-harness separately registers the [runtime completion check](runtime-completion.md).
-When its definition is trusted, explicitly declared current-turn delivery or
-checked exec requires a current completion-review receipt, with bounded failure
-when omitted. Ordinary chat and tracked tasks without delivery require no review. This is
-separate from optional `sc` and the six-item clarity checklist. Installation or
-model instructions alone do not establish native execution.
+Doc-harness separately installs [automatic av](runtime-completion.md) on the
+measured Codex, Claude and OpenCode paths. Semantic selection routes only
+analysis/result reports to the canonical stance in their original session.
+Negative selection adds no parent turn. The former runtime completion-review
+receipt is retired. This feature is separate from optional `sc` and the six-item
+clarity checklist; it has its own classifier cost and native trust/reload limits.
 
 Before yielding, generated agents assess their whole bounded assignment and
 perform a useful authorized next action when one remains feasible within limits.
@@ -30,7 +30,7 @@ indispensable input or authority, a blocker leaving no independent useful work,
 an explicit pause, or an actual resource/runtime limit permits an incomplete
 handoff with remaining obligations. Existing plans/handoffs carry pending state;
 the instruction itself creates no task database or per-answer reviewer. The
-separate trusted Codex Stop adapter permits two bounded continuations.
+separate automatic av adapter permits one stance continuation per original user turn.
 
 The source is `shared/roles/block-mandate-completion.md`. It is composed into the
 Codex global kit block and generated final-report procedures. Codex doc-harness
@@ -80,7 +80,7 @@ These samples do not establish interactive behavior, long-session reliability,
 actual compaction persistence, lifecycle compliance, or native Claude/OpenCode
 adherence. Status/resumption fixtures supply single-turn context. The unprofiled brief-only sample is not proof of startup enforcement. Instruction following can
 still fail. That historical instruction matrix does not test the separate
-trusted runtime completion adapter.
+automatic av adapter.
 
 ## Re-read runtime measurements
 

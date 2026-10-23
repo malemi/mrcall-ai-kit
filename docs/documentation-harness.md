@@ -299,12 +299,12 @@ host-level guarantee that a model cannot bypass the entire lifecycle or invent
 an attestation. Preserve actual result references, pending obligations, and
 unverifiable findings across delegation and resumption.
 
-Codex doc-harness also registers a [native Stop completion check](runtime-completion.md).
-Trusted main-session callbacks require a current model review for explicit
-current-turn delivery or checked exec; an explicitly declared task delivery also
-invokes this completion CLI. Normal conversation and merely tracking an open task
-do not arm review. Undeclared work remains instruction-only. Registration is not trust,
-and an unbound review does not enforce lifecycle coverage or semantic truth.
+Doc-harness also installs [semantic automatic av](runtime-completion.md) for
+analysis/result reports on the measured native clients. Positive selection
+resumes the original answering session with the canonical stance; negative
+selection adds no parent turn. This replaces the former runtime JSON certificate,
+not the separate repository completion-evidence CLI. Native trust/reload,
+classification cost and measured runtime limits remain explicit.
 
 The optional [verification advisory](verification-warnings.md) reads required
 mechanical/focused receipts for an explicitly selected task and reports missing,
@@ -316,8 +316,12 @@ they never infer a current task or replace this completion contract.
 
 Substantial or multi-session work has a dated brief and plan before execution.
 Briefs record intent and rationale without lifecycle frontmatter. Plans use
-`status: planned | active | blocked | completed | superseded`. Only `completed`
-means finished; checkboxes are reading aids, not authoritative state. A small
+`status: planned | active | blocked | failed | completed | superseded`.
+`failed` closes an unsuccessful attempt and retains its unmet result and failure
+reason; `blocked` identifies resumable work. Startup excludes failed, completed
+and superseded plans from its open list. Only `completed` means verified success;
+`failed` never certifies delivery or relaxes completion evidence. Checkboxes are
+reading aids, not authoritative state. A small
 single-session fix can omit the pair with an explicit work-trace decision.
 Consolidation creates a missing required trace from the lead's transcript;
 delegated critics report absence instead of inventing content.

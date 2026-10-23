@@ -1,3 +1,14 @@
+## 2026-10-21 — Replaced runtime completion candidate
+
+Codex runtime review is scoped to explicit current-turn `bind --delivery` or
+checked exec. Ordinary questions and tracked tasks without delivery require no
+review; undeclared work remains instruction-only. Unarmed callbacks tolerate a
+missing or non-string final answer; installed CLI probes cover this boundary.
+Four retained zero-inference native cases cover conversation and declared-work
+refusal. Native trust, semantic truth and subagent coverage remain separate
+limits in `runtime-completion.md`.
+
+
 ## 2026-10-21 — Completion callback validation boundary
 
 review; undeclared work remains instruction-only. Four zero-inference native

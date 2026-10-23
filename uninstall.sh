@@ -140,10 +140,15 @@ if [[ -f "$WARNINGS_REGISTER" && -v SRC_OF["$WARNINGS_REGISTER"] ]] && owned_ite
     fi
   done
 fi
-COMPLETION_REGISTER="$KIT_GLOBAL/completion-check/completion_check.py"
-if [[ -f "$COMPLETION_REGISTER" && -v SRC_OF["$COMPLETION_REGISTER"] ]] && owned_item "$COMPLETION_REGISTER"; then
-  if $DRY_RUN; then python3 "$COMPLETION_REGISTER" off --dry-run
-  else python3 "$COMPLETION_REGISTER" off
+AV_REGISTER="$KIT_GLOBAL/auto-av/auto_av.py"
+if [[ -f "$AV_REGISTER" && -v SRC_OF["$AV_REGISTER"] ]] && owned_item "$AV_REGISTER"; then
+  for runtime in claude codex opencode; do
+    if $DRY_RUN; then python3 "$AV_REGISTER" off --runtime "$runtime" --dry-run
+    else python3 "$AV_REGISTER" off --runtime "$runtime"
+    fi
+  done
+  if $DRY_RUN; then python3 "$AV_REGISTER" retire --dry-run
+  else python3 "$AV_REGISTER" retire
   fi
 fi
 CODEX_ROSTER="$KIT_GLOBAL/codex-agent-roster.py"

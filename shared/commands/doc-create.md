@@ -99,7 +99,8 @@ doc-critic along with the affected documentation before declaring completion.
   to removed managed CLAUDE is a local repair; do not recreate that file.
   Preserve historical accounts; correct link targets without rewriting history.
 - Read invalid plan/session metadata with its content and choose the actual
-  lifecycle state. Plans allow planned|active|blocked|completed|superseded;
+  lifecycle state. Plans allow planned|active|blocked|failed|completed|superseded;
+  failed closes an unsuccessful attempt and retains its unmet result and reason;
   session memories allow open|closed. Never mark unfinished work completed.
 - Reconcile inventory with actual ownership. A temporary worktree may belong
   in inventory_ignore; an owned service belongs in the index. Decide from

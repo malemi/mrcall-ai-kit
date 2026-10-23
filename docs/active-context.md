@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 7f878c88aacaf4a934daf1d34d2ab29c9987268f
-doc_baseline_date: 2026-10-21
+doc_baseline_commit: 08b93b688e33fbb8802f84eb6eab07397df87326
+doc_baseline_date: 2026-10-23
 ---
 
 # Active Context
@@ -76,13 +76,14 @@ registration roundtrips and real adapter callbacks have focused acceptance
 evidence. Installed notification adapters remain dormant on all three clients;
 native display and Codex hook trust are unverified.
 
-Codex runtime review is scoped to explicit current-turn `bind --delivery` or
-checked exec. Ordinary questions and tracked tasks without delivery require no
-review; undeclared work remains instruction-only. Unarmed callbacks tolerate a
-missing or non-string final answer; installed CLI probes cover this boundary.
-Four retained zero-inference native cases cover conversation and declared-work
-refusal. Native trust, semantic truth and subagent coverage remain separate
-limits in `runtime-completion.md`.
+Automatic av replaces the rejected runtime completion certificate in the current
+candidate. Free native fixtures cover Codex, Claude and OpenCode 2 routing into
+the original parent. Codex/Claude real-model positive and negative cases pass;
+OpenCode native verification authenticates but returns an empty content-filter
+refusal. The operator authorizes production release with that limitation and
+waives further OpenCode semantic acceptance. Cost, trust/reload, display order and legacy-version limits belong in
+`runtime-completion.md`. Historical audit data is retained; cached owned legacy
+hook commands return quietly through an inert compatibility path.
 
 ## Unresolved
 

@@ -986,6 +986,38 @@ class DocCheckTests(unittest.TestCase):
         self.assertEqual(facts["open_plans"][0]["status"], "unknown")
         self.assertIn("duplicate", facts["advisories"]["unstated_issues"][0])
 
+    def test_failed_plan_is_valid_terminal_state_in_real_cli(self):
+        plans = self.root / "docs/execution-plans"
+        for status in ("planned", "active", "blocked", "failed", "completed", "superseded"):
+            (plans / f"2026-10-23-{status}.md").write_text(
+                f"---\nstatus: {status}\n---\n# Attempt\n", encoding="utf-8"
+            )
+        result = self.check()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        result, facts = self.startup()
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertEqual(
+            {item["status"] for item in facts["open_plans"]},
+            {"planned", "active", "blocked"},
+        )
+        result, output = self.startup(False)
+        self.assertEqual(result.returncode, 0, output)
+        open_line = next(line for line in output.splitlines() if line.startswith("open_plans: "))
+        self.assertEqual(json.loads(open_line.split(": ", 1)[1]), facts["open_plans"])
+
+    def test_failed_plan_does_not_hide_invalid_or_duplicate_metadata(self):
+        plans = self.root / "docs/execution-plans"
+        invalid = plans / "2026-10-23-invalid.md"
+        duplicate = plans / "2026-10-23-duplicate.md"
+        invalid.write_text("---\nstatus: failure\n---\n", encoding="utf-8")
+        duplicate.write_text("---\nstatus: active\nstatus: failed\n---\n", encoding="utf-8")
+        result, facts = self.startup()
+        self.assertEqual(result.returncode, 1, result.stdout + result.stderr)
+        self.assertTrue(all(item["status"] == "unknown" for item in facts["open_plans"]))
+        self.assertEqual(len(facts["open_plans"]), 2)
+        self.assertIn("invalid status `failure`", result.stdout)
+        self.assertIn("exactly one `status`", result.stdout)
+
     def test_startup_separates_staged_unstaged_and_untracked(self):
         self.git("add", ".")
         self.git("commit", "-m", "context")
