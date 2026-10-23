@@ -84,7 +84,9 @@ for mode in copy symlink; do
 done
 echo "the router alone places Claude Code's roles by budget, with every budget in the kit's home: PASS"
 
-if command -v opencode >/dev/null 2>&1; then
+# These optional debug subcommands belong to OpenCode 1, not the v2 API.
+if command -v opencode >/dev/null 2>&1 &&
+   [[ "$(opencode --version)" =~ ^(opencode[[:space:]]v|v)?1\. ]]; then
   for budget in medium low; do
     home="$TEST_ROOT/symlink-default" ; [[ "$budget" == low ]] && home="$TEST_ROOT/symlink-low"
     got="$(opencode_model "$home" verify)" || fail "opencode debug agent verify failed"
@@ -93,7 +95,7 @@ if command -v opencode >/dev/null 2>&1; then
   done
   echo "OpenCode resolves verify to models.json's model for the budget: PASS"
 else
-  echo "SKIP: opencode is not on the PATH, so the model OpenCode resolves is not checked"
+  echo "SKIP: OpenCode 1 debug agent probe is unavailable for this client; installed model checks still run"
 fi
 
 # The help's inventory names the agents, not the budget directories.

@@ -203,7 +203,9 @@ diff -r "$TEST_ROOT/pristine/$SKILL" "$moved" >/dev/null || fail "backup: the ol
 diff -r "$KIT_DIR/opencode/skills/orchestrator" "$home/$SKILL" >/dev/null || fail "backup: the new skill is not installed"
 last_bak="$(D="$home/$SKILL" awk -F'\t' '$3 == ENVIRON["D"] { b = $5 } END { print b }' "$home/.config/mrcall-ai-kit/installed.tsv")"
 [[ "$last_bak" == "$moved" ]] || fail "backup: the install log records the skill's backup as '$last_bak'"
-if command -v opencode >/dev/null 2>&1; then
+# These optional debug subcommands belong to OpenCode 1, not the v2 API.
+if command -v opencode >/dev/null 2>&1 &&
+   [[ "$(opencode --version)" =~ ^(opencode[[:space:]]v|v)?1\. ]]; then
   mkdir -p "$home/work"
   (cd "$home/work" && HOME="$home" opencode debug skill --print-logs \
     > "$TEST_ROOT/skills.json" 2> "$TEST_ROOT/skills.log") || fail "opencode debug skill failed"
@@ -223,7 +225,7 @@ EOF
   fi
   echo "OpenCode loads one orchestrator skill, the new one: PASS"
 else
-  echo "SKIP: opencode is not on the PATH, so which orchestrator skill it loads is not checked"
+  echo "SKIP: OpenCode 1 debug skill probe is unavailable for this client; filesystem migration checks still run"
 fi
 # The install log is enough to undo the migration, backups included.
 HOME="$home" "$KIT_DIR/uninstall.sh" --yes --restore-backups >/dev/null

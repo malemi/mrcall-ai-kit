@@ -94,7 +94,9 @@ grep -q '^Claude Code: the next delegation runs on these models' "$TEST_ROOT/out
   || fail "the switch does not say when Claude Code picks it up"
 grep -q '^OpenCode: an OpenCode started from now on runs on these models; one already running keeps its old models, in new sessions too' "$TEST_ROOT/out" \
   || fail "the switch does not say when OpenCode picks it up"
-if command -v opencode >/dev/null 2>&1; then
+# These optional debug subcommands belong to OpenCode 1, not the v2 API.
+if command -v opencode >/dev/null 2>&1 &&
+   [[ "$(opencode --version)" =~ ^(opencode[[:space:]]v|v)?1\. ]]; then
   mkdir -p "$home/work"
   for level in low high; do
     ai_budget "$home" "$level" >/dev/null
@@ -105,7 +107,7 @@ if command -v opencode >/dev/null 2>&1; then
   done
   echo "OpenCode resolves verify to the switched level's model: PASS"
 else
-  echo "SKIP: opencode is not on the PATH, so the model OpenCode resolves is not checked"
+  echo "SKIP: OpenCode 1 debug agent probe is unavailable for this client; installed model checks still run"
 fi
 echo "symlink mode re-points each agent and logs it: PASS"
 
