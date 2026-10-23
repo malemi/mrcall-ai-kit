@@ -8,6 +8,18 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.5.0 — 2026-10-23
+
+- Automatically select analysis/result reports semantically and apply canonical
+  av in the original Codex, Claude Code or OpenCode 2 session. Retire the runtime
+  completion self-certificate while preserving repository evidence checks.
+- Codex/Claude real-model positive and negative cases pass. OpenCode native
+  fixtures pass, but its configured verification provider refuses real selection;
+  the operator accepts this limitation for release. Selection costs, native
+  trust/reload and visible-draft continuation limits remain documented.
+- Add terminal unsuccessful `failed` execution-plan status to validation,
+  startup reporting and all documentation workflows.
+
 ## v9.4.1 — 2026-10-21
 
 ### Fixed
