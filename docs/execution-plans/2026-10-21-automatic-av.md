@@ -325,3 +325,19 @@ fingerprint. The checker requires a new release task bound to current workflows;
 retain the original blocked record and import actual reviewed artifacts instead
 of resetting it or manufacturing fresh evidence. This is the completion task
 used for the authorized release and the same reviewed plan transition.
+
+## Release-check repairs
+
+The release command exposes optional OpenCode 1 debug probes running against
+OpenCode 2. Their explicit version guards preserve all deterministic install
+checks and the separately measured native OpenCode 2 fixtures.
+
+Full checks also expose a doc-harness-only retirement error: its new verify
+prerequisite must not authorize retirement of legacy OpenCode worker assets.
+Require the workers feature for that path, preserving the approved ownership
+boundary. The reread fixture must distinguish a single installation's bundle
+copy/dependency-finalization journal entries from duplicate installation targets;
+verify the final ownership digest and reject every unrelated duplicate.
+Run the affected actual installer suites, M1 integration review, current scoped
+closure and separate final review before committing and retrying v9.5.0. No new
+classification, provider, model or semantic acceptance work is authorized.

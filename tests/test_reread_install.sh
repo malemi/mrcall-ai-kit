@@ -99,13 +99,34 @@ test -f "$combined/.config/opencode/commands/sc.md"
 test -f "$combined/.agents/skills/sc/SKILL.md"
 test -f "$combined/.config/mrcall-ai-kit/sc-core.md"
 test -f "$combined/.config/mrcall-ai-kit/reread-checklist.md"
-python3 - "$combined/.config/mrcall-ai-kit/installed.tsv" <<'PY'
-from collections import Counter
+python3 - "$combined/.config/mrcall-ai-kit/installed.tsv" "$KIT_DIR/opencode/plugins/auto-av-v2" <<'PY'
+from collections import defaultdict
 from pathlib import Path
-import sys
+import hashlib, json, os, stat, sys
 
-destinations = [line.split("\t")[2] for line in Path(sys.argv[1]).read_text().splitlines()]
-duplicates = {path: count for path, count in Counter(destinations).items() if count != 1}
+manifest = Path(sys.argv[1])
+entries = defaultdict(list)
+for line in manifest.read_text().splitlines():
+    fields = line.split("\t")
+    entries[fields[2]].append(fields)
+duplicates = {path: records for path, records in entries.items() if len(records) != 1}
+bundle = manifest.parent / "auto-av/opencode-v2"
+if str(bundle) in duplicates:
+    records = duplicates.pop(str(bundle))
+    assert len(records) == 2, records
+    assert all(len(record) == 6 and record[1] == "copy" and record[3] == sys.argv[2] for record in records), records
+    assert records[0][4] == records[1][4] == "", records
+    assert records[0][5] != records[1][5], records
+    items = [bundle]
+    for base, directories, files in os.walk(bundle, followlinks=False):
+        items.extend(Path(base) / name for name in directories + files)
+    content = []
+    for item in sorted(items):
+        mode = item.lstat().st_mode
+        payload = os.readlink(item) if item.is_symlink() else hashlib.sha256(item.read_bytes()).hexdigest() if item.is_file() else ""
+        content.append([str(item.relative_to(bundle)), stat.S_IFMT(mode), stat.S_IMODE(mode), payload])
+    digest = hashlib.sha256(json.dumps(content, ensure_ascii=True, separators=(",", ":")).encode()).hexdigest()
+    assert records[-1][5] == digest, records[-1]
 assert not duplicates, duplicates
 PY
 for file in \

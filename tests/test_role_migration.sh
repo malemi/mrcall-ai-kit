@@ -340,7 +340,7 @@ has "$out" "for OpenCode workers, with orchestration if its leads are installed.
 has "$out" "Retired names: ${#RETIRED_KIT[@]} file(s) the kit once installed are still in place" no-roles
 [[ -z "$(retired_lines "$home")" ]] || fail "no-roles: recorded a retirement"
 # The shape of M6's second command: OpenCode's doc-harness, a feature that
-# ships agents on Claude Code, but not OpenCode's role agents.
+# ships agents on Claude Code and only the OpenCode verify prerequisite.
 home="$TEST_ROOT/doc-harness-only" ; seed "$home"
 out="$(HOME="$home" "$KIT_DIR/install.sh" --environment opencode --features doc-harness \
   --mode symlink --on-exist overwrite --yes 2>&1)" || fail "OpenCode doc-harness install failed: $out"

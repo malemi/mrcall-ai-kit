@@ -600,7 +600,7 @@ installs_roles_for() { # $1=destination → this run installs role agents for it
   local dir roles r i
   case "$1" in
     "$CC_DIR"/*) dir="$CC_DIR/agents" ; roles="$CC_ROLES" ;;
-    "$OC_DIR"/*) dir="$OC_DIR/agents" ; roles="$OC_ROLES" ;;
+    "$OC_DIR"/*) $DO_WORKERS || return 1; dir="$OC_DIR/agents" ; roles="$OC_ROLES" ;;
     *)           return 0 ;;   # no role agents replace it
   esac
   i=0
