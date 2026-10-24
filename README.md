@@ -38,7 +38,8 @@ your repos.
 Doc-harness installs automatic av for analysis/result reports on the measured
 Codex, Claude Code and OpenCode 2 native paths. A semantic classifier selects the
 outgoing report; only positive selection resumes the original session with the
-canonical stance. Normally each nonempty answer costs one classifier call.
+canonical stance. Answers of at most 300 Unicode code points bypass classification
+and av; longer answers normally cost one classifier call. Manual av is unchanged.
 Native trust/reload is still required. See [activation and measured limits](docs/runtime-completion.md).
 
 Then:

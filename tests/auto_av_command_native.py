@@ -35,7 +35,7 @@ def selector(request):
     return any('UNTRUSTED_REPORT_JSON:' in text for text in strings(request))
 
 
-def claude_server(directory, label):
+def claude_server(directory, label, report):
     class Handler(http.server.BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
@@ -47,7 +47,7 @@ def claude_server(directory, label):
             request = json.loads(body)
             with (directory / 'requests.jsonl').open('a') as handle:
                 handle.write(json.dumps({'path': self.path, 'body': request}) + '\n')
-            text = label if selector(request) else 'FIXTURE_RESULT'
+            text = label if selector(request) else report
             message = {'id': 'msg_fixture', 'type': 'message', 'role': 'assistant',
                        'model': request.get('model', 'fixture'), 'content': [],
                        'stop_reason': None, 'stop_sequence': None,
@@ -80,6 +80,9 @@ def claude_server(directory, label):
 
 
 def run_case(out, runtime, label):
+    bypass = label == 'SHORT300'
+    report = '🙂' * 300 if bypass else 'FIXTURE_RESULT ' + 'x' * (301 - len('FIXTURE_RESULT '))
+    selector_label = 'APPLY' if bypass else label
     directory = out / (runtime + '-' + label.lower())
     directory.mkdir(parents=True)
     home = directory / 'home'
@@ -101,7 +104,7 @@ def run_case(out, runtime, label):
     canonical = subprocess.check_output(helper + ['prompt'], env=env, text=True).rstrip('\n')
     if runtime == 'codex':
         def responder(request, count):
-            text = label if selector(request) else 'FIXTURE_RESULT'
+            text = selector_label if selector(request) else report
             return {'id': f'msg_{count}', 'type': 'message', 'role': 'assistant', 'status': 'completed',
                     'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
         server = fixture.serve(directory, responder)
@@ -115,7 +118,7 @@ def run_case(out, runtime, label):
                 'read-only', '--dangerously-bypass-hook-trust', '--cd', str(workspace),
                 'Offline fixture: report the result briefly.']
     else:
-        server = claude_server(directory, label)
+        server = claude_server(directory, selector_label, report)
         profile = home / '.claude/agents/verify.md'
         profile.parent.mkdir(parents=True, exist_ok=True)
         profile.write_text('---\nname: verify\ndescription: Offline fixture\nmodel: claude-sonnet-4-6\n---\nFixture.\n')
@@ -157,8 +160,8 @@ def run_case(out, runtime, label):
         identities = [json.loads(request.get('metadata', {}).get('user_id', '{}')).get('session_id')
                       for request in parents]
     same_parent = bool(identities) and all(identity == identities[0] and identity for identity in identities)
-    prior_report_retained = label == 'SKIP' or (len(parents) == 2 and
-        any('FIXTURE_RESULT' in text for text in strings(parents[-1])) and
+    prior_report_retained = label != 'APPLY' or (len(parents) == 2 and
+        any(report in text for text in strings(parents[-1])) and
         any('Offline fixture: report the result briefly.' in text for text in strings(parents[-1])))
     result = {'runtime': runtime, 'label': label, 'exit': code, 'stop_reason': reason,
               'parent_requests': len(parents), 'selector_requests': len(selections),
@@ -166,10 +169,11 @@ def run_case(out, runtime, label):
               'selector_native_assignment_retained': selector_context,
               'canonical_parent_requests': canonical_count, 'parent_session_ids': identities,
               'same_parent_session': same_parent, 'prior_report_and_assignment_retained': prior_report_retained,
+              'answer_codepoints': len(report), 'short_exemption': bypass,
               'paid': False,
               'elapsed_seconds': round(time.monotonic() - started, 3)}
     result['passed'] = (code == 0 and reason is None and same_parent and prior_report_retained
-                        and len(selections) == 1 and selector_context
+                        and len(selections) == (0 if bypass else 1) and selector_context
                         and all(not request.get('tools') for request in selections)
                         and len(parents) == (2 if label == 'APPLY' else 1)
                         and canonical_count == (1 if label == 'APPLY' else 0))
@@ -185,7 +189,7 @@ def main():
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     for runtime in ('codex', 'claude') if args.runtime == 'all' else (args.runtime,):
-        for label in ('APPLY', 'SKIP'):
+        for label in ('APPLY', 'SKIP', 'SHORT300'):
             if not run_case(args.out.resolve(), runtime, label):
                 return 1
     return 0

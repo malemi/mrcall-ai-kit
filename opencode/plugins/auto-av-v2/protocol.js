@@ -24,7 +24,12 @@ export function createProtocol(policy, body) {
   return {
     begin(sessionID, messages) {
       const input = snapshot(messages);
-      if (!input || applied.get(sessionID) === input.turn) return;
+      if (!input || Array.from(input.draft).length <= 300) {
+        attempted.delete(sessionID);
+        pending.delete(sessionID);
+        return;
+      }
+      if (applied.get(sessionID) === input.turn) return;
       const previous = attempted.get(sessionID);
       if (previous?.turn === input.turn && previous.draft === input.draft) return;
       attempted.set(sessionID, input);
@@ -36,7 +41,14 @@ export function createProtocol(policy, body) {
       return `${policy}\n\n${JSON.stringify({ assignment: entry.request, draft: entry.draft })}`;
     },
     finish(sessionID, entry, output, messages) {
-      if (pending.get(sessionID) !== entry || snapshot(messages)?.turn !== entry.turn) return;
+      const current = snapshot(messages);
+      if (pending.get(sessionID) !== entry) return;
+      if (!current || Array.from(current.draft).length <= 300) {
+        attempted.delete(sessionID);
+        pending.delete(sessionID);
+        return;
+      }
+      if (current.turn !== entry.turn) return;
       if (typeof output !== 'string' || Buffer.byteLength(output) > 2048 || !['APPLY', 'SKIP'].includes(output.trim())) throw new Error('invalid or oversized selector output');
       if (output.trim() !== 'APPLY') return;
       applied.set(sessionID, entry.turn);

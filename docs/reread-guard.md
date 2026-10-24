@@ -18,6 +18,8 @@ pass is an instruction, not observable runtime enforcement.
 Doc-harness separately installs [automatic av](runtime-completion.md) on the
 measured Codex, Claude and OpenCode paths. Semantic selection routes only
 analysis/result reports to the canonical stance in their original session.
+Answers of at most 300 Unicode code points bypass both selection and automatic av;
+manual av remains available. Spaces and newlines count, visual wrapping does not.
 Negative selection adds no parent turn. The former runtime completion-review
 receipt is retired. This feature is separate from optional `sc` and the six-item
 clarity checklist; it has its own classifier cost and native trust/reload limits.

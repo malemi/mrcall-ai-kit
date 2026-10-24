@@ -6,9 +6,13 @@ real OpenCode acceptance is waived for this release, not claimed as passed.
 
 Doc-harness installs a semantic selector and routes positive reports to the
 canonical `shared/shortcuts/av.md` stance in the original answering session.
-The selection boundary is the outgoing response: activate if and only if it
-reports an analysis or result. Short results, mixed answers, status findings and
-analytical explanations qualify. Pure acknowledgments, greetings, clarification
+Complete answers of at most 300 Unicode code points bypass both classification
+and automatic av, even when they contain findings. Count the raw answer,
+including spaces and newlines; displayed line wrapping does not affect this
+boundary. Manual av remains available regardless of answer length.
+For longer answers, activate if and only if the response reports an analysis
+or result. Mixed answers, status findings and analytical explanations qualify.
+Pure acknowledgments, greetings, clarification
 without findings, pause/cancel acknowledgments, quoted-only material, empty
 answers and internal coordination without a user-facing report do not.
 
@@ -36,8 +40,11 @@ outgoing answer as untrusted data. OpenCode obtains the current request and
 answer from native session context. It resolves the installed verify agent model
 explicitly and uses that provider's native credentials. Missing role/model or
 credentials produce unavailable rather than a model switch. Doc-harness installs
-that verify role even without the full workers feature. No prose keywords or answer-size thresholds
-select reports. Missing or empty text returns quietly without classification.
+that verify role even without the full workers feature. The length exemption is
+mechanical and precedes semantic selection; prose keywords never select reports.
+Missing or empty text returns quietly without classification. A short draft does
+not consume a later eligible application in the same turn. Pending obsolete
+selection cannot inject av when the current draft becomes exempt.
 
 A positive selection supplies the canonical manual stance with a concrete
 automatic task wrapper. The parent keeps its assignment, tools and authority:
@@ -48,8 +55,9 @@ that av was received. No private reasoning or semantic truth is certified.
 
 ## Limits and failure behavior
 
-Normally each nonempty outgoing answer costs one classifier generation, including
-negative selections. OpenCode verification can use a paid provider even when
+Answers within the exemption cost zero classifier generations. Normally each
+longer outgoing answer costs one classifier generation, including negative
+selections. OpenCode verification can use a paid provider even when
 the answering model is free: the installed verify-role budget determines its
 model; the plugin does not choose a cheaper model. A negative selection injects
 no av and creates no extra parent turn. An exact negative callback replay is cached; a changed draft can
@@ -125,9 +133,16 @@ protocol execution, not semantic accuracy. Core tests and all 18 shell suites
 pass; refreshed command-native fixtures retain request context and zero selector
 tools, and the OpenCode positive fixture compares the actual canonical asset.
 
-Four real-model conversations pass on Codex and Claude: each positive receives
+Four pre-exemption real-model conversations passed on Codex and Claude: each positive receives
 one exact canonical av in the same parent, repairs and verifies the broken probe;
 each acknowledgment receives zero av and no extra parent turn.
+
+Current deterministic native fixtures cover the new 300/301-code-point boundary
+on all three clients: 300 emoji code points produce zero selectors, zero av and
+one parent response; 301-code-point APPLY/SKIP fixtures retain semantic routing
+and canonical same-parent delivery. Python/Node checks cover the logging example,
+Unicode, multiline, later eligibility and stale-selection cancellation. These
+local-provider checks establish mechanics, not new real-model semantic accuracy.
 
 OpenCode's configured native verify provider authenticates but returns an empty
 response with `content_filter` / `refusal`. It supplies no classification label;
@@ -145,3 +160,8 @@ OpenCode limitation. The [plan](execution-plans/2026-10-21-automatic-av.md) reta
 the failed evidence and qualified acceptance decision. No further inference is
 authorized by its unused allowance. Native installation status does not establish
 successful verification with the refusing provider or trust/reload in a session.
+
+The [short-answer brief](briefs/2026-10-24-av-short-answers.md) and
+[plan](execution-plans/2026-10-24-av-short-answers.md) supersede the original
+all-report boundary. The historical trials above retain their original scope;
+the short-answer change adds no paid acceptance requests.

@@ -9,10 +9,12 @@ is not compatibility evidence.
 
 The [automatic av contract](runtime-completion.md) records the semantic
 analysis/result selection boundary, native adapters, cost and cancellation.
+Current native fixtures verify the 300/301-code-point short-answer exemption:
+at most 300 skips classification and av; longer drafts remain semantically routed.
 Codex 0.163.0, Claude Code 2.1.296 and OpenCode 2.0.32 pass actual native loopback
 protocol fixtures, including zero selector tools and positive-only continuation
 into the original session. These fixtures do not establish model classification
-accuracy. Codex/Claude real-model positive and negative cases pass; OpenCode
+accuracy. Codex/Claude real-model evidence covers the pre-exemption version; OpenCode's
 configured native verification provider returns an empty content-filter refusal,
 so successful real OpenCode behavior remains unestablished. The operator accepts
 this limitation for production release and waives further OpenCode acceptance. Native trust,

@@ -905,7 +905,7 @@ $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills and agents under ~/.agents/skills and ~/.codex/agents."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $AGENTS_PLANNED && echo "  Agents: Claude Code/OpenCode read the $BUDGET budget's renderings ($BUDGET_FROM)."
-$DO_DOC && echo "  Automatic av: semantic selection on analysis/result reports; one classifier call per nonempty response. Native trust/reload and measured runtime limits apply."
+$DO_DOC && echo "  Automatic av: answers up to 300 Unicode code points bypass selection and av; longer answers get semantic selection. Native trust/reload and measured runtime limits apply."
 $DO_DOC && $WANT_CODEX && echo "  Codex agents: roles inherit the session model; /ai-budget does not switch them."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."

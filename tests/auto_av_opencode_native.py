@@ -15,13 +15,14 @@ import urllib.request
 
 ROOT = Path(__file__).resolve().parents[1]
 subprocess.run(['node', str(ROOT/'tests/test_auto_av_opencode.mjs')], check=True)
-evidence_root = Path(tempfile.gettempdir())/'mrcall-ai-kit'/'automatic-av-20261021'
+evidence_root = Path(os.environ.get('AUTO_AV_EVIDENCE_ROOT', str(Path(tempfile.gettempdir())/'mrcall-ai-kit'/'automatic-av-20261021')))
 evidence_root.mkdir(parents=True, exist_ok=True)
 work = Path(tempfile.mkdtemp(prefix='automatic_av_opencode-native-', dir=evidence_root))
 policy_text = (ROOT/'shared/shortcuts/selector.md').read_text()
 canonical_source = (ROOT/'shared/shortcuts/av.md').read_text()
 request_text = 'Report the fixture result.\nPreserve this user text: "exact" — café.'
-draft_text = 'Completed fixture result.'
+mode = sys.argv[1] if len(sys.argv)>1 else 'positive'
+draft_text = '😀'*300 if mode == 'short' else 'Completed fixture result.'.ljust(301, '.')
 expected_prompt = subprocess.check_output(['node', '--input-type=module', '-e', "import { readFileSync } from 'node:fs'; import { automaticPrompt } from './opencode/plugins/auto-av-v2/protocol.js'; const input=JSON.parse(readFileSync(0,'utf8')); process.stdout.write(automaticPrompt(readFileSync('shared/shortcuts/av.md','utf8'),input));"], cwd=ROOT, input=json.dumps({'request':request_text,'draft':draft_text}).encode()).decode()
 stance_body = canonical_source.split('---\n', 2)[2].removeprefix('\n').replace('$ARGUMENTS','')
 assert expected_prompt.startswith(stance_body+'\n\n')
@@ -34,7 +35,6 @@ def is_selector(data):
 def is_continuation(data):
     return any(message.get('role')=='user' and content_text(message.get('content'))==expected_prompt for message in data.get('messages',[]))
 requests = []
-mode = sys.argv[1] if len(sys.argv)>1 else 'positive'
 aborted = threading.Event()
 class Provider(http.server.BaseHTTPRequestHandler):
     def log_message(self, *args):
@@ -115,8 +115,21 @@ try:
     (work/'requests.json').write_text(json.dumps(requests,indent=2))
     context=api('session/'+sid+'/context')['data']
     (work/'context.json').write_text(json.dumps(context,indent=2))
-    assert len(requests)>=2, f'Expected native generation and selector; received {len(requests)}'
     selectors=[r for r in requests if is_selector(r)]
+    if mode == 'short':
+        assert len(draft_text) == 300
+        parents = [r for r in requests if r.get('tools') and not is_continuation(r)]
+        assert len(parents) == 1, f'Expected one parent generation; got {len(parents)}'
+        answers = [m for m in context if m.get('type') == 'assistant']
+        assert len(answers) == 1 and content_text(answers[0].get('content')) == draft_text
+        assert not selectors, f'Expected zero selectors; got {len(selectors)}'
+        assert not any(is_continuation(r) for r in requests), 'unexpected short av continuation'
+        assert not any(m.get('metadata', {}).get('auto-av') is True for m in context)
+        assert context[0]['text'] == request_text
+        print('Native short callback passed; codepoints=300; selectors=0; av=0; parent=1; session='+sid)
+        sys.exit(0)
+    assert len(draft_text) == 301
+    assert len(requests)>=2, f'Expected native generation and selector; received {len(requests)}'
     assert len(selectors)==1, f'Expected one selector, got {len(selectors)}'
     selector=selectors[0]
     assert not selector.get('tools'), 'selector inherited tools'

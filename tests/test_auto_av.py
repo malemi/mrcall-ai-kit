@@ -16,6 +16,10 @@ from unittest import mock
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / 'shared/scripts/auto_av.py'
 REQUEST = 'Offline fixture assignment: investigate the probe and report findings.'
+LONG_REPORT = 'The fixture probe failed; investigate the observed cause and verify the resulting configuration. ' * 4
+LOGGING_REPLY = ('È un’indicazione forte: un fallimento del supervisor con reason=unknown è poco diagnostico.\n\n'
+                 'Dovrebbe registrare quale controllo fallisce, perché e con quali eventi collegati. '
+                 'Così il worker può ricostruire la causa senza doverla indovinare.')
 spec = importlib.util.spec_from_file_location('auto_av_under_test', SCRIPT)
 av = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(av)
@@ -32,7 +36,7 @@ class AutoAvTests(unittest.TestCase):
         self.bin = self.base / 'bin'
         self.bin.mkdir()
 
-    def payload(self, event='Stop', session='one', turn='turn-one', answer='Done.'):
+    def payload(self, event='Stop', session='one', turn='turn-one', answer=LONG_REPORT):
         return {'hook_event_name': event, 'session_id': session, 'turn_id': turn,
                 'last_assistant_message': answer, 'prompt': REQUEST}
 
@@ -72,7 +76,7 @@ class AutoAvTests(unittest.TestCase):
         self.assertEqual(result.stdout, av.av_prompt() + '\n')
 
     def test_routing_category_fixtures_do_not_replace_semantic_classification(self):
-        cases = [('short-result', '42.', 'APPLY'),
+        cases = [('result', '42.', 'APPLY'),
                  ('mixed', 'Hello. The probe failed with exit 2.', 'APPLY'),
                  ('status', 'Still investigating; the endpoint rejects the token.', 'APPLY'),
                  ('analysis', 'The branch cannot execute because its predicate is false.', 'APPLY'),
@@ -84,6 +88,7 @@ class AutoAvTests(unittest.TestCase):
                  ('quoted-only', '> The endpoint failed.', 'SKIP'),
                  ('internal', 'Worker: inspect the assigned file.', 'SKIP')]
         for session, answer, label in cases:
+            answer = (answer + '\n') * (301 // (len(answer) + 1) + 1)
             with self.subTest(session=session):
                 with mock.patch.object(av, 'selection', return_value=label) as select:
                     result = av.hook(self.payload(session=session, answer=answer), 'codex')
@@ -98,10 +103,47 @@ class AutoAvTests(unittest.TestCase):
                 self.assertEqual(av.hook(self.payload(answer=answer), 'codex'), {})
             select.assert_not_called()
 
+    def test_short_answers_never_select_even_without_turn_context(self):
+        self.assertLessEqual(len(LOGGING_REPLY), 300)
+        with mock.patch.object(av, 'selection') as select:
+            for runtime in ('codex', 'claude'):
+                for answer in (LOGGING_REPLY, '42.', 'x' * 300, '🙂' * 300, 'line\n' * 60):
+                    for session in ('one', None):
+                        payload = self.payload(session=session, turn=None, answer=answer)
+                        payload.pop('prompt')
+                        self.assertEqual(av.hook(payload, runtime), {})
+            select.assert_not_called()
+
+    def test_301_code_points_still_select_in_both_runtimes(self):
+        with mock.patch.object(av, 'selection', return_value='APPLY') as select:
+            for runtime in ('codex', 'claude'):
+                for number, answer in enumerate(('x' * 301, '🙂' * 301, 'a' * 150 + '\n' + 'b' * 150)):
+                    payload = self.payload(session=f'{runtime}-{number}', answer=answer)
+                    av.hook(dict(payload, hook_event_name='UserPromptSubmit'), runtime)
+                    self.assertEqual(av.hook(payload, runtime)['decision'], 'block')
+            self.assertEqual(select.call_count, 6)
+
+    def test_operator_short_example_is_quiet_in_actual_hook_cli_without_context(self):
+        for runtime in ('codex', 'claude'):
+            payload = self.payload(session=None, turn=None, answer=LOGGING_REPLY)
+            payload.pop('prompt')
+            self.assertEqual(self.cli('hook', '--runtime', runtime, payload=payload), {})
+
+    def test_short_skip_preserves_later_same_turn_application(self):
+        with mock.patch.object(av, 'selection', return_value='APPLY') as select:
+            for runtime in ('codex', 'claude'):
+                payload = self.payload(session=runtime)
+                av.hook(dict(payload, hook_event_name='UserPromptSubmit'), runtime)
+                self.assertEqual(av.hook(dict(payload, last_assistant_message=LOGGING_REPLY), runtime), {})
+                self.assertEqual(av.hook(payload, runtime)['decision'], 'block')
+                self.assertEqual(av.hook(dict(payload, last_assistant_message=LOGGING_REPLY), runtime), {})
+                self.assertEqual(av.hook(payload, runtime), {})
+            self.assertEqual(select.call_count, 2)
+
     def test_semantic_result_is_authoritative_without_keyword_routing(self):
         with mock.patch.object(av, 'selection', side_effect=['SKIP', 'APPLY']) as select:
-            self.assertEqual(av.hook(self.payload(answer='Analysis result complete verified.'), 'codex'), {})
-            result = av.hook(self.payload(answer='Hello.'), 'codex')
+            self.assertEqual(av.hook(self.payload(answer='Analysis result complete verified. ' * 10), 'codex'), {})
+            result = av.hook(self.payload(answer='Hello. ' * 60), 'codex')
         self.assertEqual(select.call_count, 2)
         self.assertEqual(result, {'decision': 'block', 'reason': av.av_prompt()})
         self.assertNotIn('completion', result)
@@ -121,7 +163,7 @@ class AutoAvTests(unittest.TestCase):
         with mock.patch.object(av, 'selection', return_value='SKIP') as select:
             self.assertEqual(av.hook(self.payload(), 'codex'), {})
             self.assertEqual(av.hook(self.payload(), 'codex'), {})
-            self.assertEqual(av.hook(self.payload(answer='Changed.'), 'codex'), {})
+            self.assertEqual(av.hook(self.payload(answer='Changed. ' + LONG_REPORT), 'codex'), {})
             self.assertEqual(select.call_count, 2)
 
     def test_claude_requires_observed_user_turn_and_cleans_session(self):
@@ -231,6 +273,29 @@ class AutoAvTests(unittest.TestCase):
             av.bounded([sys.executable, '-c', f'print({event!r}, flush=True)'], '',
                        os.environ.copy(), str(self.base), timeout=2, native_json=True)
 
+    def test_selector_stdout_is_closed_on_success_timeout_and_early_cancellation(self):
+        original = subprocess.Popen
+        processes = []
+        def launch(*args, **kwargs):
+            process = original(*args, **kwargs)
+            processes.append(process)
+            return process
+        def cancelled(process):
+            raise InterruptedError('obsolete fixture')
+        with mock.patch.object(av.subprocess, 'Popen', side_effect=launch):
+            self.assertEqual(av.bounded([sys.executable, '-c', "print('ok')"], '',
+                                       os.environ.copy(), str(self.base)), 'ok\n')
+            with self.assertRaisesRegex(ValueError, 'deadline'):
+                av.bounded([sys.executable, '-c', 'import time;time.sleep(5)'], '',
+                           os.environ.copy(), str(self.base), timeout=.2)
+            with self.assertRaisesRegex(InterruptedError, 'obsolete'):
+                av.bounded([sys.executable, '-c', 'import time;time.sleep(5)'], '',
+                           os.environ.copy(), str(self.base), started=cancelled)
+        self.assertEqual(len(processes), 3)
+        for process in processes:
+            self.assertTrue(process.stdout.closed)
+            self.assertIsNotNone(process.poll())
+
     def test_exact_legacy_release_copy_with_stale_symlink_record_becomes_inert(self):
         old = self.base / '.config/mrcall-ai-kit/completion-check/completion_check.py'
         old.parent.mkdir(parents=True)
@@ -330,7 +395,7 @@ class AutoAvTests(unittest.TestCase):
         self.assertEqual(sum(bool(item) for item in results), 1)
         self.assertEqual(select.call_count, 1)
 
-    def stale_selection(self, event):
+    def stale_selection(self, event, answer=LONG_REPORT, turn='new-turn'):
         entered, release = threading.Event(), threading.Event()
         def pending(*args, **kwargs):
             entered.set()
@@ -341,7 +406,7 @@ class AutoAvTests(unittest.TestCase):
             with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
                 stop = pool.submit(av.hook, self.payload(), 'codex')
                 self.assertTrue(entered.wait(1))
-                interrupt = pool.submit(av.hook, self.payload(event, turn='new-turn'), 'codex')
+                interrupt = pool.submit(av.hook, self.payload(event, turn=turn, answer=answer), 'codex')
                 try:
                     self.assertEqual(interrupt.result(timeout=.5), {})
                 finally:
@@ -353,6 +418,27 @@ class AutoAvTests(unittest.TestCase):
 
     def test_new_user_turn_during_selection_suppresses_stale_continuation(self):
         self.stale_selection('UserPromptSubmit')
+
+    def test_short_draft_during_selection_suppresses_stale_continuation(self):
+        for answer in (LOGGING_REPLY, '', ' ', '\n' * 301):
+            with self.subTest(answer=answer):
+                self.stale_selection('Stop', answer=answer, turn='turn-one')
+
+    def test_short_draft_cancels_real_pending_selector_process(self):
+        for number, answer in enumerate((LOGGING_REPLY, '', ' ', '\n' * 301)):
+            pidfile = self.base / f'short-selector-pid-{number}'
+            self.native('codex', 'import os,pathlib,time\n' +
+                        f'pathlib.Path({str(pidfile)!r}).write_text(str(os.getpid()))\n' +
+                        'time.sleep(10)\n')
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                stop = pool.submit(av.hook, self.payload(), 'codex')
+                deadline = time.monotonic() + 2
+                while not pidfile.exists() and time.monotonic() < deadline:
+                    time.sleep(.01)
+                self.assertTrue(pidfile.exists(), 'selector process did not start')
+                self.assertEqual(av.hook(self.payload(answer=answer), 'codex'), {})
+                self.assertEqual(stop.result(timeout=2), {})
+            self.assertFalse(Path('/proc', pidfile.read_text()).exists())
 
 
 if __name__ == '__main__':

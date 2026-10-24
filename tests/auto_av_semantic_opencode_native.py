@@ -23,6 +23,14 @@ from auto_av_trial_guard import Budget, Relay
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = 'opencode/big-pickle'
 POLICY = (ROOT/'shared/shortcuts/selector.md').read_text()
+INITIAL_POSITIVE_REPORT = (
+    'The probe failed; I could not verify the result. The baseline command python3 verify.py '
+    'returned an assertion because probe.json still contains port 54320 while the verifier '
+    'requires port 54321. I have not inspected either file or investigated the configuration. '
+    'The authorized repair and successful verification remain unfinished, so I cannot yet '
+    'report that the fixture works.'
+)
+assert len(INITIAL_POSITIVE_REPORT) > 300
 
 
 def text(content):
@@ -73,7 +81,7 @@ def run_case(case, budget, upstream_origins, native_auth=None, preflight=False, 
     if native_auth is not None and preflight:
         raise ValueError('free preflight must not receive credential files')
     subprocess.run(['node', str(ROOT/'tests/test_auto_av_opencode.mjs')], check=True, timeout=10)
-    evidence = Path(tempfile.gettempdir())/'mrcall-ai-kit/automatic-av-20261021'
+    evidence = Path(os.environ.get('AUTO_AV_EVIDENCE_ROOT', str(Path(tempfile.gettempdir())/'mrcall-ai-kit/automatic-av-20261021')))
     evidence.mkdir(parents=True, exist_ok=True)
     work = Path(tempfile.mkdtemp(prefix='semantic-opencode-', dir=evidence))
     received = []
@@ -123,7 +131,7 @@ def run_case(case, budget, upstream_origins, native_auth=None, preflight=False, 
                 self.send_header('Content-Length',str(len(data)))
                 self.end_headers();self.wfile.write(data);return
             parent_count=sum(not selector_request(json.loads(entry)) for entry,_ in received)
-            value = ('APPLY' if case == 'positive' else 'SKIP') if selector else ('The probe failed; I could not verify the result.' if case == 'positive' and parent_count==1 else 'actual verification passed' if case=='positive' else 'Acknowledged.')
+            value = ('APPLY' if case == 'positive' else 'SKIP') if selector else (INITIAL_POSITIVE_REPORT if case == 'positive' and parent_count==1 else 'actual verification passed' if case=='positive' else 'Acknowledged.')
             call=None
             if not selector and case=='positive' and parent_count==2:
                 command="python3 - <<'PY'\nimport json,subprocess\nfrom pathlib import Path\nprint(Path('probe.json').read_text())\nprint(Path('verify.py').read_text())\nconfig=json.loads(Path('probe.json').read_text())\nconfig['port']=54321\nPath('probe.json').write_text(json.dumps(config))\nsubprocess.run(['python3','verify.py'],check=True)\nPY"
@@ -264,7 +272,7 @@ export default {id:'trial-http-admission',effect(ctx){return Effect.gen(function
         key=None
         if not preflight: credentials=None;selected_auth=None
         (work/'auth-connect.json').write_text(json.dumps({'provider':'openrouter','method':'native-connect-key','status':204,'fake':preflight}))
-        prompt=('Your first final answer must be exactly: The probe failed; I could not verify the result. '
+        prompt=('Your first final answer must be exactly: '+INITIAL_POSITIVE_REPORT+' '
                 'Do not inspect files or call any tool before that first answer. The actual baseline '
                 'python3 verify.py failed because probe.json uses port 54320. The whole authorized '
                 'assignment is to investigate the fixture configuration, repair it to the expected '
@@ -283,7 +291,7 @@ export default {id:'trial-http-admission',effect(ctx){return Effect.gen(function
             complete=[capture for capture in relay.captures if capture['finalized'] and capture['finished'] and capture['status']==200]
             if any(capture['finalized'] and capture['status']!=200 for capture in relay.captures): break
             final=next((message for message in reversed(context) if message.get('type')=='assistant'),{})
-            ready=final.get('finish')=='stop' and len(complete)>=(positive_cap if case=='positive' else 2) and bool(av)==(case=='positive') and len(complete)==relay.used
+            ready=final.get('finish')=='stop' and len(complete)>=(positive_cap if case=='positive' else 1) and bool(av)==(case=='positive') and len(complete)==relay.used
             current=(relay.used,json.dumps(context,sort_keys=True))
             if ready:
                 if current!=signature: stable_since=time.monotonic();signature=current
@@ -306,23 +314,25 @@ export default {id:'trial-http-admission',effect(ctx){return Effect.gen(function
         usages=[{'hash':capture['hash'],'selector':selector_request(capture['request']),'usage':response_result(capture['response'],capture.get('content_encoding','identity'))['usage']} for capture in complete]
         (work/'usage.json').write_text(json.dumps(usages,indent=2))
         selectors=[capture for capture in complete if selector_request(capture['request'])]
-        assert len(selectors)==1, 'expected exactly one completed selector'
-        selected=response_result(selectors[0]['response'],selectors[0].get('content_encoding','identity'))
-        assert selected['text'].strip()==('APPLY' if case=='positive' else 'SKIP'), 'semantic selection failed'
-        assert not selectors[0]['request'].get('tools'), 'selector inherited tools'
+        assert len(selectors)==(1 if case=='positive' else 0), 'unexpected completed selector count'
+        selected=response_result(selectors[0]['response'],selectors[0].get('content_encoding','identity')) if selectors else {'text':'EXEMPT_SHORT','usage':[]}
+        if case=='positive':
+            assert selected['text'].strip()=='APPLY', 'semantic selection failed'
+            assert not selectors[0]['request'].get('tools'), 'selector inherited tools'
         parents=[capture for capture in complete if not selector_request(capture['request'])]
         av=[message for message in context if message.get('metadata',{}).get('auto-av') is True]
         if case=='negative':
-            assert len(parents)==1 and relay.used==2 and len(av)==0, 'negative generated extra parent turns'
+            assert len(parents)==1 and relay.used==1 and len(av)==0, 'negative generated extra parent turns'
             assert response_result(parents[0]['response'],parents[0].get('content_encoding','identity'))['text']=='Acknowledged.', 'negative response is not exact acknowledgment'
             finals=[message for message in context if message.get('type')=='assistant']
             assert len(finals)==1 and ''.join(part.get('text','') for part in finals[0].get('content',[]) if part.get('type')=='text')=='Acknowledged.'
         else:
             assert len(av)==1, 'expected exactly one canonical av continuation'
             data=json.loads(text(next(message['content'] for message in selectors[0]['request']['messages'] if message['role']=='user'))[len(POLICY)+2:])
+            assert data['draft']==INITIAL_POSITIVE_REPORT, 'selector initial report differed'
             expected=subprocess.check_output(['node','--input-type=module','-e',"import {readFileSync} from 'node:fs';import {automaticPrompt} from './opencode/plugins/auto-av-v2/protocol.js';let x=JSON.parse(readFileSync(0,'utf8'));process.stdout.write(automaticPrompt(readFileSync('shared/shortcuts/av.md','utf8'),{request:x.assignment,draft:x.draft}));"],cwd=ROOT,input=json.dumps(data).encode()).decode()
             assert av[0]['text']==expected, 'same-parent canonical prompt differs'
-        (work/'selection.json').write_text(json.dumps({'label':selected['text'].strip(),'usage':selected['usage'],'parent_generations':len(parents)},indent=2))
+        (work/'selection.json').write_text(json.dumps({'label':selected['text'].strip(),'usage':selected['usage'],'parent_generations':len(parents),'selectors':len(selectors),'short_exemption':case=='negative','draft_codepoints':len(INITIAL_POSITIVE_REPORT if case=='positive' else 'Acknowledged.')},indent=2))
 
         if case=='positive':
             assert json.loads((work/'probe.json').read_text())['port']==54321, 'fixture configuration remains broken'
@@ -334,7 +344,7 @@ export default {id:'trial-http-admission',effect(ctx){return Effect.gen(function
             assert len(completed)==1 and completed[0].get('name') in ('shell','execute'), 'expected one batched same-session shell invocation'
             first=next(message for message in context if message.get('type')=='assistant')
             assert all(part.get('type')!='tool' for part in first.get('content',[])), 'tools ran before initial report'
-            assert ''.join(part.get('text','') for part in first.get('content',[]) if part.get('type')=='text')=='The probe failed; I could not verify the result.', 'initial report differed'
+            assert ''.join(part.get('text','') for part in first.get('content',[]) if part.get('type')=='text')==INITIAL_POSITIVE_REPORT, 'initial report differed'
             assert relay.used==positive_cap, 'positive did not use exactly four generations'
             final=next(message for message in reversed(context) if message.get('type')=='assistant')
             assert final.get('finish')=='stop' and any(part.get('type')=='text' and part.get('text','').strip() for part in final.get('content',[])), 'finished user-facing answer missing'
@@ -347,9 +357,10 @@ export default {id:'trial-http-admission',effect(ctx){return Effect.gen(function
                 assert all(auth=='Bearer isolated-native-fake' for body,auth in received if selector_request(json.loads(body))), 'verify provider auth changed'
                 assert len({auth for body,auth in received if not selector_request(json.loads(body))})==1, 'parent provider auth changed'
                 assert all(capture['request']['model']=='big-pickle' for capture in parents), 'answering model changed'
-                parent=next(entry for entry in header_evidence if entry['kind']=='primary')
-                classifier=next(entry for entry in header_evidence if entry['kind']=='generate')
-                (work/'header-comparison.json').write_text(json.dumps({'parent':parent,'classifier':classifier,'missing_classifier_names':sorted(set(parent['names'])-set(classifier['names'])),'identity_equal':parent['identity']==classifier['identity']},indent=2))
+                if selectors:
+                    parent=next(entry for entry in header_evidence if entry['kind']=='primary')
+                    classifier=next(entry for entry in header_evidence if entry['kind']=='generate')
+                    (work/'header-comparison.json').write_text(json.dumps({'parent':parent,'classifier':classifier,'missing_classifier_names':sorted(set(parent['names'])-set(classifier['names'])),'identity_equal':parent['identity']==classifier['identity']},indent=2))
             else:
                 assert all(auth==('Bearer isolated-native-fake' if selector_request(json.loads(body)) else 'Bearer fixture-private-auth') for body,auth in received), 'auth changed'
             hashes={hashlib.sha256(json.dumps(json.loads(body),sort_keys=True,separators=(',',':'),ensure_ascii=False).encode()).hexdigest() for body,_ in received}
@@ -368,12 +379,14 @@ export default {id:'trial-http-admission',effect(ctx){return Effect.gen(function
                 assert error.code==403
             assert len(received)==forwarded, 'rejected request reached provider'
             selectors=[json.loads(body) for body,_ in received if selector_request(json.loads(body))]
-            assert len(selectors)==1 and not selectors[0].get('tools')
-            assert selectors[0]['model']==role_model.split('/',1)[1] and len(selectors[0]['messages'])==1, 'selector did not use explicit stateless verify model'
+            assert len(selectors)==(1 if case=='positive' else 0)
+            if selectors:
+                assert not selectors[0].get('tools')
+                assert selectors[0]['model']==role_model.split('/',1)[1] and len(selectors[0]['messages'])==1, 'selector did not use explicit stateless verify model'
             assert bool(av)==(case=='positive')
         (work/'ledger.json').write_text(json.dumps(relay.ledger,indent=2))
-        result={'evidence':str(work),'case':case,'preflight':preflight,'generations':relay.used,'global_generations':budget.used,'av':len(av),'selector':selected['text'].strip(),'usage':usages,'classifier_model':role_model,'kinds':['classifier' if selector_request(capture['request']) else 'primary' for capture in complete],'model':'fixture/fixture' if preflight and not builtin_preflight else MODEL}
-        if preflight: result['fake_native_auth_verified']=all(auth=='Bearer isolated-native-fake' for body,auth in received if selector_request(json.loads(body)))
+        result={'evidence':str(work),'case':case,'preflight':preflight,'generations':relay.used,'global_generations':budget.used,'av':len(av),'selector':selected['text'].strip(),'usage':usages,'classifier_model':role_model if selectors else None,'selectors':len(selectors),'short_exemption':case=='negative','draft_codepoints':len(INITIAL_POSITIVE_REPORT if case=='positive' else 'Acknowledged.'),'kinds':['classifier' if selector_request(capture['request']) else 'primary' for capture in complete],'model':'fixture/fixture' if preflight and not builtin_preflight else MODEL}
+        if preflight: result['fake_native_auth_verified']=all(auth=='Bearer isolated-native-fake' for body,auth in received if selector_request(json.loads(body))) if selectors else None
         (work/'result.json').write_text(json.dumps(result,indent=2))
         return result
     except BaseException as error:

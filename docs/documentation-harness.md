@@ -300,7 +300,9 @@ an attestation. Preserve actual result references, pending obligations, and
 unverifiable findings across delegation and resumption.
 
 Doc-harness also installs [semantic automatic av](runtime-completion.md) for
-analysis/result reports on the measured native clients. Positive selection
+analysis/result reports on the measured native clients. Answers of at most 300
+Unicode code points bypass classification and automatic av; manual av is
+unchanged. Positive selection on longer reports
 resumes the original answering session with the canonical stance; negative
 selection adds no parent turn. This replaces the former runtime JSON certificate,
 not the separate repository completion-evidence CLI. Native trust/reload,

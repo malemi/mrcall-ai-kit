@@ -8,6 +8,10 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- Exempt answers of at most 300 Unicode code points from automatic av and its
+  classifier on Codex, Claude Code and OpenCode 2. Preserve manual av and semantic
+  selection above the boundary; cancel obsolete pending selection on short drafts.
+
 ## v9.5.0 — 2026-10-23
 
 - Automatically select analysis/result reports semantically and apply canonical

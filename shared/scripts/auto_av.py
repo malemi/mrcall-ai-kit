@@ -29,6 +29,7 @@ import tomllib
 LIMIT_SECONDS = 30
 LIMIT_OUTPUT = 2048
 LIMIT_TRANSPORT = 262144
+SHORT_ANSWER_MAX_CHARS = 300
 OWNER = 'mrcall-auto-av-v1'
 EVENTS = ('UserPromptSubmit', 'Stop', 'SessionEnd')
 
@@ -146,6 +147,7 @@ def bounded(argv, prompt, env, cwd, timeout=LIMIT_SECONDS, started=None, native_
                 started(process)
         except BaseException:
             kill(process)
+            process.stdout.close()
             for signum, handler in old_handlers.items():
                 signal.signal(signum, handler)
             raise
@@ -187,6 +189,7 @@ def bounded(argv, prompt, env, cwd, timeout=LIMIT_SECONDS, started=None, native_
         finally:
             selector.close()
             kill(process)
+            process.stdout.close()
             for signum, handler in old_handlers.items():
                 signal.signal(signum, handler)
 
@@ -287,6 +290,9 @@ def hook(payload, runtime):
         return {}
     session = payload.get('session_id')
     if not isinstance(session, str) or not session:
+        answer = payload.get('last_assistant_message')
+        if event == 'Stop' and isinstance(answer, str) and len(answer) <= SHORT_ANSWER_MAX_CHARS:
+            return {}
         raise ValueError('missing native session identity')
     with state_lock(runtime, session) as path:
         state = read(path) if path.exists() else {}
@@ -304,7 +310,12 @@ def hook(payload, runtime):
             write(path, state)
             return {}
         answer = payload.get('last_assistant_message')
-        if not isinstance(answer, str) or not answer.strip():
+        if not isinstance(answer, str) or not answer.strip() or len(answer) <= SHORT_ANSWER_MAX_CHARS:
+            if state.get('pending'):
+                cancel_pending(state)
+                state.pop('pending', None)
+                state.pop('child', None)
+                write(path, state)
             return {}
         if runtime == 'codex':
             if not isinstance(turn, str) or not turn:

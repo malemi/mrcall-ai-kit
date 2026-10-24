@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 0ce5e2a04ee29295303e920af61f6e764e825629
-doc_baseline_date: 2026-10-23
+doc_baseline_commit: 5b459218acbf6dcbf5be0a6a0f324fbe2cb8acd0
+doc_baseline_date: 2026-10-24
 ---
 
 # Active Context
@@ -77,8 +77,9 @@ evidence. Installed notification adapters remain dormant on all three clients;
 native display and Codex hook trust are unverified.
 
 Automatic av replaces the rejected runtime completion certificate in the current
-candidate. Free native fixtures cover Codex, Claude and OpenCode 2 routing into
-the original parent. Codex/Claude real-model positive and negative cases pass;
+candidate. Answers of at most 300 Unicode code points bypass classification and
+automatic av. Free native fixtures cover the 300/301 boundary on all three clients.
+Codex/Claude real-model evidence covers the pre-exemption version;
 OpenCode native verification authenticates but returns an empty content-filter
 refusal. The operator authorizes production release with that limitation and
 waives further OpenCode semantic acceptance. Cost, trust/reload, display order and legacy-version limits belong in

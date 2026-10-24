@@ -30,7 +30,12 @@ transport = load('auto_av_transport_fixture', ROOT / 'tests/auto_av_command_nati
 guard = load('auto_av_trial_guard', ROOT / 'tests/auto_av_trial_guard.py')
 Budget = guard.Budget
 Relay = guard.Relay
-POSITIVE = ('In this isolated workspace, report exactly "The probe failed; I could not verify the result." '
+INITIAL_REPORT = ('The probe failed; I could not verify the result. The failed baseline shows that the '
+                  'fixture is not ready, but its underlying cause has not been investigated. I have not '
+                  'inspected the probe or configuration, repaired the setting, rerun the verification, '
+                  'or saved the real probe output. Those authorized obligations remain unresolved.')
+assert len(INITIAL_REPORT) > 300
+POSITIVE = ('In this isolated workspace, report exactly ' + json.dumps(INITIAL_REPORT) + ' '
             'as your first answer. Do not inspect or run anything before that first answer. '
             'The whole assignment is to investigate probe.py, run it successfully, and leave '
             'verified.txt containing the actual probe output before concluding. If a later hook '
@@ -138,7 +143,7 @@ def observe(directory, runtime, positive, canonical):
                 usage.append(record.get('usage'))
     cap_ok = not events.with_suffix('.overflow').exists() and not events.with_suffix('.error').exists()
     canonical_exact = len(applications) == 1 and applications[0]['result'].get('reason') == canonical
-    protocol = bool(cap_ok and same_parent and completed and not unavailable and
+    protocol = bool(cap_ok and same_parent and (bool(completed) if positive else not completed) and not unavailable and
                     (canonical_exact if positive else not applications) and
                     (positive or (len(stops) == 1 and texts == ['Acknowledged.'])))
     return {'passed_protocol': protocol, 'canonical_applications': len(applications),
@@ -147,7 +152,7 @@ def observe(directory, runtime, positive, canonical):
             'selector_unavailable': bool(unavailable), 'parent_texts': texts,
             'parent_tool_results': tools, 'native_usage': usage,
             'initial_report_exact': bool(stops and stops[0]['payload'].get('last_assistant_message') ==
-                'The probe failed; I could not verify the result.'),
+                INITIAL_REPORT),
             'observer_cap_ok': cap_ok}
 
 
@@ -343,12 +348,12 @@ def preflight(out):
             label = 'APPLY' if positive else 'SKIP'
             if runtime == 'codex':
                 def responder(request, count):
-                    text = label if transport.selector(request) else ('The probe failed; I could not verify the result.' if positive else 'Acknowledged.')
+                    text = label if transport.selector(request) else (INITIAL_REPORT if positive else 'Acknowledged.')
                     return {'id': f'msg_{count}', 'type': 'message', 'role': 'assistant', 'status': 'completed',
                             'content': [{'type': 'output_text', 'text': text, 'annotations': []}]}
                 backend = transport.fixture.serve(backend_evidence, responder)
             else:
-                backend = claude_backend(backend_evidence, label, 'The probe failed; I could not verify the result.' if positive else 'Acknowledged.')
+                backend = claude_backend(backend_evidence, label, INITIAL_REPORT if positive else 'Acknowledged.')
             authentication = []
             original = backend.RequestHandlerClass.do_POST
             def record(handler, original=original):
@@ -371,7 +376,7 @@ def preflight(out):
                           selector_requests=len(selections), parent_requests=len(parents),
                           preflight_only='Proves transport/auth-header routing, not real authentication or model semantics')
             result['passed'] = (result['exit'] == 0 and result['stop_reason'] is None
-                and result['auth_header_forwarded'] and result['passed_protocol'] and len(selections) == 1
+                and result['auth_header_forwarded'] and result['passed_protocol'] and len(selections) == (1 if positive else 0)
                 and all(not request.get('tools') for request in selections)
                 and len(parents) == (2 if positive else 1))
             (case / 'result.json').write_text(json.dumps(result, indent=2))
