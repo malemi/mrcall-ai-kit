@@ -299,14 +299,11 @@ host-level guarantee that a model cannot bypass the entire lifecycle or invent
 an attestation. Preserve actual result references, pending obligations, and
 unverifiable findings across delegation and resumption.
 
-Doc-harness also installs [semantic automatic av](runtime-completion.md) for
-analysis/result reports on the measured native clients. Answers of at most 300
-Unicode code points bypass classification and automatic av; manual av is
-unchanged. Positive selection on longer reports
-resumes the original answering session with the canonical stance; negative
-selection adds no parent turn. This replaces the former runtime JSON certificate,
-not the separate repository completion-evidence CLI. Native trust/reload,
-classification cost and measured runtime limits remain explicit.
+Doc-harness removes owned [automatic-av registrations](runtime-completion.md)
+from selected runtimes. It does not install the OpenCode automatic-av plugin or
+its dependencies. Manual av remains available; the automatic pass is disabled.
+Already loaded native hooks/plugins may need a session restart. This does not
+remove the separate repository completion-evidence CLI or lifecycle reviews.
 
 The optional [verification advisory](verification-warnings.md) reads required
 mechanical/focused receipts for an explicitly selected task and reports missing,

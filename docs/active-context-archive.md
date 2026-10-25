@@ -1,3 +1,15 @@
+## 2026-10-25 — Superseded automatic av
+
+Automatic av replaces the rejected runtime completion certificate in the current
+candidate. Answers of at most 300 Unicode code points bypass classification and
+automatic av. Free native fixtures cover the 300/301 boundary on all three clients.
+Codex/Claude real-model evidence covers the pre-exemption version;
+OpenCode native verification authenticates but returns an empty content-filter
+refusal. The operator authorizes production release with that limitation and
+waives further OpenCode semantic acceptance. Cost, trust/reload, display order and legacy-version limits belong in
+`runtime-completion.md`. Historical audit data is retained; cached owned legacy
+hook commands return quietly through an inert compatibility path.
+
 ## 2026-10-21 — Replaced runtime completion candidate
 
 Codex runtime review is scoped to explicit current-turn `bind --delivery` or

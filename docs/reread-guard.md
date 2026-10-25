@@ -15,14 +15,10 @@ pass is an instruction, not observable runtime enforcement.
 
 ## Mandate completion
 
-Doc-harness separately installs [automatic av](runtime-completion.md) on the
-measured Codex, Claude and OpenCode paths. Semantic selection routes only
-analysis/result reports to the canonical stance in their original session.
-Answers of at most 300 Unicode code points bypass both selection and automatic av;
-manual av remains available. Spaces and newlines count, visual wrapping does not.
-Negative selection adds no parent turn. The former runtime completion-review
-receipt is retired. This feature is separate from optional `sc` and the six-item
-clarity checklist; it has its own classifier cost and native trust/reload limits.
+Doc-harness removes owned [automatic-av registrations](runtime-completion.md).
+Automatic report selection and stance continuation are disabled; manual av is
+unchanged. This retirement is separate from optional sc, the six-item clarity
+checklist and the repository completion-evidence CLI.
 
 Before yielding, generated agents assess their whole bounded assignment and
 perform a useful authorized next action when one remains feasible within limits.
@@ -31,8 +27,8 @@ Questions and brief/review-only requests retain their limited scope. Missing
 indispensable input or authority, a blocker leaving no independent useful work,
 an explicit pause, or an actual resource/runtime limit permits an incomplete
 handoff with remaining obligations. Existing plans/handoffs carry pending state;
-the instruction itself creates no task database or per-answer reviewer. The
-separate automatic av adapter permits one stance continuation per original user turn.
+the instruction itself creates no task database or per-answer reviewer.
+Automatic av no longer supplies a separate native continuation.
 
 The source is `shared/roles/block-mandate-completion.md`. It is composed into the
 Codex global kit block and generated final-report procedures. Codex doc-harness

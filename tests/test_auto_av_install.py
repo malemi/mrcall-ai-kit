@@ -38,7 +38,16 @@ class AutoAvInstallTests(unittest.TestCase):
         self.home = Path(temporary.name)
         self.kit = self.home / '.config/mrcall-ai-kit'
         self.kit.mkdir(parents=True)
-        self.env = dict(os.environ, HOME=str(self.home), CODEX_HOME=str(self.home / '.codex'),
+        binary_dir = self.home / 'bin'
+        binary_dir.mkdir()
+        self.npm_marker = self.home / 'npm-executed'
+        npm = binary_dir / 'npm'
+        npm.write_text('#!/bin/sh\ntouch ' + shlex.quote(str(self.npm_marker)) + '\nexit 99\n')
+        npm.chmod(0o755)
+        opencode = binary_dir / 'opencode'
+        opencode.write_text('#!/bin/sh\nprintf "2.0.32\\n"\n')
+        opencode.chmod(0o755)
+        self.env = dict(os.environ, PATH=str(binary_dir) + os.pathsep + os.environ['PATH'], HOME=str(self.home), CODEX_HOME=str(self.home / '.codex'),
                         XDG_CONFIG_HOME=str(self.home / '.config'),
                         MRCALL_KIT_HOME=str(self.kit),
                         npm_config_cache=str(self.home / '.npm'),
@@ -97,7 +106,7 @@ class AutoAvInstallTests(unittest.TestCase):
 
     def installation(self, mode, kind):
         self.seed_legacy(kind)
-        argv = ['bash', str(ROOT / 'install.sh'), '--environment', 'all', '--features', 'doc-harness',
+        argv = ['bash', str(ROOT / 'install.sh'), '--environment', 'all', '--features', 'doc-harness,shortcuts',
                 '--mode', mode, '--on-exist', 'overwrite', '--yes']
         before = snapshot(self.home)
         self.run_cli(argv + ['--dry-run'])
@@ -109,7 +118,7 @@ class AutoAvInstallTests(unittest.TestCase):
             self.assertEqual((helper.parent / asset).read_bytes(), (ROOT / 'shared/shortcuts' / asset).read_bytes())
         for runtime in ('claude', 'codex'):
             status = json.loads(self.run_cli([sys.executable, str(helper), 'status', '--runtime', runtime]))
-            self.assertEqual(status['registered_events'], ['UserPromptSubmit', 'Stop', 'SessionEnd'])
+            self.assertEqual(status['registered_events'], [])
             self.assertFalse(status['completion_certification'])
         for registry in self.registries:
             data = json.loads(registry.read_text())
@@ -135,22 +144,45 @@ class AutoAvInstallTests(unittest.TestCase):
         bundle = helper.parent / 'opencode-v2'
         verify_role = self.home / '.config/opencode/agents/verify.md'
         self.assertEqual(verify_role.read_bytes(), (ROOT / 'opencode/agents/medium/verify.md').read_bytes())
-        self.assertTrue(bundle.is_dir())
-        self.assertFalse(bundle.is_symlink())
-        self.assertTrue((bundle / 'node_modules').is_dir())
-        dependencies = json.loads(self.run_cli(['npm', 'ls', '--prefix', str(bundle), '--omit=dev', '--json']))
-        self.assertEqual(dependencies['dependencies']['effect']['version'], '4.0.0-beta.83')
+        self.assertFalse(bundle.exists())
+        plugin = self.home / '.config/opencode/plugins/mrcall-auto-av'
+        self.assertFalse(plugin.exists() or plugin.is_symlink())
+        manual_paths = {
+            self.home / '.claude/commands/av.md': ROOT / 'shared/shortcuts/av.md',
+            self.home / '.config/opencode/commands/av.md': ROOT / 'shared/shortcuts/av.md',
+            self.home / '.agents/skills/av/SKILL.md': ROOT / 'codex/skills/av/SKILL.md',
+        }
+        for destination, source in manual_paths.items():
+            self.assertEqual(destination.read_bytes(), source.read_bytes())
+        for runtime in ('claude', 'codex'):
+            self.run_cli([sys.executable, str(helper), 'on', '--runtime', runtime])
+        bundle.mkdir()
+        (bundle / 'history.jsonl').write_bytes(b'{"history":"keep"}\n')
+        plugin.symlink_to(bundle, target_is_directory=True)
+        for runtime in ('claude', 'codex'):
+            status = json.loads(self.run_cli([sys.executable, str(helper), 'status', '--runtime', runtime]))
+            self.assertEqual(status['registered_events'], ['UserPromptSubmit', 'Stop', 'SessionEnd'])
         status = json.loads(self.run_cli([sys.executable, str(helper), 'status', '--runtime', 'opencode']))
         self.assertTrue(status['registered'])
-        plugin = self.home / '.config/opencode/plugins/mrcall-auto-av'
-        self.assertTrue(plugin.is_symlink())
-        self.assertEqual(plugin.resolve(), bundle.resolve())
+        for _ in range(2):
+            self.run_cli(argv)
+            for runtime in ('claude', 'codex'):
+                status = json.loads(self.run_cli([sys.executable, str(helper), 'status', '--runtime', runtime]))
+                self.assertEqual(status['registered_events'], [])
+            status = json.loads(self.run_cli([sys.executable, str(helper), 'status', '--runtime', 'opencode']))
+            self.assertFalse(status['registered'])
+            self.assertFalse(plugin.exists() or plugin.is_symlink())
+            self.assertEqual((bundle / 'history.jsonl').read_bytes(), b'{"history":"keep"}\n')
+            self.assertEqual(verify_role.read_bytes(), (ROOT / 'opencode/agents/medium/verify.md').read_bytes())
+            for destination, source in manual_paths.items():
+                self.assertEqual(destination.read_bytes(), source.read_bytes())
+            self.assertFalse(self.npm_marker.exists())
         before = snapshot(self.home)
         self.run_cli(['bash', str(ROOT / 'uninstall.sh'), '--yes', '--dry-run'])
         self.assertEqual(snapshot(self.home), before)
         self.run_cli(['bash', str(ROOT / 'uninstall.sh'), '--yes'])
         self.assertFalse(helper.exists() or helper.is_symlink())
-        self.assertFalse(bundle.exists())
+        self.assertEqual((bundle / 'history.jsonl').read_bytes(), b'{"history":"keep"}\n')
         self.assertFalse(plugin.exists() or plugin.is_symlink())
         for registry in self.registries:
             self.assertEqual(json.loads(registry.read_text()), self.foreign)
@@ -163,7 +195,7 @@ class AutoAvInstallTests(unittest.TestCase):
 
     def install_skip(self, environment):
         binary_dir = self.home / 'bin'
-        binary_dir.mkdir()
+        binary_dir.mkdir(exist_ok=True)
         marker = self.home / 'npm-executed'
         for name, body in {
             'opencode': '#!/bin/sh\nprintf "2.0.32\\n"\n',
@@ -201,7 +233,42 @@ class AutoAvInstallTests(unittest.TestCase):
         registration = self.home / '.config/opencode/plugins/mrcall-auto-av'
         self.assertFalse(registration.exists() or registration.is_symlink())
         self.assertEqual(self.foreign_plugin.read_bytes(), b'export default {};\n')
-        self.assertIn('Automatic av unavailable for OpenCode: preserved plugin bundle is foreign or modified.', output)
+        self.assertIn('Automatic av: owned registrations are retired', output)
+
+    def test_preserves_foreign_registration_path(self):
+        registration = self.home / '.config/opencode/plugins/mrcall-auto-av'
+        target = self.home / 'foreign-auto-av'
+        target.mkdir()
+        (target / 'index.js').write_bytes(b'export default { foreign: true };\n')
+        registration.symlink_to(target, target_is_directory=True)
+        for mode in ('copy', 'symlink'):
+            self.run_cli(['bash', str(ROOT / 'install.sh'), '--environment', 'all',
+                          '--features', 'doc-harness', '--mode', mode,
+                          '--on-exist', 'overwrite', '--yes'])
+            self.assertTrue(registration.is_symlink())
+            self.assertEqual(registration.resolve(), target)
+            self.assertEqual((target / 'index.js').read_bytes(), b'export default { foreign: true };\n')
+            self.assertFalse(self.npm_marker.exists())
+            for registry in self.registries:
+                self.assertEqual(json.loads(registry.read_text()), self.foreign)
+
+    def test_retirement_only_changes_selected_runtime(self):
+        self.run_cli(['bash', str(ROOT / 'install.sh'), '--environment', 'all',
+                      '--features', 'doc-harness', '--mode', 'copy',
+                      '--on-exist', 'overwrite', '--yes'])
+        helper = self.kit / 'auto-av/auto_av.py'
+        for runtime in ('claude', 'codex'):
+            self.run_cli([sys.executable, str(helper), 'on', '--runtime', runtime])
+        codex_registry = self.registries[0].read_bytes()
+        self.run_cli(['bash', str(ROOT / 'install.sh'), '--environment', 'claude',
+                      '--features', 'doc-harness', '--mode', 'copy',
+                      '--on-exist', 'overwrite', '--yes'])
+        for runtime, events in (('claude', []), ('codex', ['UserPromptSubmit', 'Stop', 'SessionEnd'])):
+            status = json.loads(self.run_cli([sys.executable, str(helper), 'status', '--runtime', runtime]))
+            self.assertEqual(status['registered_events'], events)
+        self.assertEqual(self.registries[0].read_bytes(), codex_registry)
+        self.assertEqual(json.loads(self.registries[1].read_text()), self.foreign)
+        self.assertFalse(self.npm_marker.exists())
 
     def test_skip_preserves_foreign_helper_without_execution_or_registration(self):
         helper = self.kit / 'auto-av/auto_av.py'
@@ -221,7 +288,7 @@ class AutoAvInstallTests(unittest.TestCase):
         bundle = helper.parent / 'opencode-v2'
         self.assertFalse((bundle / 'node_modules').exists())
         self.assertFalse((bundle / 'package-lock.json').exists())
-        self.assertIn('Automatic av unavailable: preserved helper or shared asset is foreign or modified; no registration performed.', output)
+        self.assertIn('Automatic av retirement skipped: preserved helper or shared asset is foreign or modified; registrations were not changed.', output)
 
     def test_skip_preserves_foreign_shared_assets_without_registration(self):
         original_env = self.env.copy()
@@ -252,13 +319,13 @@ class AutoAvInstallTests(unittest.TestCase):
                 self.assertFalse(registration.exists() or registration.is_symlink())
                 records = [line.split('\t') for line in (kit / 'installed.tsv').read_text().splitlines()]
                 self.assertFalse(any(len(record) >= 3 and record[2] == str(destination) for record in records))
-                self.assertIn('Automatic av unavailable: preserved helper or shared asset is foreign or modified; no registration performed.', output)
+                self.assertIn('Automatic av retirement skipped: preserved helper or shared asset is foreign or modified; registrations were not changed.', output)
         self.env = original_env
 
     def test_copy_retires_owned_dangling_legacy_and_preserves_foreign(self):
         self.installation('copy', 'symlink')
 
-    def test_symlink_uses_physical_bundle_and_preserves_modified_legacy(self):
+    def test_symlink_retires_owned_registration_and_preserves_modified_legacy(self):
         self.installation('symlink', 'modified')
 
 

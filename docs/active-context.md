@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 3a8e11e4d2e3eddd33e99395bbe2b8af2c4dc43d
-doc_baseline_date: 2026-10-24
+doc_baseline_commit: 140d3f4f81fb088bdc1e5391267990bb73898811
+doc_baseline_date: 2026-10-25
 ---
 
 # Active Context
@@ -76,15 +76,12 @@ registration roundtrips and real adapter callbacks have focused acceptance
 evidence. Installed notification adapters remain dormant on all three clients;
 native display and Codex hook trust are unverified.
 
-Automatic av replaces the rejected runtime completion certificate in the current
-candidate. Answers of at most 300 Unicode code points bypass classification and
-automatic av. Free native fixtures cover the 300/301 boundary on all three clients.
-Codex/Claude real-model evidence covers the pre-exemption version;
-OpenCode native verification authenticates but returns an empty content-filter
-refusal. The operator authorizes production release with that limitation and
-waives further OpenCode semantic acceptance. Cost, trust/reload, display order and legacy-version limits belong in
-`runtime-completion.md`. Historical audit data is retained; cached owned legacy
-hook commands return quietly through an inert compatibility path.
+Automatic av is disabled. Doc-harness installation removes its owned hooks and
+OpenCode plugin registration on selected runtimes, without installing that
+plugin's dependencies. Manual av remains available. Registration retirement
+preserves foreign hooks and history; already loaded native sessions may need
+restart. Current ownership and verification limits belong in
+`runtime-completion.md`.
 
 ## Unresolved
 

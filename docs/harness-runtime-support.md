@@ -7,20 +7,12 @@ is not compatibility evidence.
 
 ## Automatic av
 
-The [automatic av contract](runtime-completion.md) records the semantic
-analysis/result selection boundary, native adapters, cost and cancellation.
-Current native fixtures verify the 300/301-code-point short-answer exemption:
-at most 300 skips classification and av; longer drafts remain semantically routed.
-Codex 0.163.0, Claude Code 2.1.296 and OpenCode 2.0.32 pass actual native loopback
-protocol fixtures, including zero selector tools and positive-only continuation
-into the original session. These fixtures do not establish model classification
-accuracy. Codex/Claude real-model evidence covers the pre-exemption version; OpenCode's
-configured native verification provider returns an empty content-filter refusal,
-so successful real OpenCode behavior remains unestablished. The operator accepts
-this limitation for production release and waives further OpenCode acceptance. Native trust,
-reload and interactive pre-display suppression remain unverified. The earlier
-runtime completion certificate is retired; repository completion evidence remains
-a separate refusing CLI when invoked.
+The [retirement contract](runtime-completion.md) describes removal of owned
+automatic-av registrations on Codex, Claude Code and OpenCode. Fresh and repeated
+installations keep automation off; manual av remains available. Prior native
+protocol and semantic trials describe a superseded automatic path, not a current
+completion guarantee. Already loaded native hooks/plugins may require restart.
+Repository completion evidence remains a separate refusing CLI when invoked.
 
 ## Measured modes
 

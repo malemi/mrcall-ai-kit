@@ -28,8 +28,8 @@ Do not duplicate that inventory here.
   instruction-loading conditions, startup cost, and remaining bypasses.
 - [`scope-guard.md`](scope-guard.md) — scope declaration format, runtime guard
   behavior, capability levels, and known bypasses.
-- [`runtime-completion.md`](runtime-completion.md) — semantic automatic av, native continuations,
-  selection cost, ownership and measured runtime limits.
+- [`runtime-completion.md`](runtime-completion.md) — automatic-av retirement, ownership,
+  manual av preservation and native reload limits.
 - [`reread-guard.md`](reread-guard.md) — per-runtime re-read behavior and
   installed-client verification status.
 - [`verification-warnings.md`](verification-warnings.md) — advisory execution

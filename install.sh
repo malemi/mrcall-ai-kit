@@ -105,8 +105,8 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
               match a version this checkout's git history shipped at that
               path. Anything else stays, and the installer lists it.
   --yes:      skip the final confirmation prompt. Feature choices remain explicit.
-              Doc-harness includes semantic automatic av on report responses;
-              native trust/reload is still required. Other hooks retain their opt-in.
+              Doc-harness retires owned automatic-av registrations.
+              Manual av remains available through the shortcuts feature.
   --dry-run:  print exactly what would be written, and write nothing.
   --help:     this text.
 
@@ -121,9 +121,7 @@ EOF
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
   echo "     Codex:      execute, plan, reviewer, verify custom agents (-> ~/.codex/agents/)"
-  echo "                 auto-av: semantic selection, then canonical av only for analysis/results"
-  echo "                 Claude/Codex hooks; OpenCode 2 native plugin (pinned npm dependency)."
-  echo "                 One classifier call per nonempty response; negatives do not continue the parent."
+  echo "                 auto-av: removes owned automatic registrations; retains inactive management assets."
   echo
   echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
   echo "     commands:   nr, av  (-> ~/.claude/commands/, ~/.config/opencode/commands/)"
@@ -428,7 +426,6 @@ if $DO_DOC; then
   add_one "$SCRIPT_DIR/shared/shortcuts/av.md" "$KIT_GLOBAL/auto-av/av.md"
   add_one "$SCRIPT_DIR/shared/shortcuts/selector.md" "$KIT_GLOBAL/auto-av/selector.md"
   if $WANT_OC; then
-    add_one "$SCRIPT_DIR/opencode/plugins/auto-av-v2" "$KIT_GLOBAL/auto-av/opencode-v2"
     if ! $DO_WORKERS; then
       add_agent opencode verify "$OC_DIR/agents"
     fi
@@ -656,7 +653,7 @@ echo "── Plan (mode: $MODE, on-exist: $ON_EXIST$($DRY_RUN && echo ', DRY-RUN
 i=0
 while [[ $i -lt ${#PLAN_SRC[@]} ]]; do
   preview_mode="$MODE"
-  [[ "${PLAN_DST[$i]}" != "$CODEX_AGENTS_DIR/"* && "${PLAN_DST[$i]}" != "$KIT_GLOBAL/auto-av/opencode-v2" ]] || preview_mode=copy
+  [[ "${PLAN_DST[$i]}" != "$CODEX_AGENTS_DIR/"* ]] || preview_mode=copy
   printf "  %-8s %s\n" "$preview_mode" "${PLAN_DST[$i]}"
   i=$((i+1))
 done
@@ -769,7 +766,7 @@ unchanged_installed_item() { # Only execute/update assets the manifest still own
 
 install_item() { # $1=src $2=dst
   local src="$1" dst="$2" bak="" item_mode="$MODE"
-  [[ "$dst" != "$CODEX_AGENTS_DIR/"* && "$dst" != "$KIT_GLOBAL/auto-av/opencode-v2" ]] || item_mode=copy
+  [[ "$dst" != "$CODEX_AGENTS_DIR/"* ]] || item_mode=copy
   if [[ -e "$dst" || -L "$dst" ]]; then
     case "$ON_EXIST" in
       skip)      echo "  skip     $dst (exists)"; return ;;
@@ -865,31 +862,17 @@ if $DO_DOC && $WANT_CODEX; then
 fi
 if $DO_DOC; then
   if $DRY_RUN; then
-    echo "  [dry]    retire owned old completion hooks; register automatic av for selected runtimes"
-    $WANT_OC && echo "  [dry]    install pinned OpenCode 2 plugin dependencies into physical installed copy"
+    echo "  [dry]    retire owned old completion hooks and automatic-av registrations for selected runtimes"
   elif ! unchanged_installed_item "$KIT_GLOBAL/auto-av/auto_av.py" ||
        ! unchanged_installed_item "$KIT_GLOBAL/auto-av/av.md" ||
        ! unchanged_installed_item "$KIT_GLOBAL/auto-av/selector.md" ||
        ! unchanged_installed_item "$KIT_GLOBAL/auto-av/retired_completion.py"; then
-    echo "  Automatic av unavailable: preserved helper or shared asset is foreign or modified; no registration performed."
+    echo "  Automatic av retirement skipped: preserved helper or shared asset is foreign or modified; registrations were not changed."
   else
     if $WANT_CODEX; then python3 "$KIT_GLOBAL/auto-av/auto_av.py" retire; fi
-    if $WANT_CC; then python3 "$KIT_GLOBAL/auto-av/auto_av.py" on --runtime claude; fi
-    if $WANT_CODEX; then python3 "$KIT_GLOBAL/auto-av/auto_av.py" on --runtime codex; fi
-    if $WANT_OC; then
-      oc_version="$(opencode --version 2>/dev/null)" || oc_version="unavailable"
-      case "$oc_version" in
-        'opencode v2.'*|v2.*|2.*)
-          if unchanged_installed_item "$KIT_GLOBAL/auto-av/opencode-v2"; then
-            npm install --prefix "$KIT_GLOBAL/auto-av/opencode-v2" --ignore-scripts --no-audit --no-fund
-            record_install copy "$KIT_GLOBAL/auto-av/opencode-v2" "$SCRIPT_DIR/opencode/plugins/auto-av-v2" "$(prior_backup "$KIT_GLOBAL/auto-av/opencode-v2")"
-            python3 "$KIT_GLOBAL/auto-av/auto_av.py" on --runtime opencode
-          else
-            echo "  Automatic av unavailable for OpenCode: preserved plugin bundle is foreign or modified."
-          fi ;;
-        *) echo "  Automatic av unavailable for OpenCode: requires measured v2 plugin API, found $oc_version" ;;
-      esac
-    fi
+    if $WANT_CC; then python3 "$KIT_GLOBAL/auto-av/auto_av.py" off --runtime claude; fi
+    if $WANT_CODEX; then python3 "$KIT_GLOBAL/auto-av/auto_av.py" off --runtime codex; fi
+    if $WANT_OC; then python3 "$KIT_GLOBAL/auto-av/auto_av.py" off --runtime opencode; fi
   fi
 fi
 
@@ -905,7 +888,7 @@ $WANT_CC && echo "  Claude Code: restart sessions to pick up new commands/skills
 $WANT_CODEX && echo "  Codex:       restart sessions to discover skills and agents under ~/.agents/skills and ~/.codex/agents."
 $WANT_OC && echo "  OpenCode:    restart sessions to pick up new commands/skills/agents."
 $AGENTS_PLANNED && echo "  Agents: Claude Code/OpenCode read the $BUDGET budget's renderings ($BUDGET_FROM)."
-$DO_DOC && echo "  Automatic av: answers up to 300 Unicode code points bypass selection and av; longer answers get semantic selection. Native trust/reload and measured runtime limits apply."
+$DO_DOC && echo "  Automatic av: owned registrations are retired when management assets are trusted; foreign registrations are preserved. Loaded plugins may require a session restart."
 $DO_DOC && $WANT_CODEX && echo "  Codex agents: roles inherit the session model; /ai-budget does not switch them."
 $DO_DOC  && echo "  Next: inside a repo, invoke the doc-create workflow to bootstrap its docs/."
 $DO_ROUTER && echo "  Router installed but dormant: run /router on to activate (then restart and switch to Haiku)."

@@ -35,12 +35,10 @@ asks what you want. It installs **globally** (your `~/.claude`,
 `~/.codex`, `~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
 your repos.
 
-Doc-harness installs automatic av for analysis/result reports on the measured
-Codex, Claude Code and OpenCode 2 native paths. A semantic classifier selects the
-outgoing report; only positive selection resumes the original session with the
-canonical stance. Answers of at most 300 Unicode code points bypass classification
-and av; longer answers normally cost one classifier call. Manual av is unchanged.
-Native trust/reload is still required. See [activation and measured limits](docs/runtime-completion.md).
+Automatic av is disabled. Doc-harness installation removes its owned hooks on
+selected runtimes and does not install its OpenCode plugin or dependencies.
+Manual `$av` / `/av` remains available. Already loaded native hooks/plugins may
+need a session restart. See [retirement and ownership](docs/runtime-completion.md).
 
 Then:
 
@@ -72,11 +70,9 @@ decision for their own assignment. Ordinary Claude leads are outside this route.
 See [entry points, update steps and measured limits](docs/reread-guard.md#mandate-completion).
 
 Instructions and repository completion evidence do not force every client to
-run a skipped workflow. Automatic av supplies the stance through native report
-continuations; it does not certify truth or replace lifecycle reviews. Support
-depends on runtime, configuration and native trust. See the
-[harness contract](docs/documentation-harness.md). Installation does not migrate
-other repositories or change their instruction-loading settings.
+run a skipped workflow. Manual av does not certify truth or replace lifecycle
+reviews. See the [harness contract](docs/documentation-harness.md). Installation
+does not migrate other repositories or change their instruction-loading settings.
 
 ## Commands
 
