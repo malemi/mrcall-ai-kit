@@ -8,6 +8,8 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.5.2 — 2026-10-25
+
 - Stop activating automatic av during doc-harness installation. Remove owned
   registrations on selected runtimes, preserve manual av and unrelated hooks,
   and stop installing the automatic-av OpenCode bundle and npm dependencies.
