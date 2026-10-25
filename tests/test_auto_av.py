@@ -1,4 +1,4 @@
-"""Deterministic routing and real CLI checks; no semantic model claims."""
+"""Retained legacy helper checks; public hook CLI retirement has separate coverage."""
 import concurrent.futures
 import importlib.util
 import json
@@ -184,9 +184,8 @@ class AutoAvTests(unittest.TestCase):
         payload = self.payload()
         payload.pop('prompt')
         with mock.patch.object(av, 'selection') as select:
-            result = self.cli('hook', payload=payload)
-            self.assertIn('current native user request is unavailable', result['systemMessage'])
-            self.assertNotIn('decision', result)
+            with self.assertRaisesRegex(ValueError, 'current native user request is unavailable'):
+                av.hook(payload, 'codex')
             select.assert_not_called()
 
     def test_user_prompt_capture_and_later_request_replace_context(self):
@@ -213,7 +212,7 @@ class AutoAvTests(unittest.TestCase):
         self.native('codex', "import json,pathlib,sys\nargs=sys.argv[1:]\n"
                     f"pathlib.Path({str(capture)!r}).write_text(json.dumps([args,sys.stdin.read()]))\n"
                     "pathlib.Path(args[args.index('--output-last-message')+1]).write_text('APPLY')\n")
-        result = self.cli('hook', payload=self.payload(answer=report))
+        result = av.hook(self.payload(answer=report), 'codex')
         self.assertEqual(result, {'decision': 'block', 'reason': av.av_prompt()})
         args, prompt = json.loads(capture.read_text())
         self.assertIn('--ephemeral', args)
@@ -231,8 +230,8 @@ class AutoAvTests(unittest.TestCase):
         self.native('claude', 'import json,pathlib,sys\n' +
                     f'pathlib.Path({str(capture)!r}).write_text(json.dumps(sys.argv[1:]))\n' +
                     "print(json.dumps({'result':'SKIP'}))\n")
-        self.cli('hook', '--runtime', 'claude', payload=self.payload('UserPromptSubmit'))
-        self.assertEqual(self.cli('hook', '--runtime', 'claude', payload=self.payload()), {})
+        av.hook(self.payload('UserPromptSubmit'), 'claude')
+        self.assertEqual(av.hook(self.payload(), 'claude'), {})
         args = json.loads(capture.read_text())
         self.assertEqual(args[args.index('--model') + 1], 'operator-budget-model')
         self.assertEqual(args[args.index('--tools') + 1], '')
@@ -244,17 +243,15 @@ class AutoAvTests(unittest.TestCase):
         self.native('codex', 'import pathlib,sys\n' +
                     f'p=pathlib.Path({str(count)!r});p.write_text(p.read_text()+"x" if p.exists() else "x")\n' +
                     "args=sys.argv;pathlib.Path(args[args.index('--output-last-message')+1]).write_text('APPLY because done')\n")
-        result = self.cli('hook', payload=self.payload())
-        self.assertEqual(set(result), {'systemMessage'})
-        self.assertIn('exactly APPLY or SKIP', result['systemMessage'])
-        self.assertEqual(self.cli('hook', payload=self.payload()), {})
+        with self.assertRaisesRegex(ValueError, 'exactly APPLY or SKIP'):
+            av.hook(self.payload(), 'codex')
+        self.assertEqual(av.hook(self.payload(), 'codex'), {})
         self.assertEqual(count.read_text(), 'x')
 
     def test_oversized_selector_output_is_refused(self):
         self.native('codex', "import pathlib,sys\na=sys.argv;pathlib.Path(a[a.index('--output-last-message')+1]).write_text('A'*2049)\n")
-        result = self.cli('hook', payload=self.payload())
-        self.assertIn('oversized', result['systemMessage'])
-        self.assertNotIn('decision', result)
+        with self.assertRaisesRegex(ValueError, 'oversized'):
+            av.hook(self.payload(), 'codex')
 
     def test_bounded_timeout_kills_child_and_does_not_retry(self):
         count = self.base / 'attempts'

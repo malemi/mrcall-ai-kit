@@ -33,9 +33,12 @@ python3 ~/.config/mrcall-ai-kit/auto-av/auto_av.py status --runtime opencode
 
 The retained helper can remove owned registrations with `off --runtime NAME`.
 Its historical `on` operation is not part of installation and must not be used
-to override the operator's disabled-automation choice. Native clients can cache
-already loaded hooks/plugins; restart those sessions to unload them. Installation
-does not restart sessions or change native trust, credentials or model budgets.
+to override the operator's disabled-automation choice. Cached command-hook calls
+return `{}` immediately without reading stdin, writing state, selecting a model
+or issuing diagnostics, including missing or malformed input. An already loaded
+OpenCode plugin still requires native reload to unload its in-memory code.
+Installation does not restart sessions or change native trust, credentials or
+model budgets.
 
 The rejected earlier completion certificate remains retired through its existing
 inert compatibility path. The separate repository `doc-check.py --completion`
@@ -48,8 +51,10 @@ The [retirement brief](briefs/2026-10-25-disable-automatic-av.md) and
 [plan](execution-plans/2026-10-25-disable-automatic-av.md) define delivery.
 Actual isolated-home installer tests cover fresh and owned-upgrade removal,
 copy/symlink modes, repeated installation, foreign assets, manual av and absence
-of automatic-av npm execution. Registration removal does not establish instant
-unloading in an already running native client.
+of automatic-av npm execution. Actual CLI regressions cover cached callbacks, malformed or missing input and
+open stdin, with zero selector calls or state writes. Command-hook compatibility
+is inert; registration removal does not establish unloading of an already loaded
+OpenCode plugin.
 
 The retained earlier [automatic-av brief](briefs/2026-10-21-automatic-av.md),
 [plan](execution-plans/2026-10-21-automatic-av.md), and

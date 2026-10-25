@@ -8,6 +8,9 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- Make cached automatic-av command hooks return an empty result immediately,
+  without reading stdin, invoking selectors, writing state or reporting errors.
+
 ## v9.5.2 — 2026-10-25
 
 - Stop activating automatic av during doc-harness installation. Remove owned

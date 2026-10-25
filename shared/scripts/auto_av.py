@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Semantically route analysis/result reports to canonical av in their session.
+"""Manage retired automatic-av registrations and quiet cached hook commands.
 
 Routing state is not evidence that an assignment is complete. No answering-agent
 review, receipt, task binding or completion certificate is accepted here.
@@ -552,13 +552,9 @@ def main(argv=None):
         if args.action == 'retire':
             result = retire_legacy(args.dry_run)
         elif args.action == 'hook':
-            try:
-                result = hook(json.load(sys.stdin), args.runtime)
-            except Exception as exc:
-                # An unavailable selector must neither manufacture an av pass
-                # nor interrupt every ordinary answer. This is an availability
-                # diagnostic, not a completion claim.
-                result = {'systemMessage': 'Automatic av unavailable: ' + str(exc)}
+            # Native sessions can retain removed registrations until reload.
+            # Do not read stdin, create state or invoke the retired selector.
+            result = {}
         else:
             result = registration(args.runtime, args.action, args.dry_run)
         print(json.dumps(result))
