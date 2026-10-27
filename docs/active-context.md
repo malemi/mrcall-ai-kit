@@ -1,5 +1,5 @@
 ---
-doc_baseline_commit: 2051d7a5418b4393aaed16a1fefe591ef2bb211f
+doc_baseline_commit: 2b4b45297170eb1914d5705034b81cf1f0aacab7
 doc_baseline_date: 2026-10-27
 ---
 
@@ -11,8 +11,8 @@ Scope: Volatile snapshot of current verified state, unresolved work, and immedia
 
 ## State now
 
-Persistent Codex and Claude supervision is implemented in the working tree and
-unreleased. Check counts are uncapped unless explicitly limited; health checkpoints
+Persistent Codex and Claude supervision is implemented and installed locally
+without automatic activation. Check counts are uncapped unless explicitly limited; health checkpoints
 do not revoke execution authority. Policy requires waking idle connected leads,
 retaining unresolved failures and respecting operator boundaries. Observation-only
 scope stays read-only. Native Claude transport is verified on Linux 2.1.296 using

@@ -16,10 +16,10 @@ Repository completion evidence remains a separate refusing CLI when invoked.
 
 ## Measured modes
 
-Persistent supervision has a separate Codex 0.164.0 native acceptance and
-permission boundary in [supervision](supervision.md#measured-support). It does
-not extend the lifecycle-compliance claims in the table below or support other
-runtime supervision adapters.
+Persistent supervision has separate native transport evidence for Codex 0.164.0
+and Linux Claude Code 2.1.296 in [supervision](supervision.md#measured-support).
+Those results do not extend the lifecycle-compliance claims in the table below
+or establish reliable supervisory judgment. OpenCode supervision is unsupported.
 
 The initial candidate was tested on 2026-10-05. Its complete experiment record is
 referenced by the [delivery integration plan](execution-plans/2026-10-05-documentation-harness-delivery-integration.md).

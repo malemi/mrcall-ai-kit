@@ -1,3 +1,8 @@
+## 2026-10-27 — Supervision before release preparation
+
+Persistent Codex and Claude supervision is implemented in the working tree and
+unreleased.
+
 ## 2026-10-27 — Supervision before optional-cap installation
 
 Persistent Codex supervision is implemented in the working tree and unreleased.
