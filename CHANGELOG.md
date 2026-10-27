@@ -8,11 +8,19 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
-- Add dormant Codex session supervision with minute cron, persistent tasks and
-  memory, bounded native delivery/interventions and read-only harness inspection.
-  Owned installation/removal preserves foreign jobs and task history. A finite
-  native fixture verifies correction of false completion; long-session accuracy
-  and other runtimes remain unverified. Native control-socket access is required.
+## v9.6.0 — 2026-10-27
+
+- Add dormant persistent supervision for Codex and Claude Code: minute cron,
+  scoped tasks and memory, root-session interventions and read-only harness inspection.
+  Installation and removal preserve foreign jobs, task history and operator settings.
+- Leave check counts uncapped unless explicitly limited. Health checkpoints do not
+  terminate work; preserve failures and reconcile uncertain delivery without duplicates.
+  Concurrent late observations cannot overwrite a completed assessment.
+- Verify native Claude transport on Linux Claude Code 2.1.296 using a local model
+  fixture. Other Claude versions, interactive approval holds and reliable supervisory
+  judgment remain unverified; Codex's measured limits remain documented separately.
+- Add the shared test-prune skill for Claude, Codex and OpenCode, retaining pruning
+  decisions and functional-risk coverage in repository memory.
 - Make cached automatic-av command hooks return an empty result immediately,
   without reading stdin, invoking selectors, writing state or reporting errors.
 
