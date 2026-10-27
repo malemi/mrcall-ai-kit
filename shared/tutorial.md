@@ -203,3 +203,26 @@ ID, use its direct `check --repo PATH --task ID`; hooks remain silent. Warnings
 are deduplicated and never block tools or replace completion gates. They inspect
 recorded execution, not natural-language claims. Native display visibility and
 OpenCode 2 remain unverified.
+
+
+<!-- capability: supervision | proof: skills/supervisor/SKILL.md | covers: supervisor -->
+## Persistent supervision — Codex/Claude sessions and their workers
+
+Reach for it when existing sessions need recurring checks against the result
+and acceptance you entrusted to them. The dedicated supervisor reads changes,
+retains decisions and failures in SQLite, and sends bounded corrective messages
+to explicitly connected leads. Workers remain under their lead's ownership.
+
+Install the `supervision` feature for Codex or Claude, then invoke the `supervisor` skill
+with the target sessions and authorized scope. The skill prepares the owned
+Python environment and enables one owned cron entry. Installation, including
+`--yes` or `--features all`, does neither. Cron runs Python each minute; only
+due assessments invoke the model, with a default ten-minute task interval.
+
+Ask the skill to inspect tasks and health, change a schedule, pause or detach.
+An accepted message is not proof that the target complied. Detachment stops
+supervision without cancelling the underlying work. Uninstall disables owned
+cron entries before removing helpers and retains task and memory history.
+Claude uses a version-gated Linux inbox/transcript adapter; socket submission
+remains uncertain until history proves delivery. OpenCode orchestration is a
+separate capability.

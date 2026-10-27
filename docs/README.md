@@ -20,6 +20,8 @@ Do not duplicate that inventory here.
 
 ## Durable
 
+- [`supervision.md`](supervision.md) — persistent Codex/Claude supervision, activation,
+  task/memory ownership, harness integration and measured native limits.
 - [`principles.md`](principles.md) — what is allowed to exist, in code and in
   docs: the uncertainty-reduction rule and the log exemption.
 - [`documentation-harness.md`](documentation-harness.md) — contract, gates,

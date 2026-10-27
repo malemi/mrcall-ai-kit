@@ -50,6 +50,11 @@ reread remain independent features.
 
 ## Coverage and verification
 
+The [supervisor](supervision.md) uses these advisory diagnostics alongside the
+existing completion checker. Its read-only adapter also checks content freshness
+after finalization and leaves lead-context availability unverified. It neither
+creates a second completion certificate nor activates these notification hooks.
+
 Detection covers required mechanical/focused execution receipts in the selected
 task. It does not parse final-answer prose, detect arbitrary undeclared tests,
 authenticate an agent's honesty, force lifecycle invocation or make a missing

@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 55b843f5d7bef8de72c7d2c8b190aeb04951452e
-doc_baseline_date: 2026-10-25
+doc_baseline_commit: 2051d7a5418b4393aaed16a1fefe591ef2bb211f
+doc_baseline_date: 2026-10-27
 ---
 
 # Active Context
@@ -10,6 +10,18 @@ Scope: Volatile snapshot of current verified state, unresolved work, and immedia
 <!-- doc-scope:end -->
 
 ## State now
+
+Persistent Codex and Claude supervision is implemented in the working tree and
+unreleased. Check counts are uncapped unless explicitly limited; health checkpoints
+do not revoke execution authority. Policy requires waking idle connected leads,
+retaining unresolved failures and respecting operator boundaries. Observation-only
+scope stays read-only. Native Claude transport is verified on Linux 2.1.296 using
+an isolated local model fixture; supervisory judgment remains unverified.
+Delivery uncertainty and later confirmation remain separate audit observations.
+The contract and measured limits are in `supervision.md`.
+TEST-SUPERVISOR2 stays detached and unchanged. The operator creates TEST-SUPERVISOR3;
+this lead observes it externally in read-only mode after confirming its identity.
+Existing task instructions are not migrated by installation.
 
 This repository runs harness v9: one managed protocol block in root AGENTS.md,
 no repository CLAUDE.md, compact startup checks, deterministic migration
@@ -43,10 +55,8 @@ Customized CLAUDE migration offers a concrete preservation proposal and explicit
 exact-file adoption consent, with original bytes/mode retained for rollback.
 Authorization waits remain pending tasks rather than terminal refusals.
 
-The prototype passed 20 ordinary/boundary Codex app-server trials. Its startup
-median incremental input fell from 19,611 to 7,875 bytes; this is not a measure
-of actual context occupancy. Measured client/configuration boundaries belong in
-the runtime support table.
+Current client/configuration support boundaries and historical measurements
+are documented in `harness-runtime-support.md`.
 
 Codex custom roles inherit the session model; Claude and OpenCode roles follow
 `/ai-budget`. Generated agents carry the shipped final-answer re-read checklist;

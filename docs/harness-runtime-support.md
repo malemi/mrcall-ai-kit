@@ -16,6 +16,11 @@ Repository completion evidence remains a separate refusing CLI when invoked.
 
 ## Measured modes
 
+Persistent supervision has a separate Codex 0.164.0 native acceptance and
+permission boundary in [supervision](supervision.md#measured-support). It does
+not extend the lifecycle-compliance claims in the table below or support other
+runtime supervision adapters.
+
 The initial candidate was tested on 2026-10-05. Its complete experiment record is
 referenced by the [delivery integration plan](execution-plans/2026-10-05-documentation-harness-delivery-integration.md).
 

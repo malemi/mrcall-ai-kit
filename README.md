@@ -21,6 +21,8 @@ Powerful. Easy to install, easier to use.
 - Agent roles are defined in `shared/roles/` — name your agent for its job, not its model
 - Optional verification warnings expose missing or stale check receipts without
   blocking a session; runtime notifications remain independently switchable.
+- Optional Codex/Claude supervision uses a real minute clock, persistent tasks and memory
+  to assess explicitly connected sessions. See [supervision](docs/supervision.md).
 
 ## Install
 
@@ -76,6 +78,13 @@ does not migrate other repositories or change their instruction-loading settings
 
 ## Commands
 
+- **`supervisor`** (Codex/Claude skill) — activate persistent supervision for explicitly
+  connected sessions; manage schedules, memory and detachment. Installation is
+  dormant. Native control-socket access is required; see [setup and measured
+  limits](docs/supervision.md).
+- **`test-prune`** (skill, included with doc-harness) — prune redundant tests,
+  preserve useful functional coverage and retain decisions in repository memory.
+  In Codex: `$test-prune tests/`. See [testing memory](docs/documentation-harness.md#test-pruning-memory).
 - **`doc-create`** — set up a project's notes, once.
 - **`doc-start`** — run this to begin a work session.
 - **`doc-end`** — run this to close one; the notes get corrected to match

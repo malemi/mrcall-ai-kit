@@ -79,6 +79,11 @@ for mode in copy symlink; do
       test -L "$skill"
     fi
   done
+  for skills in .agents/skills .claude/skills .config/opencode/skills; do
+    skill="$test_home/$skills/test-prune"
+    cmp "$KIT_DIR/shared/skills/test-prune/SKILL.md" "$skill/SKILL.md"
+    if [[ "$mode" == symlink ]]; then test -L "$skill"; else test ! -L "$skill"; fi
+  done
   test ! -e "$test_home/.codex/prompts"
 
   HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes >/dev/null
@@ -94,6 +99,10 @@ for mode in copy symlink; do
   test ! -e "$test_home/.agents/skills/doc-create"
   test ! -L "$test_home/.agents/skills/doc-create"
   test ! -e "$test_home/.config/opencode/commands/doc-create.md"
+  for skills in .agents/skills .claude/skills .config/opencode/skills; do
+    test ! -e "$test_home/$skills/test-prune"
+    test ! -L "$test_home/$skills/test-prune"
+  done
 done
 
 echo "doc-harness template propagation and Codex discovery layout: PASS"
@@ -175,11 +184,14 @@ HOME="$test_home" "$KIT_DIR/install.sh" --environment codex --features doc-harne
   --mode copy --on-exist skip --yes > /dev/null
 printf 'Foreign change.\n' >> "$test_home/.config/mrcall-ai-kit/AGENTS.block.md"
 printf 'Foreign skill.\n' >> "$test_home/.agents/skills/doc-start/SKILL.md"
+printf 'Foreign pruning skill.\n' >> "$test_home/.agents/skills/test-prune/SKILL.md"
+cp "$test_home/.agents/skills/test-prune/SKILL.md" "$TEST_ROOT/foreign-prune-skill"
 cp "$test_home/.config/mrcall-ai-kit/AGENTS.block.md" "$TEST_ROOT/foreign-block"
 cp "$test_home/.agents/skills/doc-start/SKILL.md" "$TEST_ROOT/foreign-skill"
 HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes > /dev/null
 cmp "$test_home/.config/mrcall-ai-kit/AGENTS.block.md" "$TEST_ROOT/foreign-block"
 cmp "$test_home/.agents/skills/doc-start/SKILL.md" "$TEST_ROOT/foreign-skill"
+cmp "$test_home/.agents/skills/test-prune/SKILL.md" "$TEST_ROOT/foreign-prune-skill"
 
 test_home="$TEST_ROOT/foreign-link"
 mkdir -p "$test_home"

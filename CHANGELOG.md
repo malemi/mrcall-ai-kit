@@ -8,6 +8,11 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- Add dormant Codex session supervision with minute cron, persistent tasks and
+  memory, bounded native delivery/interventions and read-only harness inspection.
+  Owned installation/removal preserves foreign jobs and task history. A finite
+  native fixture verifies correction of false completion; long-session accuracy
+  and other runtimes remain unverified. Native control-socket access is required.
 - Make cached automatic-av command hooks return an empty result immediately,
   without reading stdin, invoking selectors, writing state or reporting errors.
 

@@ -137,6 +137,7 @@ Reusable AI-tool config for **Claude Code**, **Codex**, and **OpenCode**: a
 documentation harness plus (OpenCode-only) multi-model orchestration and
 migration tooling, and (Claude Code-only) an opt-in model router. User-facing
 overview lives in [`README.md`](README.md).
+Codex and Claude persistent session supervision is documented in [`docs/supervision.md`](docs/supervision.md).
 
 ### Docs
 
@@ -161,7 +162,8 @@ overview lives in [`README.md`](README.md).
   `agents/<budget>/`, plus the opt-in model router (`commands/router.md`,
   `scripts/router-hook.py`).
 - `codex/` — Codex custom role agents and native skill entry points for the
-  shared doc workflows and shortcuts.
+  shared doc workflows, shortcuts and persistent supervision transport/skill.
+- `shared/supervision/` — persistent supervisor state, scheduler, policy and harness adapter.
 - `opencode/` — OpenCode-only: orchestration and its leads, the role agents
   (both rendered once per budget under `agents/<budget>/`), watchdog, and
   migration tooling.

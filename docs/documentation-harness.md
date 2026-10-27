@@ -337,6 +337,23 @@ critic checks narrative and excess length. Shape alone can require closure even
 on a clean tree. A delegated shape failure blocks baseline advancement and
 returns reconciliation to the lead.
 
+## Test-pruning memory
+
+The shared `test-prune` skill ships with doc-harness to Claude, Codex and OpenCode
+skill directories. In Codex, request `$test-prune tests/` or name a narrower suite.
+Its [instructions](../shared/skills/test-prune/SKILL.md) define risk-based pruning,
+coverage transfers, evidence retention and scope boundaries. Installation checks
+establish delivered bytes and ownership, not native invocation or pruning judgment.
+
+Authorized cleanup retains dated decisions under `docs/test-audits/`, with a link
+from the repository's docs index on first use. An audit identifies removals and
+retained risks, deliberately lost checks, actual results, log locations and
+unresolved causes. Resumption reuses the relevant audit and applicable work trace.
+Without a harness the skill uses a named repository scratch audit; it does not
+bootstrap or migrate documentation. Read-only requests remain read-only.
+Current testing guidance belongs in durable docs; active context retains only
+current state and unresolved work. Existing lifecycle gates govern the change.
+
 ## Releasing
 
 Versions are `MAJOR.MINOR.PATCH`; major equals `HARNESS_VERSION`. Protocol

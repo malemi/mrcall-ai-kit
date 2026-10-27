@@ -88,4 +88,8 @@ if [ -f "$HOME/.config/mrcall-ai-kit/verification-warnings/register.py" ]; then
   done
 fi
 
+if { show Codex || show "Claude Code"; } && [ -f "$HOME/.config/mrcall-ai-kit/supervision/cli.py" ]; then
+  printf '\nSupervision: runtime adapters installed; activation is separate. Invoke the supervisor skill or use its runtime.py run status command to inspect tasks and health.\n'
+fi
+
 [ "$here" = all ] || printf '\nShowing %s only. `/ai-help all` for every runtime.\n' "$here"

@@ -1,3 +1,65 @@
+## 2026-10-27 — Supervision before optional-cap installation
+
+Persistent Codex supervision is implemented in the working tree and unreleased.
+The installed skill and completion policy assign result ownership to the supervisor: wake idle
+connected leads, verify progress, preserve operator constraints and actual pauses.
+Explicit observation-only scope remains read-only. Instruction delivery and
+scenario checks do not establish reliable native completion behavior.
+Native transport supports finite 64 MiB responses; verified activation timing
+does not certify supervisory judgment. Prior oversized-read, timing and
+observation failures remain retained. Live task records require their own
+mandate reconciliation; changing skill files does not migrate existing tasks.
+The contract and measured limits are in `supervision.md`.
+
+## 2026-10-27 — Supervision before Claude extension
+
+Persistent Codex supervision is implemented in the working tree and unreleased.
+Omitted/null check caps are uncapped; explicit finite caps remain binding.
+Assessment expiry is a health checkpoint that retains execution authority.
+Installed policy assigns result ownership: wake idle connected leads, verify
+actual progress, retain failures and respect operator constraints. Reviewer and
+worker deadlines must not be invented. Observation-only scope stays read-only.
+The CLI and deterministic protocol fixtures establish runtime mechanics; reliable
+native supervisory judgment remains unverified. Transport, timing and observation
+failures remain retained. Existing task instructions are not migrated by install.
+TEST-SUPERVISOR2 stays detached and unchanged. The operator creates the next
+session TEST-SUPERVISOR3 from the prepared mandate/configuration prompt; this lead
+observes it externally in read-only mode after confirming its native identity. The contract and
+measured limits are in `supervision.md`.
+
+
+## 2026-10-27 — Supervision activation before mandate correction
+
+Persistent Codex supervision is implemented in the working tree and unreleased.
+The native transport reads the complete PROBLEMI2 history with a finite 64 MiB
+receive ceiling; large-read, reconciliation and over-ceiling tests pass. Its
+operator-authorized minute trial is configured for 30 checks of at most 60s,
+with a verified 33.30s real cron assessment using the corrected observer. The
+first 68.24s cycle and earlier observation gaps remain recorded failures. The stopped target stays stopped. Native control-socket access
+is required; long-session supervisory accuracy remains unverified. The contract,
+activation path and timeout limits are in `supervision.md`.
+
+
+## 2026-10-27 — First supervision timing acceptance pending
+
+Persistent Codex supervision is implemented in the working tree and unreleased.
+The native transport reads the complete PROBLEMI2 history with a finite 64 MiB
+receive ceiling; large-read, reconciliation and over-ceiling tests pass. Its
+operator-authorized minute trial is configured for 30 checks of at most 60s.
+The first actual cycle exceeded 60s; operational confirmation requires a timely
+completed cycle. The stopped target stays stopped. Native control-socket access
+is required; long-session supervisory accuracy remains unverified. The contract,
+activation path and timeout limits are in `supervision.md`.
+
+## 2026-10-27 — Supervision before large-history activation
+
+Persistent Codex supervision is implemented in the working tree: dormant
+installation, minute cron, tasks/memory, bounded native interventions and harness
+inspection. CLI/install tests and one native correction fixture pass. Native
+control-socket access is required; long-session accuracy remains unverified.
+The contract and activation path are in `supervision.md`. No operational
+supervision is enabled and this capability has not been released.
+
 ## 2026-10-25 — Superseded automatic av
 
 Automatic av replaces the rejected runtime completion certificate in the current
@@ -9,6 +71,13 @@ refusal. The operator authorizes production release with that limitation and
 waives further OpenCode semantic acceptance. Cost, trust/reload, display order and legacy-version limits belong in
 `runtime-completion.md`. Historical audit data is retained; cached owned legacy
 hook commands return quietly through an inert compatibility path.
+
+## 2026-10-05 — Prototype measurements (archived 2026-10-26)
+
+The prototype passed 20 ordinary/boundary Codex app-server trials. Its startup
+median incremental input fell from 19,611 to 7,875 bytes; this is not a measure
+of actual context occupancy. Measured client/configuration boundaries belong in
+the runtime support table.
 
 ## 2026-10-21 — Replaced runtime completion candidate
 

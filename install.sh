@@ -22,7 +22,7 @@ set -euo pipefail
 #
 # Flags (any provided value skips its prompt):
 #   --environment claude|codex|opencode|all|both
-#   --features    doc-harness,orchestration,workers,migrate,router,reread,scope-guard,verification-warnings,shortcuts (or: all)
+#   --features    doc-harness,orchestration,workers,migrate,router,reread,scope-guard,verification-warnings,supervision,shortcuts (or: all)
 #   --activate-scope-guard claude|codex|opencode|all (explicit hook opt-in)
 #   --mode        symlink|copy
 #   --on-exist    skip|overwrite|backup
@@ -73,7 +73,7 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
               its config directory and nothing reads them until it exists.
               Features that only make sense elsewhere are skipped with a note.
   --features: doc-harness, orchestration, workers, migrate, router, reread, scope-guard,
-              verification-warnings, shortcuts (comma list, or: all). Each is described below.
+              verification-warnings, supervision, shortcuts (comma list, or: all). Each is described below.
   --activate-scope-guard: explicitly register scope-guard hooks/plugins for a
               comma-separated subset of claude,codex,opencode (or: all).
               --yes and --features scope-guard alone leave it dormant.
@@ -130,6 +130,11 @@ EOF
   echo "     Codex:      nr, av install as model-invoked skills (-> ~/.agents/skills/), not typed commands —"
   echo "                 Codex has no operator-typed prompt directory; each still runs only when the"
   echo "                 operator explicitly asks for it by name, which is a weaker guarantee than a typed command"
+  echo
+  echo "  supervision    [Claude Code + Codex; dormant until the supervisor skill activates it]"
+  echo "     installs:   persistent tasks/memory, minute scheduler, native transport and supervisor skill"
+  echo "     setup:      invoke supervisor to prepare its owned Python environment and bind exact sessions"
+  echo "                 Installation never enables cron or installs Python dependencies."
   echo
   echo "  orchestration  [OpenCode only]"
   echo "     command:    orchestrator     agents: build, plan, reviewer, orchestrator     skill: orchestrator"
@@ -242,7 +247,7 @@ $WANT_CC || $WANT_CODEX || $WANT_OC || { echo "Nothing selected. Exiting." >&2; 
 
 # ── Resolve features (offer OC-only content only if OpenCode is selected) ───
 want_feature() { [[ ",$FEATURES," == *",$1,"* || "$FEATURES" == all ]]; }
-DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false ; DO_SCOPE=false ; DO_SHORTCUTS=false ; DO_REREAD=false ; DO_WARNINGS=false
+DO_DOC=false ; DO_ORCH=false ; DO_WORKERS=false ; DO_MIGRATE=false ; DO_ROUTER=false ; DO_SCOPE=false ; DO_SHORTCUTS=false ; DO_REREAD=false ; DO_WARNINGS=false ; DO_SUPERVISION=false
 if [[ -n "$FEATURES" ]]; then
   want_feature doc-harness  && DO_DOC=true
   want_feature orchestration && DO_ORCH=true
@@ -253,6 +258,7 @@ if [[ -n "$FEATURES" ]]; then
   want_feature shortcuts    && DO_SHORTCUTS=true
   want_feature reread       && DO_REREAD=true
   want_feature verification-warnings && DO_WARNINGS=true
+  want_feature supervision && DO_SUPERVISION=true
 else
   need_tty_or_flag "--features"
   ask_yn "Install doc-harness (doc-create/start/end + doc-check + doc-critic)? [GLOBAL, cross-tool]" y && DO_DOC=true
@@ -267,6 +273,9 @@ else
   ask_yn "Install the re-read pass (Claude Stop hook; OpenCode /sc; Codex \$sc skill)? [GLOBAL, cross-tool]" n && DO_REREAD=true
   ask_yn "Install scope guard (dormant unless activated separately)? [GLOBAL, cross-tool]" n && DO_SCOPE=true
   ask_yn "Install verification warnings (dormant, advisory only)?" n && DO_WARNINGS=true
+  if $WANT_CODEX || $WANT_CC; then
+    ask_yn "Install persistent supervision (dormant until supervisor activation)? [Claude Code + Codex]" n && DO_SUPERVISION=true
+  fi
   ask_yn "Install shortcuts (nr, av — on-demand instruction overrides; typed commands on Claude Code/OpenCode, a model-invoked skill on Codex)? [GLOBAL, cross-tool]" n && DO_SHORTCUTS=true
 fi
 # OC-only features are meaningless without OpenCode selected.
@@ -278,6 +287,10 @@ fi
 if ! $WANT_CC && $DO_ROUTER; then
   echo "router is Claude Code-only; ignoring it (Claude Code not selected)." >&2
   DO_ROUTER=false
+fi
+if ! $WANT_CODEX && ! $WANT_CC && $DO_SUPERVISION; then
+  echo "supervision requires Claude Code or Codex; ignoring it (neither selected)." >&2
+  DO_SUPERVISION=false
 fi
 # Scope-guard activation is always a separate opt-in. `--yes` only skips the
 # final installer confirmation and never enables a hook by itself.
@@ -408,6 +421,7 @@ if $DO_DOC; then
       add_one "$SCRIPT_DIR/codex/skills/$command" "$CODEX_SKILLS_DIR/$command"
     done
     add_one "$SCRIPT_DIR/shared/skills/doc-critic" "$CODEX_SKILLS_DIR/doc-critic"
+    add_one "$SCRIPT_DIR/shared/skills/test-prune" "$CODEX_SKILLS_DIR/test-prune"
     for agent in "$SCRIPT_DIR/codex/agents"/*.toml; do
       add_one "$agent" "$CODEX_AGENTS_DIR/$(basename "$agent")"
       if [[ "$ON_EXIST" == skip && ( -e "$CODEX_AGENTS_DIR/$(basename "$agent")" || -L "$CODEX_AGENTS_DIR/$(basename "$agent")" ) ]] \
@@ -482,6 +496,24 @@ if $DO_WARNINGS; then
   if $WANT_OC; then
     add_one "$SCRIPT_DIR/opencode/plugins/verification-warnings.ts" "$KIT_GLOBAL/verification-warnings/opencode/verification-warnings.ts"
     add_one "$SCRIPT_DIR/opencode/commands/verification-warnings.md" "$OC_DIR/commands/verification-warnings.md"
+  fi
+fi
+if $DO_SUPERVISION; then
+  for asset in __init__.py __main__.py cli.py store.py scheduler.py cron.py harness.py control.py runtime.py requirements.txt POLICY.md COMMANDS.md; do
+    add_one "$SCRIPT_DIR/shared/supervision/$asset" "$KIT_GLOBAL/supervision/$asset"
+  done
+  add_one "$SCRIPT_DIR/codex/supervision/transport.py" "$KIT_GLOBAL/supervision/codex_transport.py"
+  add_one "$SCRIPT_DIR/claude/supervision/transport.py" "$KIT_GLOBAL/supervision/claude_transport.py"
+  $WANT_CODEX && add_one "$SCRIPT_DIR/codex/skills/supervisor" "$CODEX_SKILLS_DIR/supervisor"
+  $WANT_CC && add_one "$SCRIPT_DIR/claude/skills/supervisor" "$CC_DIR/skills/supervisor"
+  if ! $DO_WARNINGS; then
+    add_one "$SCRIPT_DIR/shared/scripts/verification_warnings.py" "$KIT_GLOBAL/verification-warnings/verification_warnings.py"
+  fi
+  if ! $DO_DOC && ! $DO_WARNINGS; then
+    add_one "$SCRIPT_DIR/shared/scripts/doc-check.py" "$KIT_GLOBAL/doc-check.py"
+    add_one "$SCRIPT_DIR/shared/scripts/doc-evidence.py" "$KIT_GLOBAL/doc-evidence.py"
+    add_one "$SCRIPT_DIR/shared/scripts/skill-path.py" "$KIT_GLOBAL/skill-path.py"
+    add_one "$SCRIPT_DIR/shared/templates/AGENTS.block.md" "$KIT_GLOBAL/AGENTS.block.md"
   fi
 fi
 if $DO_SCOPE; then
@@ -902,6 +934,7 @@ if $DO_SCOPE; then
   if $WANT_CODEX && ! $ACTIVATE_CODEX; then echo "  Codex scope guard installed but dormant: invoke the scope-guard skill to activate."; fi
   if $WANT_OC && ! $ACTIVATE_OC; then echo "  OpenCode scope guard installed but dormant: run /scope-guard on to activate."; fi
 fi
+$DO_SUPERVISION && echo "  Supervision installed but dormant (Codex and Claude Code): invoke the supervisor skill to set up dependencies and activate exact session bindings. Task and memory history survive uninstall."
 $DO_WARNINGS && echo "  Verification warnings installed: dormant unless explicitly registered; bind a known runtime session/task for advisories."
 $DO_SHORTCUTS && echo "  Shortcuts installed: /nr and /av on Claude Code/OpenCode; on Codex, ask for the nr or av skill by name."
 $DRY_RUN || echo "  Install log: $MANIFEST  (run ./uninstall.sh to undo exactly these)."

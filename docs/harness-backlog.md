@@ -81,3 +81,7 @@ that settled it. A document listed here is never asked about again.
 - `docs/briefs/2026-09-24-budget-driven-model-resolution.md` — **keep whole**,
   408 lines, 2026-09-28. The dated brief argues one model-resolution decision
   from measured inputs through requirements and limits.
+- `docs/execution-plans/2026-10-26-persistent-session-supervisor.md` —
+  **keep whole**, 421 lines, 2026-10-27. One capability's implementation and
+  native verification record stays together for its owner; the size advisory
+  does not justify reorganizing an unrelated workstream during activation.

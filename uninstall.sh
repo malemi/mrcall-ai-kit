@@ -122,6 +122,21 @@ if $DRY_RUN; then RM="would remove"; RS="would restore"; else RM="removed"; RS="
 # Registrations live in runtime-owned settings/plugin locations and therefore
 # are not manifest artifacts. Remove only entries identified by the shared
 # structural helper before that helper itself is uninstalled.
+SUPERVISION_CLI="$KIT_GLOBAL/supervision/cli.py"
+if [[ -v SRC_OF["$SUPERVISION_CLI"] ]]; then
+  for module in cli.py store.py scheduler.py cron.py harness.py control.py; do
+    asset="$KIT_GLOBAL/supervision/$module"
+    if [[ ! -f "$asset" || ! -v SRC_OF["$asset"] ]] || ! owned_item "$asset"; then
+      echo "Cannot disable supervision safely: missing or modified owned helper $asset. No supervision assets were removed." >&2
+      exit 1
+    fi
+  done
+  if $DRY_RUN; then
+    PYTHONDONTWRITEBYTECODE=1 python3 "$SUPERVISION_CLI" deactivate-owned --dry-run
+  else
+    PYTHONDONTWRITEBYTECODE=1 python3 "$SUPERVISION_CLI" deactivate-owned
+  fi
+fi
 SCOPE_REGISTER="$KIT_GLOBAL/scope-guard/scope_guard_register.py"
 if [[ -f "$SCOPE_REGISTER" && -v SRC_OF["$SCOPE_REGISTER"] ]] && owned_item "$SCOPE_REGISTER"; then
   for runtime in claude codex opencode; do
