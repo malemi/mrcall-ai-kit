@@ -100,6 +100,10 @@ touch "$docs_home/.config/mrcall-ai-kit/router.on"
 out="$(HOME="$docs_home" bash -c "printf '{\"session_id\":\"t1\",\"cwd\":\"$docs_home/repo\",\"transcript_path\":\"/tmp/t.jsonl\"}' | python3 '$KIT_DIR/claude/scripts/router-hook.py'")"
 [[ "$out" == *"Session memory"* ]] || { echo "expected memory note with a docs/ dir, got: $out" >&2; exit 1; }
 [[ "$out" == *"docs/sessions/t1.md"* ]] || { echo "expected the session file path in the memory note, got: $out" >&2; exit 1; }
+# A scheduled headless run keeps no session memory and says so in its environment.
+out="$(HOME="$docs_home" MRCALL_KIT_SESSION_MEMORY=off bash -c "printf '{\"session_id\":\"t2\",\"cwd\":\"$docs_home/repo\",\"transcript_path\":\"/tmp/t.jsonl\"}' | python3 '$KIT_DIR/claude/scripts/router-hook.py'"; printf .)"
+[[ "$out" == "." ]] || { echo "expected no output with MRCALL_KIT_SESSION_MEMORY=off, got: $out" >&2; exit 1; }
+[[ ! -e "$docs_home/.config/mrcall-ai-kit/sessions/t2" ]] || { echo "opted-out run must not be pinned" >&2; exit 1; }
 echo "router-hook.py dormancy + memory note: PASS"
 
 # One routed turn: <home> <payload> -> the memory note the hook prints.
