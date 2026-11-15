@@ -269,9 +269,13 @@ def publication_preflight(root, changes):
 
 
 def validate_stage(root, changes, git_directory):
-    with tempfile.TemporaryDirectory(prefix="doc-migrate-stage-") as temp:
-        stage = Path(temp) / "repo"
-        stage.mkdir()
+    # A sibling root keeps external relative links in their real workspace.
+    try:
+        temporary = tempfile.TemporaryDirectory(prefix=".doc-migrate-stage-", dir=root.parent)
+    except OSError as exc:
+        raise Refusal(f"cannot create migration staging beside {root}: {exc}") from exc
+    with temporary as temp:
+        stage = Path(temp)
         # The checker reads project trees only for link existence and meta
         # inventory. Reference those trees instead of copying application data,
         # dependencies, nested repositories and their Git object databases.
@@ -300,13 +304,31 @@ def validate_stage(root, changes, git_directory):
                 path.write_bytes(base64.b64decode(change["after"]["base64"]))
         env = dict(os.environ, MRCALL_DOC_HARNESS_TEMPLATE=str(CHECK.find_harness_template()))
         result = subprocess.run([sys.executable, str(SCRIPT.with_name("doc-check.py")), "--repo", str(stage), "--json"], capture_output=True, text=True, env=env)
-        if result.returncode:
-            try:
-                validation = json.loads(result.stdout)
-            except ValueError:
-                raise Refusal(f"staged checker failed: {result.stdout.strip()} {result.stderr.strip()}")
+        try:
+            validation = json.loads(result.stdout)
+        except ValueError:
+            raise Refusal(f"staged checker failed: {result.stdout.strip()} {result.stderr.strip()}")
+        # References back through the original name or a symlink must not
+        # validate a retired file against its still-present live preimage.
+        postimage_errors = []
+        for doc in CHECK.index_docs(stage, "AGENTS.md", ""):
+            original_base = (root / doc.relative_to(stage)).parent
+            for match in CHECK.MD_LINK.finditer(CHECK.strip_code(doc.read_text(encoding="utf-8"))):
+                target = match.group(1).strip()
+                if target.startswith(("http://", "https://", "mailto:", "#")):
+                    continue
+                target = target.split("#", 1)[0].strip()
+                if not target:
+                    continue
+                resolved = (original_base / target).resolve()
+                if resolved.is_relative_to(root) and not (stage / resolved.relative_to(root)).exists():
+                    postimage_errors.append(f"{doc.relative_to(stage)} → dead staged link: ({match.group(1)})")
+        if postimage_errors:
+            validation.setdefault("violations", {}).setdefault("DEAD LINKS", []).extend(postimage_errors)
+            validation["mechanical_gate"] = "failed"
+        if result.returncode or postimage_errors:
             raise MechanicalRefusal(validation)
-        return json.loads(result.stdout)
+        return validation
 
 
 def sync_dir(path):
