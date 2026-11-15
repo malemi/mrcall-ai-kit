@@ -27,6 +27,10 @@ decided by where the session began and not by where it currently is. A session
 with no docs/ tree in reach at all gets no output at all — an empty line would
 otherwise reach the model as context that says nothing.
 
+A process that keeps no session memory -- a scheduled headless run that starts,
+does one job and exits -- sets `MRCALL_KIT_SESSION_MEMORY=off` in its
+environment and gets no output either.
+
 Plain stdout on exit 0 is treated by Claude Code as additional context for the
 model — no JSON envelope needed for that. This script never calls another
 model and never touches the network; the session's own model is the
@@ -35,6 +39,7 @@ classifier.
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 import time
@@ -149,6 +154,8 @@ def resolve_base(session_id: str, cwd: Path, transcript_path: object) -> tuple[P
 def main() -> int:
     if not FLAG.exists():
         return 0  # dormant: no stdin read, no output
+    if os.environ.get("MRCALL_KIT_SESSION_MEMORY", "").strip().lower() == "off":
+        return 0  # the caller keeps no session memory
 
     try:
         payload = json.load(sys.stdin)
