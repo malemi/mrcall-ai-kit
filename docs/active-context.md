@@ -65,11 +65,11 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 
 ## Unresolved
 
-- The native trial of the supervision controller is running and not concluded. Not
-  yet observed on live sessions: an intervention read by the lead, a park with its
-  fresh-context review launched from cron, the operator's question and its answer,
-  a spend ceiling with its stop, and the conclusion of a task. `turn/interrupt` on
-  a live Codex turn is unverified.
+- The native trial of the supervision controller is running and not concluded: its
+  task is parked on a question for the operator. Not yet observed on live
+  sessions: the operator's answer reactivating a task, a spend ceiling with its
+  stop, and the conclusion of a task. `turn/interrupt` on a live Codex turn is
+  unverified.
 - A Claude Code session in bypass-permissions mode holds a kit message for its
   user's approval; this is read from the client and not exercised.
 - The goal service on this machine is stopped and disabled; its deployed copy

@@ -472,10 +472,21 @@ supervisor loaded the skill, read the lead through `session-read`, and closed it
 first assessment through the CLI with a declared step, in 1 minute 44 seconds and
 889,344 tokens of its own.
 
-Not yet observed: an intervention read by the live lead; a park with its
-challenge launched from cron and the question in the operator session; a spend
-threshold or ceiling with its stop; the conclusion of the task. A task for REMOTE
-needs the operator's statement of the result REMOTE owes.
+In the 46 minutes after activation the records show five assessments. The
+second was raised by two ended lead turns once the 600-second spacing had
+passed. In the third the supervisor parked for an operator input; the
+fresh-context run launched by cron rejected the park in 59 seconds and 50,067
+tokens and named an action. In the fourth the supervisor sent that action to the
+lead as an intervention, which the lead at rest read at once and refused, citing
+the operator's own out-of-scope list. In the fifth the supervisor parked for an
+operator restriction; the second run upheld it, and the question was delivered
+once to the operator session, where it started a turn. Six of the eight
+acceptance items were closed, with 26,484,095 tokens measured against a target
+of 60,000,000.
+
+Not yet observed: the operator's answer reactivating the task; a spend threshold
+or ceiling with its stop; the conclusion of the task. A task for REMOTE needs the
+operator's statement of the result REMOTE owes.
 
 ## Rollback
 
