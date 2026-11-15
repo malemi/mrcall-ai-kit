@@ -124,7 +124,7 @@ if $DRY_RUN; then RM="would remove"; RS="would restore"; else RM="removed"; RS="
 # structural helper before that helper itself is uninstalled.
 SUPERVISION_CLI="$KIT_GLOBAL/supervision/cli.py"
 if [[ -v SRC_OF["$SUPERVISION_CLI"] ]]; then
-  for module in cli.py store.py scheduler.py cron.py harness.py control.py; do
+  for module in cli.py store.py scheduler.py cron.py harness.py control.py ledger.py observe.py authority.py review.py; do
     asset="$KIT_GLOBAL/supervision/$module"
     if [[ ! -f "$asset" || ! -v SRC_OF["$asset"] ]] || ! owned_item "$asset"; then
       echo "Cannot disable supervision safely: missing or modified owned helper $asset. No supervision assets were removed." >&2

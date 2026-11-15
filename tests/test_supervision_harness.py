@@ -10,6 +10,7 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from shared.supervision.store import Store
+from supervision_fixture import isolate
 
 spec = importlib.util.spec_from_file_location('supervision_completion_fixture', ROOT / 'shared/scripts/tests/test_doc_evidence.py')
 fixture = importlib.util.module_from_spec(spec)
@@ -18,20 +19,22 @@ spec.loader.exec_module(fixture)
 
 class HarnessTests(unittest.TestCase):
     def setUp(self):
+        isolate(self)
         self.fixture = fixture.CompletionTests()
         self.fixture.setUp()
         self.addCleanup(self.fixture.doCleanups)
         self.state = self.fixture.base / 'supervision'
         self.store = Store(self.state)
         self.addCleanup(self.store.close)
-        self.store.bind({'id': 'supervisor', 'session_id': str(uuid.uuid4())})
+        self.supervisor = str(uuid.uuid4())
+        self.store.bind({'id': 'supervisor', 'session_id': self.supervisor})
 
     def task(self, harness=True):
         f = self.fixture
         binding = {'repo': str(f.root), 'git_dir': str(f.record().parent.parent), 'task_id': f.task} if harness else None
-        return self.store.create_task({'id': 'task', 'supervisor_id': 'supervisor', 'instruction': 'inspect task',
-                                      'scope': 'read-only fixture', 'acceptance': ['verified output'],
-                                      'limits': {'provenance': 'fixture'}, 'harness': binding})
+        return self.store.create_task({'id': 'task', 'supervisor_id': 'supervisor', 'mode': 'observation',
+                                      'operator_session_id': self.supervisor, 'instruction': 'inspect task',
+                                      'scope': 'read-only fixture', 'acceptance': ['verified output'], 'harness': binding})
 
     def inspect(self):
         before = {str(p): p.read_bytes() for p in self.fixture.root.rglob('*') if p.is_file()}

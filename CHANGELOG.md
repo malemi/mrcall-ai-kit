@@ -8,6 +8,22 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- Supervision: Python now observes the sessions and keeps the clock. An assessment is
+  dispatched only when an observation calls for judgment, and each one ends with an
+  intervention, a wait, a park or a conclusion for every target that is not working.
+- Supervision: a task carries the operator's limits as cited data, a required spend
+  limit measured from the sessions' own token counters, acceptance items with owners
+  and an operator session. A limit reached parks the task; a spend ceiling also
+  interrupts the targets' running turns.
+- Supervision: every kit message is recorded in one account ledger and rendered in
+  labeled parts that quote the operator verbatim. A stop that needs the operator is
+  read a second time in a fresh context, then waits as one question in the operator
+  session. The token reminder is a labeled part of every message to an entrusted
+  session; the question for the operator carries none.
+- Supervision: state roots created by earlier versions stay readable and stoppable and
+  are not migrated; new supervision uses a new state root. With a Claude binding only
+  observation tasks can be created.
+
 ## v9.6.0 — 2026-10-27
 
 - Add dormant persistent supervision for Codex and Claude Code: minute cron,

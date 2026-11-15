@@ -3,14 +3,16 @@ import json
 from pathlib import Path
 import subprocess
 import sys
-import tempfile
 import unittest
 import uuid
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / 'tests'))
 from shared.supervision.store import Store, StoreError
 from shared.supervision.scheduler import Scheduler, execution_read, transport_read
+from supervision_fixture import isolate, Native
 
 
 class FakeTransport:
@@ -27,45 +29,44 @@ class FakeTransport:
             raise OSError('offline')
         return {'id': thread_id, 'status': {'type': 'active' if self.busy else 'idle'}, 'canAcceptDirectInput': True}
 
-    def send(self, thread_id, event_id, text):
+    def send(self, thread_id, event_id, text, allow_busy=False):
         self.calls.append(('send', event_id))
         if self.uncertain:
             raise OSError('lost acknowledgement')
         return {'status': 'delivered', 'native_submission_id': 'native'}
 
-    def reconcile(self, thread_id, event_id):
+    def reconcile(self, thread_id, event_id, **_):
         self.calls.append(('reconcile', event_id))
         return {'status': self.reconciled}
 
-    def read(self, thread_id, cursor=None):
+    def read(self, thread_id, cursor=None, **kwargs):
         self.calls.append(('read', thread_id))
         return {'thread_id': thread_id, 'cursor': cursor}
 
 
 class SchedulerTests(unittest.TestCase):
     def setUp(self):
-        self.tmp = tempfile.TemporaryDirectory()
-        self.store = Store(Path(self.tmp.name) / 'state')
+        self.root = isolate(self)
+        self.store = Store(self.root / 'state')
+        self.addCleanup(self.store.close)
         self.native = FakeTransport()
         self.session = str(uuid.uuid4())
         self.store.bind({'id': 's', 'session_id': self.session})
 
-    def tearDown(self):
-        self.store.close()
-        self.tmp.cleanup()
-
     def task(self, name='t', **kwargs):
-        return self.store.create_task({'id': name, 'supervisor_id': 's', 'instruction': 'inspect', 'scope': 'none', 'acceptance': ['evidence'], 'limits': {'provenance': 'test'}, 'next_run_at': 100, 'interval_seconds': 600, **kwargs})
+        return self.store.create_task({'id': name, 'supervisor_id': 's', 'mode': 'observation', 'operator_session_id': self.session,
+                                       'instruction': 'inspect', 'scope': 'none', 'acceptance': ['evidence'],
+                                       'next_run_at': 100, 'interval_seconds': 600, **kwargs})
 
     def tick(self, now=100):
         return Scheduler(self.store, self.native, now=now).tick()
 
     def result(self):
-        row = self.store.conn.execute('SELECT * FROM executions ORDER BY started_at DESC').fetchone()
+        row = self.store.conn.execute('SELECT * FROM executions ORDER BY scheduled_at DESC').fetchone()
         return self.store.execution_result({'id': row['id'], 'generation': row['generation'], 'outcome': 'completed', 'summary': 'checked', 'evidence': ['fixture']})
 
     def test_empty_real_cli_and_lock(self):
-        cli = Path(__file__).resolve().parents[1] / 'shared/supervision/cli.py'
+        cli = ROOT / 'shared/supervision/cli.py'
         result = subprocess.run([sys.executable, str(cli), '--state-dir', str(self.store.root), 'tick'], capture_output=True, text=True)
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertFalse(json.loads(result.stdout)['result']['locked'])
@@ -75,40 +76,20 @@ class SchedulerTests(unittest.TestCase):
         self.assertEqual(self.native.calls, [])
 
     def test_real_cli_tick_through_native_rpc_fixture(self):
-        from test_supervision_transport import TransportTests
-        fixture = TransportTests()
-        fixture.setUp()
-        try:
-            fixture.thread_id = self.session
-            self.task()
-            cli = Path(__file__).resolve().parents[1] / 'shared/supervision/cli.py'
-            with fixture.server():
-                executable = Path(self.tmp.name) / 'codex-fixture'
-                executable.write_text('#!' + sys.executable + '\nimport json\nprint(json.dumps(' + repr({'status': 'running', 'socketPath': str(fixture.root / 'control.sock')}) + '))\n')
-                executable.chmod(0o700)
-                result = subprocess.run([sys.executable, str(cli), '--state-dir', str(self.store.root), '--codex-path', str(executable), 'tick'], capture_output=True, text=True)
-                self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
-                self.assertEqual(len(fixture.accepted), 1)
-                event = self.store.status()['outbox'][0]
-                self.assertEqual(event['status'], 'delivered')
-                execution = self.store.status()['executions'][0]
-                self.assertFalse(json.loads(execution['result'])['delivery']['assessment_completed'])
-                self.assertEqual(fixture.accepted[0]['clientUserMessageId'], event['id'])
-        finally:
-            fixture.tearDown()
-
-    def test_coalesce_clock_changes_and_callback(self):
-        self.task()
-        self.tick(10000)
-        self.assertEqual(self.store.task('t')['next_run_at'], 10600)
-        self.tick(50)
-        self.assertEqual(len([x for x in self.native.calls if x[0] == 'send']), 1)
-        self.result()
-        with self.assertRaises(StoreError):
-            self.result()
-        self.tick(10600)
-        self.assertEqual(len([x for x in self.native.calls if x[0] == 'send']), 2)
-        self.assertEqual(self.store.task('t')['status'], 'active')
+        native = Native(self.root, self.session)
+        self.task(interval_seconds=1)
+        with native.serving():
+            cli = ROOT / 'shared/supervision/cli.py'
+            result = subprocess.run([sys.executable, str(cli), '--state-dir', str(self.store.root), '--codex-path', str(native.codex), 'tick'],
+                                    capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+            self.assertEqual(len(native.accepted), 1)
+            event = self.store.status()['outbox'][0]
+            self.assertEqual(event['status'], 'delivered')
+            execution = self.store.status()['executions'][0]
+            self.assertEqual(execution['status'], 'delivered')
+            self.assertFalse(json.loads(execution['result'])['delivery']['assessment_completed'])
+            self.assertEqual(native.accepted[0]['clientUserMessageId'], event['id'])
 
     def test_busy_dispatch_deadline_survives_restart_then_idle(self):
         self.task()
@@ -201,40 +182,6 @@ class SchedulerTests(unittest.TestCase):
             self.result()
         self.assertEqual(self.store.status()['outbox'][0]['status'], 'uncertain')
 
-    def test_uncapped_continues_beyond_old_default(self):
-        self.task()
-        for index in range(102):
-            self.tick(100 + index * 600)
-            self.result()
-        self.assertEqual(len(self.store.status()['executions']), 102)
-        self.assertEqual(self.store.task('t')['status'], 'active')
-        self.assertFalse(self.store.conn.execute("SELECT 1 FROM audit WHERE action='check-limit'").fetchone())
-
-    def test_persisted_cap_removal_preserves_history_and_fences(self):
-        self.task(limits={'provenance': 'legacy operator', 'max_checks': 1})
-        self.tick()
-        self.result()
-        original = self.store.status()['executions'][0]
-        root = self.store.root
-        self.store.close()
-        self.store = Store(root)
-        self.tick(700)
-        task = self.store.task('t')
-        self.assertEqual(task['status'], 'blocked')
-        self.assertEqual(task['limits']['max_checks'], 1)
-        updated = self.store.update_task({'id': 't', 'revision': task['revision'], 'changes': {'limits': dict(task['limits'], max_checks=None)}})
-        self.assertEqual(updated['status'], 'blocked')
-        self.store.task_state({'id': 't', 'revision': updated['revision'], 'action': 'resume', 'reason': 'Operator removed cap'})
-        self.tick(1300)
-        self.assertEqual(self.store.status()['executions'][0], original)
-        self.assertEqual(len(self.store.status()['executions']), 2)
-        running = self.store.status()['executions'][1]
-        task = self.store.task('t')
-        self.store.update_task({'id': 't', 'revision': task['revision'], 'changes': {'limits': dict(task['limits'], max_checks=None)}})
-        with self.assertRaisesRegex(StoreError, 'stale execution'):
-            self.store.execution_result({'id': running['id'], 'generation': running['generation'], 'outcome': 'completed', 'summary': 'Late', 'evidence': ['fixture']})
-        self.assertEqual(self.store.status()['executions'][1]['status'], 'invalidated')
-
     def test_failure_survives_recovery_checkpoint_and_success(self):
         self.task()
         self.native.offline = True
@@ -252,7 +199,7 @@ class SchedulerTests(unittest.TestCase):
         checkpoint = json.loads(execution['result'])
         self.assertTrue(checkpoint['assessment_checkpoint_overdue'])
         self.assertEqual(checkpoint['previous_result'], delivery)
-        self.tick(10000)
+        self.tick(1000)
         self.assertEqual(len(self.store.status()['executions']), 1)
         self.result()
         self.assertEqual(dict(self.store.conn.execute('SELECT * FROM audit WHERE sequence=?', (failure['sequence'],)).fetchone()), dict(failure))
@@ -263,30 +210,13 @@ class SchedulerTests(unittest.TestCase):
         root = self.store.root
         self.store.close()
         self.store = Store(root)
+        self.store.update_task({'id': 't', 'revision': 1, 'changes': {'instruction': 'inspect again'}})
         self.tick(10001)
         executions = self.store.status()['executions']
         self.assertEqual(len(executions), 2)
         restored = execution_read(self.store, executions[-1]['id'])
         self.assertEqual([entry['id'] for entry in restored['memory']], ['failure', 'success'])
         self.assertEqual(restored['memory'][0]['content'], 'Native delivery offline; cause unresolved')
-
-    def test_max_checks_oneshot_alignment_and_scope(self):
-        self.task(interval_seconds=None)
-        self.tick()
-        self.result()
-        self.tick(10000)
-        self.assertEqual(len(self.store.status()['executions']), 1)
-        self.task('aligned', schedule_mode='utc-aligned', limits={'provenance': 'test', 'max_checks': 1})
-        self.tick(10001)
-        self.assertEqual(self.store.task('aligned')['next_run_at'], 10200)
-        row = self.store.conn.execute("SELECT * FROM executions WHERE task_id='aligned'").fetchone()
-        restored = execution_read(self.store, row['id'])
-        self.assertEqual(restored['task']['id'], 'aligned')
-        self.result()
-        self.tick(10200)
-        self.assertEqual(self.store.task('aligned')['status'], 'blocked')
-        with self.assertRaises(StoreError):
-            transport_read(self.store, self.native, {'supervisor_id': 's', 'session_id': str(uuid.uuid4())})
 
 
 if __name__ == '__main__':

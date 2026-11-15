@@ -1,3 +1,147 @@
+## 2026-11-15 — Supervision state before the controller repair
+
+Legacy Codex/Claude supervision and the debugger role are installed locally.
+Role-discipline instructions require actual applicable kit agents; native offline
+assessment fixtures verify choices, not live correction/compliance. Test-blocker
+policy requires distinct-risk test selection and replacement of defective designs
+when warranted; native compliance with that policy is unverified. Observation-only
+scope remains read-only. Existing task instructions are not migrated by installation.
+Current contracts and native adapter limits are in `supervision.md` and
+[the role contract](../shared/roles/README.md#diagnostic-handoff).
+
+- The [supervisor token plan](execution-plans/2026-10-27-supervisor-token-reminder.md)
+  tracks M2: continuous waste assessment through instructions only.
+  Instructions are implemented and installed for Codex and Claude; native
+  behavioral verification remains pending. Cron and supervision state are
+  unchanged. Hooks and runtime changes are outside this step.
+
+## 2026-11-10 — Supervisor state before test-blocker policy
+
+Role-discipline instructions require actual applicable kit agents; native offline
+assessment fixtures verify choices, not live correction/compliance. Observation-only
+scope remains read-only. Existing task instructions are not migrated by installation.
+
+## 2026-11-06 — Retained supervision delivery observation
+
+A real
+PROBLEMI3 turn classified as report-only caused an automatic corrective delivery
+to the exact lead.
+
+## 2026-11-01 — Controller work pointer
+
+The local-mode plan tracks implementation, installed verification and activation.
+
+## 2026-10-30 — Mandatory protected deployment superseded
+
+Protected Codex goals add a separate Python controller with root-owned state,
+reviewed executable acceptance and distinct agent/verifier OS identities. Isolated
+installed CLI/socket checks cover continuation, acceptance, restart and authority
+boundaries. Ordinary installation is dormant; no live protected service or session
+migration is activated. Current root-capable `mal` sessions are not protected.
+Systemd activation and live-model judgment remain unverified. Setup, supported
+limits and recovery are in `supervision.md#protected-goals`.
+
+
+## 2026-10-30 — State snapshot before protected goal delivery
+
+Persistent Codex and Claude supervision is implemented and installed locally
+without automatic activation. Check counts are uncapped unless explicitly limited; health checkpoints
+do not revoke execution authority. Policy requires waking idle connected leads,
+retaining unresolved failures and respecting operator boundaries. Observation-only
+scope stays read-only. Native Claude transport is verified on Linux 2.1.296 using
+an isolated local model fixture; supervisory judgment remains unverified.
+Delivery uncertainty and later confirmation remain separate audit observations.
+The contract and measured limits are in `supervision.md`.
+TEST-SUPERVISOR2 stays detached and unchanged. The operator creates TEST-SUPERVISOR3;
+this lead observes it externally in read-only mode after confirming its identity.
+Existing task instructions are not migrated by installation.
+
+Supervisor source instructions check actual use of all applicable installed kit
+roles and require evidenced corrections through the lead, followed by result
+verification. Twelve native Codex offline assessment fixtures pass; live role
+correction/compliance and Claude judgment remain unverified. The role policy
+is installed for Codex and Claude; cron and user configuration settings are preserved.
+
+This repository runs harness v9: one managed protocol block in root AGENTS.md,
+no repository CLAUDE.md, compact startup checks, deterministic migration
+(`doc-migrate.py`), and task-bound completion evidence (`doc-check.py
+--completion`). The checker can refuse stale or missing results when invoked.
+It cannot force a client to invoke the lifecycle or authenticate an agent's
+judgment.
+
+The operator's installed commands, skills and checker run v9.
+
+Kit sources resolve filesystem skills from catalog declarations, with only
+required, present local overrides. Nine CLI/install cases cover source selection,
+CS symlinks and template delivery; model obedience remains unverified. The
+installed helper matches the source and resolves the declared doc-start entry;
+complete client instruction refresh remains unverified. Source-linked instruction
+assets follow the checkout; installation limits belong in the harness contract.
+
+The meta-repository, Desktop, kernel and support clone now have v9 profiles;
+other downstream repositories still declare v8, v3 or no profile. Each target's
+profile and current startup output determine its own prerequisite. The ancestor
+meta-repository CLAUDE.md is absent; this resolves that recorded shadowing cause
+without establishing new native-client compatibility.
+
+Installed doc-create upgrades require no runtime compatibility report or escape
+flag. Supplied reports remain strictly validated; ordinary layout migration
+records compatibility as not evaluated. Routine local documentation repairs
+belong to the authorized upgrade. Installed leaf/meta CLI fixtures cover
+upgrade, clean checker, exact rollback, scoped refusals and opaque child data;
+native client compatibility remains deferred. Release regression suites pass.
+Customized CLAUDE migration offers a concrete preservation proposal and explicit
+exact-file adoption consent, with original bytes/mode retained for rollback.
+Authorization waits remain pending tasks rather than terminal refusals.
+
+Current client/configuration support boundaries and historical measurements
+are documented in `harness-runtime-support.md`.
+
+The `debugger` role is generated for all three clients. Isolated native Codex
+acceptance demonstrates actual-data causal diagnosis without fixture edits;
+Claude/OpenCode checks cover profiles and installation only. The operator's installation
+contains the generated role profiles; existing sessions need discovery refresh. Scope and measured limits are in
+[the role contract](../shared/roles/README.md#diagnostic-handoff).
+
+Codex custom roles inherit the session model; Claude and OpenCode roles follow
+`/ai-budget`. Generated agents carry the shipped final-answer re-read checklist;
+private reasoning is not observable. Installed-client verification and its
+limits remain in the corresponding durable contracts.
+
+Mandate-completion instructions are installed for Codex leads and all five
+physical role profiles; the operator-owned global instructions are preserved.
+Generated kit agents receive the same bounded decision before yielding. Nine
+isolated native Codex CLI cases pass with real output/check evidence and
+legitimate-stop cases; causal improvement and long-session reliability remain
+unestablished. Ordinary Claude leads are outside the new route. Source-linked
+Claude/OpenCode instruction assets reflect the same source. Entry points,
+restart guidance and measured limits are in `reread-guard.md`.
+
+Release versions are recorded in CHANGELOG.md and matching Git tags. Native
+compatibility verification remains explicitly deferred. Mandatory migration
+prerequisites are superseded by the shipped upgrade UX; report acquisition is
+optional. Release requires separate task authorization. The gate
+enforces `HARNESS_VERSION` against the newest release tag's major in the
+installed checkout, with a named advisory for an in-flight release.
+
+Scope guard is accepted with its documented measured limits; further native
+acceptance trials are waived. Verification warnings read required command
+receipts for an explicitly selected task and never block a session. The CLI,
+registration roundtrips and real adapter callbacks have focused acceptance
+evidence. Installed notification adapters remain dormant on all three clients;
+native display and Codex hook trust are unverified.
+
+Automatic av is disabled. Doc-harness installation removes its owned hooks and
+OpenCode plugin registration on selected runtimes, without installing that
+plugin's dependencies. Manual av remains available. Registration retirement
+preserves foreign hooks and history; already loaded native sessions may need
+restart. Current ownership and verification limits belong in
+`runtime-completion.md`.
+
+## 2026-10-27 — Regression status before release verification
+
+native client compatibility and broad regression suites remain deferred.
+
 ## 2026-10-27 — Supervision before release preparation
 
 Persistent Codex and Claude supervision is implemented in the working tree and

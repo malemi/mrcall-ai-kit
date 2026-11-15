@@ -1,30 +1,35 @@
 # MrCall AI-Kit
 
-Keep up with AI-speed coding.
+Project memory, reviewed delivery and persistent supervision for **Claude Code**,
+**Codex** and **OpenCode**.
 
-Use **Claude Code**, **Codex**, and **OpenCode**, collaborate with other
-developers: AI-Kit memorizes intra and inter-sessions, allows you to setup
-orchestrators, and it comes with specialized agents named for their job.
+AI-Kit installs reusable commands, skills and agent roles into the coding tools
+you already use. Repository documentation carries context between sessions;
+review workflows connect changes to evidence; a dedicated supervisor can follow
+other sessions and steer unfinished work toward its intended result.
 
-Powerful. Easy to install, easier to use.
+[Get started](#get-started) · [Supervise sessions](#supervise-sessions) ·
+[Commands](#commands-and-skills) · [Documentation](docs/README.md) ·
+[Release notes](CHANGELOG.md)
 
-## Why you should use it
+## What you get
 
-- Claude wants to go on credits? Shift to OpenCode or Codex
-- Setup a simple LLM router which decides which model should be used for each query
-- One knob for Claude Code and OpenCode agent costs — `/ai-budget low|medium|high` — shows each role's model chosen from price and benchmark data; Codex roles inherit the session model
-- Different agents can work together on a shared memory
-- Repository instructions make documentation the starting point for investigation
-- Documentation closure checks affected claims, living context, and current evidence
-- Each routing document can declare its exact purpose and boundary in a
-  mechanically checked scope block
-- Agent roles are defined in `shared/roles/` — name your agent for its job, not its model
-- Optional verification warnings expose missing or stale check receipts without
-  blocking a session; runtime notifications remain independently switchable.
-- Optional Codex/Claude supervision uses a real minute clock, persistent tasks and memory
-  to assess explicitly connected sessions. See [supervision](docs/supervision.md).
+| Capability | What it does | Available in |
+|---|---|---|
+| **Project memory** | Start from current repository context; reconcile documentation when work ends. | Claude Code, Codex, OpenCode |
+| **Reviewed delivery** | Use briefs, plans, independent reviews and recorded verification for substantial changes. | Claude Code, Codex, OpenCode |
+| **Persistent supervision** | Check connected sessions on a real clock, retain failures and decisions, and send concrete next actions to their leads. | Codex, Claude Code¹ |
+| **Test pruning** | Remove redundant tests while preserving distinct functional risks and recording the reasons in repository memory. | Claude Code, Codex, OpenCode |
+| **Specialized agents** | Delegate execution, causal debugging, verification, planning and review to roles with explicit responsibilities. | Runtime-specific roles on all three clients |
+| **Model budgets** | Select a budget for the kit's Claude/OpenCode roles and inspect their configured models. | Claude Code, OpenCode |
+| **Orchestration** | Run OpenCode's engineering-lead workflow for substantial implementation. | OpenCode |
+| **Session router** | Opt into model routing and a shared session-memory file. | Claude Code |
 
-## Install
+¹ The Claude supervisor adapter currently targets **Linux, Claude Code 2.1.296,
+peerProtocol 1**. Codex transport evidence covers CLI/app-server 0.164.0 on Linux.
+See [supervision setup and measured support](docs/supervision.md).
+
+## Get started
 
 ```bash
 git clone https://github.com/malemi/mrcall-ai-kit.git
@@ -32,122 +37,176 @@ cd mrcall-ai-kit
 ./install.sh
 ```
 
-That's the whole install. The script detects which tools you already have,
-asks what you want. It installs **globally** (your `~/.claude`,
-`~/.codex`, `~/.agents`, `~/.config/opencode`, `~/.config/mrcall-ai-kit`) — never inside
-your repos.
+The installer detects your tools and asks which features to install. It writes
+to your user configuration, never into your project repositories. Choose copy
+or symlink installation and how existing files should be handled.
 
-Automatic av is disabled. Doc-harness installation removes its owned hooks on
-selected runtimes and does not install its OpenCode plugin or dependencies.
-Manual `$av` / `/av` remains available. Already loaded native hooks/plugins may
-need a session restart. See [retirement and ownership](docs/runtime-completion.md).
+For a noninteractive documentation-harness installation on all three clients:
 
-Then:
+```bash
+./install.sh --environment all --features doc-harness \
+  --mode copy --on-exist backup --yes
+```
 
-1. Restart your Claude Code / Codex / OpenCode sessions so they pick up the
-   new commands.
-2. In each repo you want covered, run `doc-create` (`/doc-create` as a
-   slash command; `$doc-create` in Codex) to bootstrap or explicitly migrate
-   its documentation. Version 9 uses one managed block in `AGENTS.md`.
-   Migration validates the documentation layout and saves a rollback transaction;
-   customized `CLAUDE.md` files require a concrete preservation proposal and
-   explicit adoption consent before retirement; unresolved ownership is preserved.
-   Client compatibility reports are optional. Routine local documentation
-   repairs are included in the requested upgrade.
+The documentation harness includes `test-prune`. Optional features such as
+supervision are selected separately. Run `./install.sh --help` for the complete
+feature list, or add `--dry-run` to inspect an installation before applying it.
 
-Repository instructions invoke `doc-start` before source investigation and
-the appropriate `doc-end` checks before delivering changes. You can still call
-them explicitly. Read-only and brief-only requests keep their limited scope;
-they do not automatically authorize implementation or consolidation.
+Then open a fresh coding session in your project and invoke `doc-create`:
+`$doc-create` in Codex, `/doc-create` in Claude Code or OpenCode. It creates the
+repository's `docs/` harness or guides an explicitly requested migration.
+Existing customized instructions require a preservation proposal before adoption.
 
-Skills use the source declared in the session catalog. A required repository
-override wins only when that individual entry exists; absent local harness skills
-use their declared installed copies. See [skill resolution](docs/documentation-harness.md#entry-and-ownership)
-for the installed path resolver, diagnostics and update limits.
+Once configured, repository instructions direct the lead to load context before
+investigation and reconcile it before delivering changes. You can also invoke
+`doc-start` and `doc-end` explicitly.
 
-Fresh Codex leads also receive a decision-before-yielding instruction through
-the doc-harness install: continue useful authorized work while acceptance remains
-unmet, within scope and resource limits. Generated kit agents receive the same
-decision for their own assignment. Ordinary Claude leads are outside this route.
-See [entry points, update steps and measured limits](docs/reread-guard.md#mandate-completion).
+## Work with project memory
 
-Instructions and repository completion evidence do not force every client to
-run a skipped workflow. Manual av does not certify truth or replace lifecycle
-reviews. See the [harness contract](docs/documentation-harness.md). Installation
-does not migrate other repositories or change their instruction-loading settings.
+The documentation harness gives each repository a small current context, durable
+documentation and a trace of substantial work. Its v9 instruction entry is
+`AGENTS.md`; it does not require a repository `CLAUDE.md`.
 
-## Commands
+- **Start:** `doc-start` reads the project context and checks documentation integrity,
+  baseline drift, working-tree state and open plans.
+- **Deliver:** substantial work proceeds through a brief, plan, reviewed milestones
+  and a separate final review. Simple questions and small changes keep a smaller scope.
+- **Close:** `doc-end` reconciles current knowledge, checks affected claims with
+  `doc-critic`, verifies evidence and updates the documentation baseline.
 
-- **`supervisor`** (Codex/Claude skill) — activate persistent supervision for explicitly
-  connected sessions; manage schedules, memory and detachment. Installation is
-  dormant. Native control-socket access is required; see [setup and measured
-  limits](docs/supervision.md).
-- **`test-prune`** (skill, included with doc-harness) — prune redundant tests,
-  preserve useful functional coverage and retain decisions in repository memory.
-  In Codex: `$test-prune tests/`. See [testing memory](docs/documentation-harness.md#test-pruning-memory).
-- **`doc-create`** — set up a project's notes, once.
-- **`doc-start`** — run this to begin a work session.
-- **`doc-end`** — run this to close one; the notes get corrected to match
-  reality.
-- **`nr`** — answer one question right now: no tools, no subagents, no work
-  trace, no review gates, for that turn only.
-- **`av`** — restate the engineering-lead stance on demand.
-- **`verification-warnings`** — inspect required check receipts for an explicit
-  task; on/off/status manage optional runtime notifications. See the
-  [warning contract](docs/verification-warnings.md).
-- **`/router`** (Claude Code) — opt-in hook; once on, it names this session's
-  shared-memory file, and how a delegated worker should use it, on each prompt
-  of a session that has a `docs/` tree in reach — so the session and any worker
-  it delegates to keep the same living snapshot. Toggle with
-  on/off/status/sweep/unregister.
-- **`/ai-help`** (Claude Code, OpenCode) — the current, accurate list of everything
-  installed.
-- **`/ai-budget`** (Claude Code, OpenCode) — set how much those role agents may
-  cost, `low`, `medium` or `high`; with no argument, show the budget and each
-  agent's model. A machine that never runs it runs `medium`.
-- **`/orchestrator`** (OpenCode) — autonomous engineering lead that implements
-  directly or delegates bounded work when coordination pays off.
-- **`/migrate-check`** (OpenCode) — checks a move over from Claude Code.
-- **`sc`** — re-read one answer against the installed checklist: `/sc <question>`
-  on Claude Code and OpenCode, `$sc <question>` as a Codex skill. Claude Code's
-  Stop hook can return a long answer for correction before delivery. OpenCode
-  and Codex instruct the answering model to make the pass in the current turn;
-  they have no pre-delivery enforcement or always-on mode. The
-  [runtime support matrix](docs/reread-guard.md) records what has been tested.
-- **`/ai-tutorial`** (Claude Code, OpenCode) — list what this kit has installed for your runtime
+Completion records track which checks and reviews apply to which content.
+They can reject missing or stale evidence when invoked; instructions cannot
+force a client to run a workflow it skips. See the
+[harness contract](docs/documentation-harness.md) and
+[measured client behavior](docs/harness-runtime-support.md).
 
-`nr` and `av` are typed slash commands on Claude Code and OpenCode (`/nr`,
-`/av`). On Codex they ship as model-invoked skills instead, because Codex
-0.150.1 has no operator-typed prompt directory: the operator asks for `nr` or
-`av` by name and Codex decides whether to run it.
+## Supervise sessions
 
-Typing the command is not always the only way either one can fire. Claude Code
-offers every installed command to the model as something it may invoke on its
-own judgement, using the command's own description, so on Claude Code both are
-reachable without the operator typing anything. On Codex that is the only way
-they work at all. OpenCode 1.17.18 does not expose a typed command to the model
-— but it reads `~/.agents/skills/`, the directory the Codex install writes to,
-so an operator who installed for Codex as well as OpenCode gets the model-invocable
-form there too.
+Install supervision for the client that will host the supervisor:
 
-Both descriptions therefore instruct the model to run them only on an explicit
-by-name request. This is an instruction boundary: no runtime check prevents a model from
-misusing these overrides to suspend its own tools and checks.
+```bash
+./install.sh --environment claude --features supervision \
+  --mode copy --on-exist backup --yes
+```
 
-There's also a **memory** — a short, current account of a project, and of
-each session, that keeps itself up to date — and **agents**: AI helpers,
-each named for one job and selected by the lead for that job. Claude Code and
-OpenCode roles run the model the kit chose at your budget. Codex roles load
-the same role rules and inherit the session model. Every kit agent also receives
-the six shipped `sc` clarity and verification rules and is instructed to check
-its final report against them; this model instruction does not intercept
-delivery. See
-[`shared/roles/README.md`](shared/roles/README.md).
+Use `--environment codex` for Codex, or `all` to install both supported entries.
+OpenCode's orchestrator is a separate feature.
 
-Want the full detail? See
-[`docs/documentation-harness.md`](docs/documentation-harness.md).
-The optional runtime enforcement design and its current verification status are
-in [`docs/scope-guard.md`](docs/scope-guard.md).
+In a **dedicated session**, invoke `supervisor` and identify the session and result
+you want it to follow. A short request is enough:
+
+> Use supervisor to follow PROBLEMI2 until its task is completed and verified.
+
+The skill resolves exact session identities and shows the effective mandate and
+configuration before activation. It supplies its own supervision rules; you do
+not need to repeat them in every prompt. Each binding connects sessions of the
+same runtime. Workers remain under their lead's control.
+
+The supervisor is instructed to wake an idle lead when authorized work remains,
+check actual progress, preserve unexplained failures and distinguish a real
+blocker from a long operation. Explicit observation-only mandates stay read-only.
+
+Python and user cron provide the clock. A minute tick checks for due tasks;
+assessments default to every ten minutes. There is **no default check-count cap**.
+Operator limits remain binding, and health checkpoints do not terminate useful work.
+Tasks, memory and delivery history persist across restarts.
+
+Installation is **dormant**: it starts no sessions, enables no cron entry and
+makes no model calls. Activation is separate; due assessments can consume model
+credit. A delivered message proves receipt, not compliance or completion.
+Native transport checks do not establish reliable supervisory judgment.
+
+For Python-owned continuation, Codex on Linux supports
+[persistent goals](docs/supervision.md#persistent-goals). The controller runs under
+your existing account, wakes unfinished idle sessions and closes only after a bound
+executable check passes, an operator stop or an explicit limit. Setup requires no
+sudo or session migration; installation remains dormant until activation.
+
+[Setup, permissions, recovery and limits →](docs/supervision.md)
+
+## Keep tests useful
+
+Invoke `test-prune` for a test-cleanup task, for example in Codex:
+
+```text
+$test-prune tests/
+```
+
+The skill audits what each test protects before removing or consolidating it.
+It preserves distinct functional risks, records deliberately lost checks and
+retains failure evidence and temporary artifacts. With a documentation harness,
+its decisions belong under `docs/test-audits/` so the next session can reuse them.
+It is not a shortcut for making a failing suite green.
+
+[Workflow](shared/skills/test-prune/SKILL.md) ·
+[Repository memory contract](docs/documentation-harness.md#test-pruning-memory)
+
+## Commands and skills
+
+Use `/name` for installed commands in Claude Code and OpenCode. In Codex, invoke
+skills with `$name` or ask for them by name. Availability depends on the features
+you selected; `/ai-help` and `/ai-tutorial` list installed capabilities in
+Claude Code and OpenCode.
+
+| Name | Use it for |
+|---|---|
+| `doc-create` | Create or explicitly migrate a repository's documentation harness. |
+| `doc-start` / `doc-end` | Load current context / reconcile and verify it. |
+| `doc-critic` | Check documentation claims against actual code and evidence. |
+| `supervisor` | Supervise connected Codex or Claude sessions; manage tasks, memory and detachment. |
+| `test-prune` | Audit and consolidate tests with retained rationale. |
+| `nr` | Answer one question immediately, without the repository workflow for that turn. |
+| `av` | Restate the engineering-lead stance: decide and finish authorized work. |
+| `sc` | Re-read an answer against the installed checklist. |
+| `verification-warnings` | Inspect missing or stale check receipts; optionally enable runtime notifications. |
+| `scope-guard` | Manage optional protection for marked Markdown documents. |
+| `/ai-budget` | Inspect or change Claude/OpenCode role budgets: `low`, `medium`, `high`. |
+| `/router` | Manage Claude's opt-in model router and session memory. |
+| `/orchestrator` | Use OpenCode's reviewed engineering-lead workflow. |
+| `/migrate-check` | Assess a move from Claude Code to OpenCode. |
+
+`nr` and `av` require an explicit request; they are not always-on modes. Automatic
+av is disabled. Doc-harness installation retires its owned automatic registrations
+while preserving manual invocation and unrelated hooks.
+
+Claude and OpenCode role models follow `/ai-budget`; **Codex roles inherit the
+session model**. Agent names describe their jobs, not a model choice. See the
+[role definitions and model-selection rules](shared/roles/README.md).
+
+Ask the lead to use `debugger` when a failure's cause is uncertain. Supply the
+actual failing input, entry command, expected behavior and evidence paths.
+The role follows the data function by function to the first demonstrated
+divergence, separates observations from hypotheses and hands a diagnosis to
+`execute`. It does not apply the correction. Install the new role by rerunning
+the installer for your selected clients/features, then start a fresh session.
+Codex/Claude receive it with `doc-harness`; OpenCode also receives it with
+`workers`. Runtime shell access is not a guarantee of side-effect-free diagnosis.
+
+## Update or uninstall
+
+Pull the kit's updates, then rerun the installer for the clients and features
+you use. Copy installations need an explicit refresh. Symlinks expose source
+changes immediately but do not install newly added files. Start fresh sessions
+to load newly installed instructions and skills.
+
+```bash
+./uninstall.sh --dry-run
+./uninstall.sh --yes
+```
+
+The uninstaller uses its ownership manifest and preserves foreign or modified
+files. For supervision, it disables owned cron entries before removing helpers;
+task history, memory and the dependency environment remain available.
+[Removal details](docs/supervision.md#stop-and-remove).
+
+## Further reading
+
+- [Documentation index](docs/README.md) — durable contracts and current context.
+- [Runtime support](docs/harness-runtime-support.md) — measured client behavior.
+- [Scope guard](docs/scope-guard.md) and [verification warnings](docs/verification-warnings.md) — optional protections and their limits.
+- [Re-read behavior](docs/reread-guard.md) and [automatic-av retirement](docs/runtime-completion.md).
+- [Repository layout and operating rules](AGENTS.md) — the project-owned index.
+- [Changelog](CHANGELOG.md) — releases and verification boundaries.
 
 ## License
 

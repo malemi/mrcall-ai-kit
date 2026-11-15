@@ -5,32 +5,107 @@ Use the installed kit root, not a guessed repository skill path:
 ```sh
 kit_root="${MRCALL_KIT_HOME:-$HOME/.config/mrcall-ai-kit}"
 python3 "$kit_root/supervision/runtime.py" setup
-python3 "$kit_root/supervision/runtime.py" run status
+python3 "$kit_root/supervision/runtime.py" run --state-dir /absolute/new/state-root status
 ```
 
 `setup` prepares the owned Python dependency environment; `run` executes the
-CLI there. State defaults to `${XDG_STATE_HOME:-$HOME/.local/state}/mrcall-ai-kit/supervision`.
-Pass `--state-dir ABSOLUTE_PATH` after `run` for isolated state. Operations with
-JSON input read stdin; use a file or quoted heredoc, not shell-interpolated text.
-All commands return JSON. A nonzero exit is failure; a successful delivery or
-inspection does not certify the underlying task.
+CLI there. Pass `--state-dir ABSOLUTE_PATH` after `run`. Use one new state root
+per supervision. Operations with JSON input read stdin; use a file or quoted
+heredoc, not shell-interpolated text. All commands return JSON. A nonzero exit
+is a refusal or a failure, and its `error` names what is missing.
 
-## Activation and task creation
+A state root created by an earlier version keeps its schema. On it the reading
+commands, `pause`, `cancel`, `complete`, `fail`, `detach`, `deactivate` and the
+memory commands work; `activate`, `task-create`, `task-update` and `resume` are
+refused and name the remedy, a new state root.
+
+Every message this CLI sends is recorded first in the account ledger,
+`${XDG_STATE_HOME:-$HOME/.local/state}/mrcall-ai-kit/ledger/ledger.sqlite3`. A state
+root records the ledger path when it is created. `ledger-backfill` adds the
+messages earlier state roots and the goal controller sent, so they classify as
+kit messages.
+
+## Activation
 
 `activate` takes `{ "id": "team", "session_id": "EXACT_SUPERVISOR_UUID",
-"target_ids": ["EXACT_TARGET_UUID"], "runtime": "codex" }` on stdin. Use `"runtime": "claude"` for a Claude binding.
-Runtime is part of immutable binding identity; every target in a binding belongs
-to that runtime. Different bindings can coexist in one state root.
-Use `--dry-run` to inspect the owned cron entry without enabling it. Native
-identity and direct-input capability are checked. Activation twice is idempotent.
-For Codex bindings, the installed native application must be running; activation does not
-start or restart it.
+"target_ids": ["EXACT_TARGET_UUID"], "runtime": "codex" }` on stdin. Use
+`"runtime": "claude"` for a Claude binding. Runtime is part of immutable binding
+identity; every target in a binding belongs to that runtime. Use `--dry-run` to
+inspect the owned cron entry without enabling it. Native identity and
+direct-input capability are checked. Activation twice is idempotent. For Codex
+bindings the native application must be running; activation does not start it.
 The supervisor's own tool environment must permit access to Codex's local
-control socket and the state directory. A workspace sandbox may refuse the
-socket even when an external cron process can reach it. Report that concrete
-prerequisite; never change a session's sandbox or approval policy automatically.
+control socket and the state directory; report that prerequisite, never change
+a session's sandbox or approval policy.
+
+`registry-scan` takes `{ "supervisor_id": "team" }`, optionally
+`"operator_session_id"` for a root session outside the binding and
+`"history_turns": N` to read further back. It reads the sessions with no model
+call and returns the registry: every operator message, each with a reference
+`op-…`, its session, time and text. `registry` lists it again. A message the
+ledger holds, or one that opens with a kit envelope, is a kit message. A message
+older than the ledger is of unknown origin. Neither can be cited.
+
+`task-create` input:
+
+```json
+{
+  "id": "delivery",
+  "supervisor_id": "team",
+  "mode": "completion",
+  "operator_session_id": "EXACT_SESSION_UUID",
+  "target_ids": ["EXACT_TARGET_UUID"],
+  "instruction": "The result owed, in one or two sentences",
+  "scope": "What the work covers",
+  "acceptance": [{"text": "The actual user path passes", "owner": "EXACT_TARGET_UUID"}],
+  "interval_seconds": 600,
+  "limits": {
+    "spend": {"unit": "tokens", "target": 20000000, "ceiling": 30000000, "cites": ["op-…"]},
+    "deadline_at": {"value": "2026-11-20T18:00:00+00:00", "cites": ["op-…"]},
+    "max_checks": {"value": 40, "cites": ["op-…"]}
+  },
+  "statements": ["op-…"]
+}
+```
+
+- `mode` is `completion` or `observation`. An observation task is read and
+  reported; `intervene` refuses it.
+- `operator_session_id` is required: the supervisor, a target, or another root
+  session of the same runtime. A park's question is delivered there.
+- `acceptance` items get the identifiers `A1`, `A2`, … in the result. In a
+  completion task each names its owner among the targets.
+- `limits.spend` is required for a completion task. Its unit is `tokens`,
+  `allowance_percent` (share of the account's allowance window) or `currency`;
+  a currency limit also needs `"prices": {"input", "cached_input", "output"}`
+  per million tokens, from the operator. `deadline_at` and `max_checks` are
+  optional; `max_checks` counts assessments that ended. Every operator limit has `cites`: registry references, or
+  `config:<key>` for an entry the operator wrote in `supervision.json` in the
+  kit root (`default_spend_limit`, `prices`). An estimate or a time slot an
+  agent wrote is not a limit and is refused here.
+- `statements` are registry references quoted verbatim in every message.
+- `ask_first` changes the fixed ask-first list: `{"add": [{"item", "cites"}],
+  "remove": [{"item", "cites"}]}`.
+- Technical parameters in `limits`, each with a default: `heartbeat_seconds`
+  1800, `delivery_latest_seconds` 1800, `step_bound` 5, `review_timeout_seconds`
+  600, `assessment_timeout_seconds` 180, `transport_timeout_seconds` 10,
+  `recovery_attempts` 1. `interval_seconds` is the minimum spacing between
+  assessments; `null` with `next_run_at` allows one assessment only.
+
+`task-create --dry-run` validates the same input, creates nothing, and returns
+the `authority` text exactly as every message will carry it. Show it to the
+operator before creating the task. Creation reads each session once: the token
+counters then are the spend baseline, and creation is refused when the
+supervisor's or a target's counter cannot be read. A target can belong to one
+active completion task at a time across all state roots.
+
+Development tasks add `harness: {"repo": "/absolute/worktree", "git_dir":
+"/exact/git/directory", "task_id": "existing-completion-id"}`.
 
 ### Claude prerequisite and evidence
+
+With a Claude binding only observation tasks can be created: the Claude adapter
+does not yet read sessions for the controller, so a completion task's spend
+baseline is unreadable and its creation is refused.
 
 Claude support is currently Linux, Claude Code 2.1.296, native peerProtocol 1.
 Use `claude agents --json` for exact live root IDs. Both supervisor and targets
@@ -46,95 +121,229 @@ message proves delivery. Held/refused input can require operator action in that
 session; never change permissions or resend to bypass it. When new evidence is
 available, explicit reconciliation can revisit an earlier uncertain observation.
 
-`task-create` input:
+## Clock
 
-```json
-{
-  "id": "delivery",
-  "supervisor_id": "team",
-  "instruction": "Check progress and redirect feasible work to verified delivery",
-  "target_ids": ["EXACT_TARGET_UUID"],
-  "scope": "Operator-authorized task and intervention boundaries",
-  "acceptance": ["The actual user path passes; unresolved failures are explained"],
-  "interval_seconds": 600,
-  "limits": {"provenance": "Operator message reference; defaults are supervisor choices"}
-}
-```
-
-For a one-shot assessment use `interval_seconds: null` and an explicit
-`next_run_at` (epoch or ISO timestamp with timezone). `schedule_mode: "utc-aligned"`
-aligns subsequent periodic runs to UTC interval boundaries. Omitted or null
-`limits.max_checks` means no count cap. An explicit positive integer caps lifetime
-executions; existing stored integers remain in force. To remove a cap, use
-`task-update` with null and the complete limits object, preserving other bounds
-and provenance; resume separately if blocked or paused. Other defaults are
-a 180-second assessment health checkpoint, 10 seconds per transport call and one
-definitely-undelivered recovery after 60 seconds. Overrides retain their source
-in `limits.parameter_provenance`. Changing a limit requires actual authority or
-an explicit reassessment of a supervisor-owned estimate. The legacy field
-`assessment_timeout_seconds` sets that checkpoint, not a worker deadline. Expiry
-flags health without revoking reads, interventions or result submission; the task
-stays active and no duplicate assessment is sent. A transport timeout means an
-incomplete observation or uncertain delivery; reconcile before retrying. Only
-explicit operator limits authorize a count/time stop, retaining unfinished work.
-
-Development tasks add `harness: {"repo": "/absolute/worktree", "git_dir":
-"/exact/git/directory", "task_id": "existing-completion-id"}`. Keep brief and plan
-references in scoped memory; the repository remains their source of truth.
+Cron runs `tick` every minute. A tick reads the sessions with no model call and
+dispatches an assessment only when what it read calls for judgment: the task
+was activated or updated; a target's turn ended; a target began waiting or
+became unreachable; an operator message or a message of unknown origin
+appeared; a declared step passed its estimate; spend crossed half or the whole
+of its target, or stopped being readable; a wait was met or expired; a delivery
+stayed unresolved; a park was rejected; an assessment was abandoned; or the
+heartbeat period passed with nothing pending. A trigger inside the minimum
+spacing waits. Nothing is dispatched while nothing changed.
 
 ## Assessment
 
-- `execution-read --id UUID`: read-only task, binding and current scoped memory.
-- `execution-reconcile --id UUID`: recheck uncertain delivery using the same
-  event and current binding generation; never sends. A Claude supervisor awakened
-  before confirmation runs this before protected reads/results. If still uncertain,
-  preserve the diagnostic and wait for actual delivery evidence.
-- `intervention-reconcile --id EVENT_UUID`: explicitly revisit an uncertain
-  intervention after new evidence, without another send. Both reconciliation
-  commands reject paused, detached or stale authority; old audit observations stay.
+- `execution-read --id UUID`: the task, binding and scoped memory, and for the
+  assessment its `triggers`, its `closing_set`, the `measured` state and the
+  `registry`.
+- `execution-reconcile --id UUID`: recheck an uncertain wake using the same
+  event; never sends.
 - `session-read` input: `execution_id`, `generation`, `session_id`, optional
   `cursor` and `sort_direction` (`desc` initially). Read-only descendant access
-  requires a native parent chain to a task target. A `reverse_cursor` is used
-  with the opposite direction and includes its anchor's updates. At the start of a check, read the newest descending page and retain its
-  reverse cursor as a candidate anchor. Then read the ascending delta from the
-  previous persisted anchor, following every `next_cursor`. Persist the new
-  candidate only after its observations and the full delta have been assessed.
-  This includes active-turn updates and avoids skipping arrivals during the
-  check. Do not use an old ascending page's reverse cursor as a newest anchor.
-  For Claude, root reads also include public worker histories rooted beneath that
-  session. Workers are evidence, not direct intervention targets. Follow the returned
-  cursor contract; a changed/truncated prefix or incomplete record is a failed read,
-  not an empty delta. Workers may be returned in full on subsequent root reads.
-- `harness-inspect --id TASK`: existing harness evidence and freshness, without
-  initializing a record. Startup knowledge is not inferred from an old receipt.
+  requires a native parent chain to a task target. Follow the returned cursor
+  contract; a changed or truncated prefix is a failed read, not an empty delta.
+- `harness-inspect --id TASK`: existing harness evidence and freshness.
 - `intervene` input: `execution_id`, `generation`, target `session_id`, unique
-  UUID `event_id`, `instruction`, `reason`. Repeating the same ID reconciles the
-  same message. It never grants permission to resend an ambiguous action.
-- `intervention-status --id EVENT_UUID`: retained delivery receipt, including
-  after detach. A receipt is not acknowledgement of compliance.
-- `execution-result` input: `id` (execution UUID), `generation`, `outcome`
-  (`completed`, `failed`, `blocked`), `summary`, `evidence` and `remaining` lists.
-  Include observation cursors and assessment details in scoped memory.
+  UUID `event_id`, `instruction`, `reason`. Python reads the target first and
+  refuses when its native queue holds any message or cannot be read, when the
+  target is waiting or unreachable, and when the target is working and the
+  assessment was raised by the heartbeat alone. The message is rendered in
+  labeled parts, the token reminder among them; your instruction is the last
+  part, labeled as not the operator's. Do not repeat the reminder in it. Repeating the same ID reconciles the same message and never
+  resends.
+- `intervention-status --id EVENT_UUID`: the receipt. `queued` until Python
+  finds the message in the target's history, then `consumed` with the turn;
+  `unresolved` when it is in neither queue nor history at its latest time, or
+  still queued on a target that is not working. A receipt is not compliance.
+- `intervention-reconcile --id EVENT_UUID`: revisit an uncertain intervention
+  without another send.
+- `notice` input: `task_id`, `session_id`, `text`, optional `event_id`. One
+  rendered notice per task and session, to a session of the binding or to the
+  task's operator session; a second one is refused, and so is a notice to a
+  target of an observation task. Use it for the end notice; no other channel
+  reaches a session.
+- `observe --id TASK`: read the task's sessions now and return its status.
+
+`execution-result` input for a completion task:
+
+```json
+{
+  "id": "EXECUTION_UUID", "generation": 1, "outcome": "completed",
+  "summary": "What was assessed and decided", "evidence": ["reference"], "remaining": ["obligation"],
+  "items": [{"id": "A1", "status": "open"}, {"id": "A2", "status": "closed", "evidence": ["reference"]}],
+  "steps": [{"session_id": "TARGET_UUID", "description": "The step the lead is on",
+             "artifact": "/absolute/file/that/will/show/it/done", "estimate_seconds": 900}],
+  "steps_closed": ["S1"],
+  "closing": [{"session_id": "TARGET_UUID", "kind": "intervention", "event_id": "EVENT_UUID"}]
+}
+```
+
+- `items` marks every acceptance item. A closed item needs evidence.
+- `steps` names, for each target that owns an open item, the step it is on. A
+  new step is numbered `S1`, `S2`, …; name a step that continues by its `id`.
+  `steps_closed` closes a step only when an earlier assessment declared it and
+  its artifact was modified after the declaration; the result says which steps
+  stayed open and why.
+- `closing` has one entry for each target of the closing set: an
+  `intervention` naming an event sent in this assessment, or a wait:
+  `{"session_id", "kind": "wait", "condition": {"kind": "time", "at": TIME} |
+  {"kind": "file", "path": "/absolute"} | {"kind": "process", "pid": N},
+  "latest_at": TIME}`. A waiting or unreachable target accepts only a wait.
+- Outcome `blocked` is a park and needs `"park": {"reason", "questions":
+  [{"matter", "options": ["…", "…"], "recommendation"}], "completed", "cites"}`.
+  The reasons are `ask-first` (with `"item"`, the ask-first entry),
+  `operator-restriction` (with registry citations), `operator-input`,
+  `limit-reached`, `closure-bounds` and `delivery-unresolved`; Python checks the
+  last three against its records. The task is `blocked` when the result is
+  recorded.
+- After two results in a row that close nothing while no item-owning target was
+  working, only a park or a conclusion is accepted; a wait is refused then. A result that leaves every
+  item closed is refused: conclude with `task-state complete`.
+
+An observation task takes `id`, `generation`, `outcome`, `summary`, `evidence`
+and `remaining`; its outcome `blocked` also needs a `park`.
+
+## Park and question
+
+A park for `ask-first`, `operator-restriction`, `operator-input` or
+`closure-bounds` is read a second time, in a fresh context that Python launches
+and that holds none of your history, before it takes effect. If that reading
+rejects it, the next assessment carries `park-rejected` with the action it
+named, and that one intervention is accepted whatever the counts. A second
+rejection parks the task with both positions. When a park takes effect, Python
+delivers the questions once to the operator session and the task dispatches
+nothing. An operator message in an observed session makes it active again for
+one assessment that receives it. No command records a verdict or answers a
+question for the operator.
 
 ## Memory and lifecycle
 
 `memory-add` takes `supervisor_id`, optional `task_id`, `kind`, `content`,
 `source` and `evidence`. Kinds: fact, hypothesis, decision, correction,
-authorization, failure, intervention, next-action. `memory-supersede` adds
-`supersedes` with the previous item ID in the same scope. `memory-query` takes
-the same scope, with optional `include_history: true`; current views exclude
-superseded items. Persist cursor metadata as a concise JSON object in `content`
-with its session ID, cursor, direction and observation time.
+authorization, failure, intervention, next-action. A `decision` takes `what`,
+`why` and `undo` instead of `content`. `memory-supersede` adds `supersedes` with
+the previous item ID in the same scope. `memory-query` takes the same scope,
+with optional `include_history: true`.
 
-`status` shows tasks, executions and health; `status --id TASK` shows its current
-revision. `task-update` takes `id`, `revision`, `changes`; changes invalidate old
-assessments. `task-state` takes `id`, `revision`, `action`, `reason`:
+`status` shows tasks, executions and health. `status --id TASK` adds
+`measured`: items, steps, both counts, each session's state, running turn, last
+turn and queue, deliveries, spend against the limit, parks with their questions
+and both positions, pending triggers and waits, reviews, interrupted or
+continuing turns, and the recorded decisions. It is read from the state root
+alone.
 
-- `pause`, `resume`, `cancel` update supervision lifecycle.
-- `complete` requires nonempty `evidence` and empty `remaining`.
-- `fail` or `block` requires `remaining`; `block` also requires `resume_condition`.
+`task-update` takes `id`, `revision`, `changes`; changes invalidate old
+assessments. A changed limit needs citations like a new one. `task-state` takes
+`id`, `revision`, `action`, `reason`:
+
+- `pause`, `resume`, `cancel` update supervision lifecycle. A parked task
+  resumes when the operator writes in an observed session; `resume` on it is
+  accepted only with `cites` naming an operator message newer than the park.
+  Pausing a parked task keeps the park.
+- `complete` requires nonempty `evidence`, empty `remaining` and, for a
+  completion task, every item closed; pass `items` to close them.
+- `fail` requires `remaining`. `block` requires `remaining` and a `park`.
 
 `detach` takes binding `id` and `reason`, fencing its work without cancelling
 operational sessions. `deactivate` detaches all bindings in this state root and
 removes only its owned cron entry. Task and memory history remain. Reattaching
 the same binding leaves tasks paused until explicitly resumed.
+
+## Protected goal control
+
+This separate API is available only after explicit administrative setup described
+in the repository's `docs/supervision.md`, “Persistent goals”. It does not use
+`runtime.py`, cron, supervision tasks or assessment execution IDs. Request size is
+64 KiB. Client response limit is 4 MiB; keep reports concise and retain large
+artifacts by reference. Responses contain `ok` and either `result` or `error`.
+In default local mode the existing account can issue all control operations.
+Operator instructions reserve administrative operations; peer credentials do not
+distinguish a human from an agent in that account. Optional protected mode permits
+only root to administer goals and its agent UID to inspect/report/request a check.
+
+```sh
+goal_root="$HOME/.local/state/mrcall-ai-kit/goals"
+python3 "$goal_root/code/goal_client.py" --socket "$goal_root/control.sock" request \
+  '{"op":"inspect","id":"delivery"}'
+python3 "$goal_root/code/goal_client.py" --socket "$goal_root/control.sock" request \
+  '{"op":"report","id":"delivery","generation":1,"report":{"remaining":"Implement reviewed correction","evidence":["/absolute/trace.json"]}}'
+python3 "$goal_root/code/goal_client.py" --socket "$goal_root/control.sock" request \
+  '{"op":"check_request","id":"delivery","generation":1}'
+```
+
+Read the current generation from inspect; never reuse the illustrative `1` after
+operator control changes. An `AI_KIT_GOAL_EVENT` contains `goal_id`, `generation`,
+`role`, `socket` and `client`. Inspect restores the goal, reports, last receipt,
+last observation and outbox. A stale or non-open event grants no new work.
+
+Consumed lead delivery observations include public activity classification when
+available. After failed acceptance, a `no_work` observation causes a corrective
+lead prompt through the same outbox; its pending delivery must be reconciled
+before another contact. `unknown` does not establish inactivity. Neither a
+report nor an execution signal establishes acceptance or new operator authority.
+
+Create request structure (replace paths, UUIDs and hash with reviewed real inputs):
+
+```json
+{
+  "op": "create",
+  "goal": {
+    "id": "delivery", "intent": "Deliver the approved behavior",
+    "scope": "Exact authorized work, release and spending boundaries",
+    "target": {"runtime": "codex", "lead_id": "EXACT_LEAD_UUID", "supervisor_id": "EXACT_SUPERVISOR_UUID"},
+    "acceptance": {
+      "version": 1, "candidate_root": "/absolute/candidate-inputs",
+      "candidate_argv": ["/usr/bin/python3", "-I", "{candidate}/main.py"],
+      "checker_root": "/absolute/reviewed-checker",
+      "checker_manifest": {"check.py": "SHA256_OF_CHECK_PY"},
+      "checker_argv": ["/usr/bin/python3", "-I", "{checker}/check.py", "{result}", "{candidate}"],
+      "timeout_seconds": 120
+    },
+    "limits": {"process_timeout_seconds": 120, "max_wakeups": 20}
+  }
+}
+```
+
+Save the request as a JSON file, then from an operator-authorized shell (local mode needs no sudo):
+
+```sh
+/usr/bin/python3 -I "$goal_root/code/goal_client.py" \
+  --socket "$goal_root/control.sock" request "$(cat /absolute/goal-request.json)"
+/usr/bin/python3 -I "$goal_root/code/goal_client.py" \
+  --socket "$goal_root/control.sock" request '{"op":"stop","id":"delivery","generation":1}'
+/usr/bin/python3 -I "$goal_root/code/goal_client.py" \
+  --socket "$goal_root/control.sock" request '{"op":"resume","id":"delivery","generation":2}'
+```
+
+The JSON file is data, never shell code. `create` requires distinct canonical
+native root UUIDs; sessions cannot belong to two open goals. Checker manifest
+covers the entire bundle. Trees accept regular files/directories only, with
+10,000 files, 64 MiB per file and 256 MiB total bounds; select the actual required
+inputs instead of an unbounded checkout. Candidate/checker executables are pinned.
+Optional acceptance `env` adds operator-bound candidate environment values to
+minimal PATH/HOME/locale defaults; local overrides apply to same-account children. Protected mode applies them
+after dropping privileges, never to its root launcher. The verifier receives the minimal defaults. `{candidate}`, `{checker}`, `{result}`
+and `{scratch}` expand to retained immutable input/output or writable scratch paths.
+The checker reads captured candidate-result JSON (`stdout`, `stderr`, `exit_code`,
+`termination`) and emits only `{"passed": true}` or `{"passed": false}`.
+It judges data; do not execute candidate modules as the verifier.
+
+Operator `set_limits` takes `id`, current `generation` and the complete `limits`
+object; it fences in-flight work but does not automatically resume stopped goals.
+Supported optional limits are nonnegative `max_wakeups` and timezone-aware ISO
+`deadline_at`; omit them for no such cap. `process_timeout_seconds` is required
+(positive, at most 3600). Reservations include both session roles and survive
+stop/resume. Monetary/subscription budgets are unsupported, not inferred from scope.
+Operator `{"op":"tick"}` advances immediately; normally the service clock handles
+this. For a long manual tick use client `--timeout` (up to 7200 seconds). A client
+timeout is an uncertain response, not proof the operation was cancelled; inspect
+before repeating control. The actual process limit is separate from client timeout.
+
+The receipt names `id`, `attempt_id`, generation, acceptance and
+candidate/checker identities and captured results. Controller evidence lives under
+`evidence/<receipt-id>.json`; retained inputs/output are under `runs/<receipt-id>`.
+Agent progress is not a receipt. No API lets an agent force completion or replace
+the checker. The reviewed checker remains essential; local mode does not enforce a privilege
+boundary against agents in the same account.
