@@ -17,6 +17,9 @@ except ImportError:
 
 
 OPEN = ('pending', 'sending', 'delivered', 'uncertain', 'unhealthy', 'not-delivered')
+STOP = ('The spend ceiling the operator set for this task is reached. Stop the work in progress now. Start no new work and '
+        'launch no agents. Supervision of this task is parked and the operator has been asked how to proceed: wait for the '
+        'operator.')
 WAKE = ('Assess this supervision event now. Read it with execution-read: it holds the triggers below, the closing set and what '
         'Python measured. Close the assessment with execution-result as COMMANDS.md describes; a result the records do not '
         'support is refused and names what is missing.')
@@ -152,21 +155,48 @@ class Scheduler:
 
     def _interrupt(self, task):
         """A spend ceiling stops the targets' running turns where the runtime can; status says when a turn continues."""
+        if task['mode'] != 'completion':
+            # An observation task reads and reports: its targets receive nothing, a stop included.
+            return
         binding = self.store.binding(task['supervisor_id'])
         for target in task['target_ids']:
             turn = (self.store.session(target) or {}).get('running_turn')
-            if not turn:
-                continue
+            turn_id = turn['id'] if turn else None
+            sent, failure = None, None
             try:
-                self._bound(binding, task).interrupt(target, turn['id'])
-                outcome = {'status': 'interrupted'}
+                transport = self._bound(binding, task)
+                if getattr(transport, 'interrupt_is_message', False):
+                    # Where the stop travels as a message, it is rendered and recorded like every kit message before it is sent.
+                    # A target at rest receives it too: its own background work would otherwise start its next turn unaware.
+                    event = str(uuid.uuid4())
+                    body = authority.render(task, 'THE SUPERVISION CONTROLLER', STOP, self.store.registry_message, self.store.spend(task),
+                                            'AI_KIT_SUPERVISION_MESSAGE ' + json.dumps({'event_id': event, 'task_id': task['id']}))
+                    self.store.ledger().record(event, target, 'interrupt', str(self.store.root), task['id'])
+                    sent = (event, body)
+                    transport.interrupt(target, turn_id, event, body)
+                    # Nothing acknowledges the message: the next observation shows whether the turn stopped.
+                    outcome = {'status': 'requested', 'event_id': event}
+                elif turn:
+                    transport.interrupt(target, turn_id)
+                    outcome = {'status': 'interrupted'}
+                else:
+                    continue
             except AttributeError:
+                if not turn:
+                    continue
                 outcome = {'status': 'continues', 'reason': 'this runtime adapter cannot interrupt a turn'}
             except Exception as error:
+                if not turn and sent is None:
+                    continue
+                failure = error
                 outcome = {'status': 'continues', 'reason': str(error)}
             with self.store.transaction():
-                observe.log(self.store, target, 'interrupt', {'task_id': task['id'], 'turn_id': turn['id'], **outcome}, self.now)
-                self.store.audit('turn-interrupt', target, {'task_id': task['id'], 'turn_id': turn['id'], **outcome}, 'scheduler')
+                if sent:
+                    state = 'uncertain' if failure is None or getattr(failure, 'uncertain', True) else 'not-delivered'
+                    self.store.delivery_add(sent[0], target, 'interrupt', task['id'], None, sent[1], state,
+                                            task['limits']['delivery_latest_seconds'], None, self.now)
+                observe.log(self.store, target, 'interrupt', {'task_id': task['id'], 'turn_id': turn_id, **outcome}, self.now)
+                self.store.audit('turn-interrupt', target, {'task_id': task['id'], 'turn_id': turn_id, **outcome}, 'scheduler')
 
     def _abandon(self):
         """An assessment the supervisor never closes is closed by Python; two in a row, or a lost wake, park the task."""

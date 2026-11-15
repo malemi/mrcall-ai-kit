@@ -434,6 +434,15 @@ class Store:
             if row[0] not in kept:
                 self.conn.execute("UPDATE items SET status='dropped' WHERE task_id=? AND id=?", (task_id, row[0]))
 
+    def _measurable(self, payload, binding):
+        """A spend limit as a share of the allowance window needs a session that reports its window."""
+        limit = payload['limits'].get('spend')
+        if payload['mode'] != 'completion' or not limit or limit['unit'] != 'allowance_percent':
+            return
+        if not any((self.session(session) or {}).get('allowance') for session in [binding['session_id'], *payload['target_ids']]):
+            raise StoreError('no session of this task reports an allowance window, so a spend limit in allowance_percent could not '
+                             'be measured: refused; give the spend limit in tokens')
+
     def preview_task(self, data):
         """Validate a task without creating it: what Python would record, for the display before activation."""
         self.current()
@@ -462,6 +471,7 @@ class Store:
                 if unread:
                     raise StoreError('the token counter of ' + ', '.join(unread) + ' could not be read, so the spend limit could not be '
                                      'measured: creation refused; run registry-scan, check each session is readable, and retry')
+                self._measurable(payload, binding)
             self.conn.execute('INSERT INTO tasks VALUES(?,?,?,?,?,?,?,?,?,?)',
                               (task_id, binding_id, 'active', 1, 1, due, interval, json.dumps(payload), now, now))
             self._sync_items(task_id, payload['acceptance'])
@@ -506,6 +516,7 @@ class Store:
                 raise StoreError('binding is detached')
             payload = json.loads(self.conn.execute('SELECT payload FROM tasks WHERE id=?', (task_id,)).fetchone()[0])
             payload.update(self._task_payload(merged, binding, task_id))
+            self._measurable(payload, binding)
             interval = merged['interval_seconds']
             if interval is not None:
                 number(interval, 'interval_seconds')
@@ -1146,7 +1157,7 @@ class Store:
                       for row in self.conn.execute("SELECT * FROM observations WHERE kind='interrupt' ORDER BY sequence")]
         interrupts = [entry for entry in interrupts if entry.get('task_id') == task_id]
         # A limit stops admission; where the runtime could not interrupt a running turn, that turn continues and status says so.
-        continuing = [entry for entry in interrupts if entry['status'] == 'continues'
+        continuing = [entry for entry in interrupts if entry['status'] in ('continues', 'requested') and entry.get('turn_id') is not None
                       and ((sessions.get(entry['session_id']) or {}).get('running_turn') or {}).get('id') == entry['turn_id']]
         return {
             'items': items,

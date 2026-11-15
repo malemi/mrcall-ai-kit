@@ -36,7 +36,9 @@ and the state directory. The kit diagnoses failure; it does not alter sandbox or
 approval policy, start the daemon or restart sessions.
 
 An operator-written `supervision.json` in the kit root can hold
-`default_spend_limit` and `prices`. No command writes it.
+`default_spend_limit` and `prices`. No command writes it. A completion task
+created without a spend limit takes the default and cites it as
+`config:default_spend_limit`.
 
 ## What Python enforces
 
@@ -113,9 +115,11 @@ assessment.
 task was created, summed over the supervisor, the targets and their workers, in
 tokens, as a share of the allowance window, or in currency with the operator's
 prices. When a counter cannot be read, spend is reported unknown and what was
-read is its lower bound. A deadline, a count or a spend ceiling reached parks the task from the
-tick. At a spend ceiling Python also interrupts each target's running turn and
-`status` reports a turn that continues. Workers are not interrupted. A
+read is its lower bound. A deadline, a count or a spend ceiling reached parks
+the task from the tick. At a spend ceiling of a completion task Python also
+interrupts each target's running turn and `status` reports a turn that
+continues. Workers are not interrupted, and the targets of an observation task
+receive nothing. A
 convergence review, launched like the challenge, runs when a step passes twice
 its estimate, when spend or time since the last item closure reaches half the
 target or the time allowed, when spend reaches the target, and at the step
@@ -158,12 +162,52 @@ reconciled against queue and history and never resent. Codex responses have a
 
 ## Claude Code adapter
 
-Install with `--environment claude --features supervision`. Linux Claude Code
-2.1.296 with native peerProtocol 1 is the gated adapter surface; another version
-is refused. The adapter does not yet read sessions for the controller, so with a
-Claude binding only observation tasks can be created. Its socket submission has
-no native acknowledgement and stays uncertain until recipient history
-establishes delivery.
+Install with `--environment claude --features supervision`. A Claude binding
+runs observation and completion tasks on Linux. The adapter requires the
+client's peer protocol 1 and refuses another number. It is measured on Claude
+Code 2.1.296 for sends and 2.1.323 for everything below; a session of another
+version is accepted and `metadata` reports it as not measured. The adapter
+reads native state and never writes it.
+
+**What it reads.** The live state comes from the session registry, `claude
+agents --json` checked against the session's own record: `busy` is working,
+`waiting` is waiting with the reason the client names, `idle` is idle, and
+`shell`, an idle session whose background command still runs, is idle with the
+flag `backgroundShell`. A session that is not listed is unreachable. Queue,
+turns, messages and the cumulative token counter come from the session's history
+file, read from where the last read ended. The queue holds what a new message
+would wait behind: text a human typed and messages of other sessions not read
+yet. The session's own task notifications and subagent reports, which the client
+can hold while the session rests, are not counted. A model message counts once
+however many records repeat it. Workers are the session's subagent files. Only a
+message a human typed is an operator candidate. Claude Code reports no allowance
+window, so a spend limit in `allowance_percent` is refused.
+
+**How a message travels.** A message is one frame on the session's inbox
+socket, opened with the inbox key the session published. Nothing acknowledges
+it: the receipt stays uncertain until the recipient's history holds the message.
+A session at rest reads it at once as a new turn. A working session keeps it in
+its native queue and reads it inside the running turn at the next tool boundary.
+
+**The stop at a spend ceiling.** Claude Code has no call that stops a turn. The
+stop is a message with priority `now`, recorded in the ledger as `interrupt`
+and rendered like every kit message. It ends the running turn at its next tool
+boundary and starts a turn that reads the stop; a tool call in flight runs to
+its end first. A lead at rest receives the stop too, so that its own background
+work does not start its next turn unaware. `status` shows the stop as
+`requested` and lists the turn as continuing while it is still the running one.
+
+**What the client decides.** A session in a prompting permission mode, `auto`
+included, accepts a peer message. A session in bypass-permissions mode holds it
+for its user's approval, outside the queue the adapter reads, unless that
+user's Claude settings accept inbound cross-session messages. The adapter
+asserts no mode and changes no setting. A supervisor session needs a prompting
+mode in which the kit CLI runs without a permission prompt.
+
+**The fresh-context review.** The run is `claude -p --output-format json
+--json-schema … --restricted --no-session-persistence` in the review directory:
+no command tools, file tools confined to that directory, no account settings or
+hooks, and the verdict returned as structured output.
 
 ## Harness
 
@@ -214,12 +258,26 @@ equal to the sum computed from the rollouts alone, and a 30,000,000-token
 ceiling parks the task at 14:09:45 UTC with one interrupt call. For the 2026-10-30
 goal, with 996 recorded wakes, the third assessment without closure is refused.
 
-Unverified: `turn/interrupt` on a live turn; a send to a `notLoaded` thread; the
-fresh-context run launched by cron through `codex exec`; whether a receiving
-session presents a question and waits; every judgment listed under "What a model
-judges". The bounded native trial that measures them needs live sessions and
-model calls and has not run. The Claude adapter's earlier transport evidence
-covers Claude Code 2.1.296 only.
+Claude Code 2.1.323 on Linux: two suites drive the adapter and the real CLI
+against a fake registry, sockets and histories shaped as that version writes
+them. They cover the state mapping, the queue with held notifications, turns
+ended by the history and by the registry, the counter, workers, the inbox key,
+the stop for a running and for a resting lead, an observation task at its
+ceiling, and a completion task from wake to ceiling. Replayed record by record,
+the histories of three working sessions show a queued message for 243, 77 and
+214 seconds in all, one at a time, and none left at the end. On a disposable
+live session a message sent at rest started a turn and was found in the history
+with its event id; a message sent during a running command stayed queued for 21
+seconds and was read inside the turn when the command ended; a stop sent 12
+seconds into a 25-second command ended the turn 14 seconds after the send, when
+the command ended, and the next turn read it. One fresh-context review run
+returned a valid verdict in 10 seconds and 36,621 tokens.
+
+Unverified: `turn/interrupt` on a live Codex turn; a send to a `notLoaded`
+thread; a fresh-context run launched by cron, through `codex exec` or `claude
+-p`; a Claude session that holds a kit message in bypass-permissions mode;
+whether a receiving session presents a question and waits; every judgment listed
+under "What a model judges".
 
 ## Persistent goals
 

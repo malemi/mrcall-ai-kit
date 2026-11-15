@@ -1,6 +1,6 @@
 ---
 name: supervisor
-description: Observe explicitly connected Claude Code sessions with persistent ai-kit supervision, or assess AI_KIT_SUPERVISOR_EVENT. With a Claude binding only observation tasks exist; completion supervision needs Codex. Not for ordinary answers or unrelated coding work.
+description: Supervise explicitly connected Claude Code sessions with persistent ai-kit supervision, or assess AI_KIT_SUPERVISOR_EVENT. Not for ordinary answers or unrelated coding work.
 ---
 
 # Persistent supervisor
@@ -48,9 +48,10 @@ FINISH: verified acceptance, concluded through the CLI.
 LOAD: `${MRCALL_KIT_HOME:-$HOME/.config/mrcall-ai-kit}/supervision/POLICY.md`, complete.
 OPERATIONS: also load `COMMANDS.md` from that directory.
 MISSING FILE: explicit diagnostic; no guessed path or instruction-only timer.
-ACTIVATE: with a Claude binding only an observation task can be created; when the operator
-asks for completion, say that it needs the Codex runtime. Before creating the task show the
-`task-create --dry-run` authority text exactly, the operator session and the identities.
+ACTIVATE: scan the registry; build the task from the operator's words; where the mandate
+states no spend limit and the kit configuration holds no default, ask the operator for one,
+in tokens. Before creating the task show the `task-create --dry-run` authority text exactly,
+the operator session and the identities.
 OPERATOR SESSION: where the operator gave the mandate, unless the operator names another.
 USE: installed CLI + persistent memory; recover existing target mandate.
 INTENT: short operator prompt suffices; apply these rules without repeated prompting.
@@ -58,4 +59,5 @@ EVENT: recorded authority only; no new targets, releases or spending.
 
 RUNTIME: bind with runtime="claude"; use exact IDs from `claude agents --json`.
 DELIVERY: if the execution is uncertain, use `execution-reconcile` before assessment.
-A held message grants no authority until recipient history confirms delivery.
+A send is uncertain until the recipient's history holds it; a working lead reads it at
+its next tool boundary. A held message grants no authority and is never resent.

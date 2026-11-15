@@ -40,10 +40,14 @@ class Cron:
                 raise StoreError('codex-path must be absolute')
             args += ['--codex-path', codex_path]
         if claude_path:
-            config = str(Path(claude_config_dir or os.environ.get('CLAUDE_CONFIG_DIR', Path(home) / '.claude')).absolute())
+            # The variable is passed on only when the account sets it: setting it, even to the default directory, makes the
+            # client look for its own configuration file inside that directory instead of in the home directory.
+            config = claude_config_dir or os.environ.get('CLAUDE_CONFIG_DIR')
+            config = str(Path(config).absolute()) if config else ''
             if not Path(claude_path).is_absolute() or any(c in claude_path + config for c in '\n\r'):
                 raise StoreError('Claude executable/config must be absolute paths without newlines')
-            args.insert(5, 'CLAUDE_CONFIG_DIR=' + config)
+            if config:
+                args.insert(5, 'CLAUDE_CONFIG_DIR=' + config)
             args += ['--claude-path', claude_path]
         args += ['tick']
         return '* * * * * ' + shlex.join(args).replace('%', '\\%') + ' >/dev/null 2>&1'

@@ -85,7 +85,9 @@ def command(runtime, directory, prompt, codex_path, claude_path):
     if runtime == 'codex':
         return [codex_path or 'codex', 'exec', '--ephemeral', '--skip-git-repo-check', '--sandbox', 'read-only', '--json',
                 '-C', str(directory), '--output-schema', str(directory / 'schema.json'), '-o', str(directory / 'verdict.json'), prompt]
-    return [claude_path or 'claude', '-p', prompt, '--output-format', 'json']
+    # Restricted mode has no command tools, reads only the review directory and ignores the account's settings and hooks.
+    return [claude_path or 'claude', '-p', prompt, '--output-format', 'json', '--json-schema', (directory / 'schema.json').read_text(),
+            '--restricted', '--no-session-persistence']
 
 
 def launch(store, review, task, binding, codex_path='codex', claude_path='claude', now=None):
@@ -156,11 +158,15 @@ def valid(kind, verdict):
 
 
 def read_verdict(kind, directory):
-    """The verdict the review process wrote, or None. A Claude run prints it inside its JSON result."""
+    """The verdict the review process wrote, or None. A Claude run prints it in its JSON result, as structured output or as text."""
     path = directory / 'verdict.json'
     try:
-        verdict = json.loads(path.read_text()) if path.exists() else json.loads(json.loads((directory / 'stdout.jsonl').read_text())['result'])
-    except (OSError, ValueError, KeyError, TypeError):
+        if path.exists():
+            verdict = json.loads(path.read_text())
+        else:
+            printed = json.loads((directory / 'stdout.jsonl').read_text())
+            verdict = printed['structured_output'] if isinstance(printed.get('structured_output'), dict) else json.loads(printed['result'])
+    except (OSError, ValueError, KeyError, TypeError, AttributeError):
         return None
     return verdict if valid(kind, verdict) else None
 
@@ -175,7 +181,8 @@ def tokens(directory):
             except (ValueError, AttributeError):
                 continue
             if isinstance(usage, dict):
-                found = sum(value for key, value in usage.items() if key in ('input_tokens', 'output_tokens') and isinstance(value, int))
+                found = sum(value for key, value in usage.items() if isinstance(value, int) and key in (
+                    'input_tokens', 'output_tokens', 'cache_creation_input_tokens', 'cache_read_input_tokens'))
     except OSError:
         return None
     return found

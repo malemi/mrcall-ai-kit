@@ -21,8 +21,17 @@ Release, after an optional first line naming the commit.
   session. The token reminder is a labeled part of every message to an entrusted
   session; the question for the operator carries none.
 - Supervision: state roots created by earlier versions stay readable and stoppable and
-  are not migrated; new supervision uses a new state root. With a Claude binding only
-  observation tasks can be created.
+  are not migrated; new supervision uses a new state root.
+- Supervision: Claude Code sessions are observed like Codex ones, so a Claude binding
+  runs completion tasks. The live state comes from the session registry; queue, turns,
+  messages and token counters come from the session's own history. The adapter is gated
+  on the client's peer protocol instead of one client version. At a spend ceiling a
+  Claude lead receives a stop message that ends its turn at the next tool boundary. A
+  spend limit as a share of the allowance window is refused where no session reports one.
+  `session-read` returns a Claude session's history in bounded pages, and the cron entry
+  sets `CLAUDE_CONFIG_DIR` only when the account does.
+- Supervision: the targets of an observation task receive nothing at a limit, and the
+  configured default spend limit applies to completion tasks only.
 
 ## v9.6.0 — 2026-10-27
 

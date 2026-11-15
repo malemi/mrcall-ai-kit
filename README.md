@@ -25,8 +25,9 @@ other sessions and steer unfinished work toward its intended result.
 | **Orchestration** | Run OpenCode's engineering-lead workflow for substantial implementation. | OpenCode |
 | **Session router** | Opt into model routing and a shared session-memory file. | Claude Code |
 
-¹ The Claude supervisor adapter currently targets **Linux, Claude Code 2.1.296,
-peerProtocol 1**. Codex transport evidence covers CLI/app-server 0.164.0 on Linux.
+¹ The Claude supervisor adapter runs on **Linux** with the client's
+**peerProtocol 1**; it is measured on Claude Code 2.1.296 and 2.1.323. Codex
+evidence covers CLI/app-server 0.164.0 and 0.169.0 on Linux.
 See [supervision setup and measured support](docs/supervision.md).
 
 ## Get started

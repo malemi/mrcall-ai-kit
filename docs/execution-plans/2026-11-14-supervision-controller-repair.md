@@ -1,5 +1,5 @@
 ---
-status: blocked
+status: active
 created: 2026-11-14
 brief: ../briefs/2026-11-13-supervision-controller-repair.md
 ---
@@ -17,9 +17,10 @@ verified evidence beyond the brief.
 The operator's messages of 2026-11-14 08:50 and 08:53 UTC mandate finishing and
 installing the repair, give it the highest priority and allow interrupting
 whatever runs. Installing the `supervision` feature into the kit home is
-authorized. Passive reads of native history through the Codex daemon are used.
-Not authorized, and not done here: a commit, a push, a release, a paid model
-call, a message to any session, and deleting the goal controller.
+authorized. The operator's messages of 2026-11-15 16:13 UTC authorize a default
+spend limit chosen by the lead, stopping the goal service, the native trial on
+the Claude Code sessions PROBLEMI6 and REMOTE, and a commit and push of the
+working tree. Not authorized: a release, and deleting the goal controller's code.
 
 ## Decisions taken without the operator
 
@@ -28,17 +29,21 @@ the delivery reports each with its undo.
 
 - **Required spend limit.** A completion task without one is refused; an
   operator-written kit configuration entry can supply the default. Undo: one
-  validation in `store.py`.
-- **Goal controller.** Not retired; its deployed service is not touched. The
-  repository's goal driver records its sends when its configuration names a
-  ledger.
+  validation in `store.py`. On the operator's delegation of 2026-11-15 the
+  account default is 60,000,000 tokens as target and 120,000,000 as ceiling, in
+  `supervision.json` of the kit home. The 2026-11-13 run spent 68 million tokens
+  in two and a half hours. The counter of the Claude lead PROBLEMI6 rose by 221
+  million between 2026-11-13 15:46 and 2026-11-15 16:14 UTC, and its workers
+  spent 102 million in the day before 2026-11-15 17:05 UTC.
+- **Goal controller.** Its code stays. Its deployed service is stopped and
+  disabled by the operator's decision of 2026-11-15. The repository's goal
+  driver records its sends when its configuration names a ledger.
 - **Token reminder.** Kept, by the operator's decision of 2026-11-15: it is a
   labeled part of every rendered message to an entrusted session, beside the
   cited spend limit and the measured spend; the question for the operator
   carries none. The token-reminder plan stays active.
-- **Base.** No commit. The base is `tree-2026-11-14.tar` in the lead's
-  scratchpad, taken before the first edit, SHA256
-  `8d06bf12269279e799ff1ed07cda2e55d1b1845d1c6426f1b8081a5be8608a13`.
+- **Base.** Milestones M1 to M3 are commit `54007b0` on the pushed branch
+  `supervision-controller-repair`, beside three commits of earlier work.
 
 ## Measured before design
 
@@ -60,8 +65,11 @@ detached kit sessions on 2026-11-14; the session memory holds the details.
   which a worker names the root's `session_id`.
 - Root user messages carry provenance `user` whoever sent them; no field marks
   a message between root sessions.
-- Claude Code here is 2.1.323 and the Claude adapter accepts 2.1.296 only, so
-  Claude supervision cannot be exercised natively on this machine.
+- Claude Code here is 2.1.323. Each live session publishes a registry record
+  with its status, a peer protocol number and an inbox socket, and writes a
+  history file with its turns, its queue operations, the origin of every
+  message and the token usage of every model message. `supervision.md` holds
+  what the adapter reads from them.
 
 ## Design
 
@@ -262,7 +270,8 @@ that process's output file under the state root. Its input holds the decision
 request, the registry, the authority data and the measured facts, and nothing
 else. The Codex command is `codex exec --ephemeral --skip-git-repo-check
 --sandbox read-only --json -C <review directory> --output-schema … -o …`; a
-Claude binding uses `claude -p --output-format json`;
+Claude binding uses `claude -p --output-format json --json-schema …
+--restricted --no-session-persistence`;
 `MRCALL_SUPERVISION_REVIEW_COMMAND` replaces either in tests. No command reads
 or writes a verdict. A run that fails, times out or returns a malformed verdict
 is unavailable, and the park takes effect.
@@ -346,9 +355,16 @@ in copy mode with backup; then the suites against the installed CLI through
 `AI_KIT_SUPERVISION_TEST_CLI`, `ledger-backfill` on the account, and `status`
 of an earlier state root. Depends on M2 after its review.
 
+**M4 — Claude sessions.** `observe` and `interrupt` in the Claude transport,
+gated on the peer protocol; the stop as a rendered and recorded message in
+`scheduler.py`; the refusal of an allowance limit where no session reports a
+window; the Claude review command; the two Claude suites; the adapter's
+documents and skill. Depends on M3.
+
 A fresh `reviewer` reviews M1 and M2 together before M3 starts. A separate final
 review runs through the installed CLI. `doc-end` follows it. The operator asked
-on 2026-11-15 for a leaner path; the M1 review was merged into this one.
+on 2026-11-15 for a leaner path; the M1 review was merged into this one. A fresh
+`reviewer` reviews M4 with its documents before the native trial starts.
 
 ## Verification
 
@@ -402,6 +418,12 @@ launch.
 | Convergence triggers | each of the five launches one review; a cut that touches acceptance parks with no challenge | stub log, `status` |
 | A rejected park then a closure continues | task active, counts reset | `status` |
 | Earlier root untouched | file bytes equal after `status` and after a refused `task-create` | file hash |
+| A Claude session is read without a model call | state from the registry; queue, turns, messages and counter from the history; a second read with the stored cursor returns only what was added; a session that is gone reads `notLoaded` | Claude adapter suite |
+| A Claude completion task runs through the CLI | a lead whose client holds a notification is in the closing set; a wake uncertain then delivered; an intervention consumed from the lead's history; a second send refused while the lead's queue holds a message; a ceiling parks the task and sends one stop with priority `now`, to a lead at rest too; `status` lists the turn as continuing while it is the running one | Claude CLI suite |
+| A Claude queue holds only unread messages | a held notification or subagent report is not reported; a kit message that starts a turn leaves the queue; an entry on record from before the session came to rest is dropped | Claude adapter suite |
+| An allowance limit needs a window | a completion task with `allowance_percent` over sessions that report none is refused | Claude CLI suite |
+| An observation task's targets receive nothing | an observation task takes no default limit; at a ceiling it was given it parks, records no stop and sends no frame to its targets | Claude CLI suite |
+| The cron entry leaves the client's configuration where it is | no `CLAUDE_CONFIG_DIR` in the entry unless the account sets it; an entry that carries it keeps it | cron suite |
 | Fences and uncertain delivery | the existing cases for pause, detach, stale execution and reconcile-once pass | existing suites |
 
 Brief acceptance item 8 is verified by the M2 reviewer and `doc-critic`: every
@@ -427,6 +449,34 @@ records without this code.
 - **2026-10-30 goal.** The no-closure count reaches two at the second consumed
   lead wake followed by a failed check, against 996 recorded wakes.
 
+## Native trial
+
+The trial runs on this machine since 2026-11-15 17:50 UTC.
+
+- State root `~/.local/state/mrcall-ai-kit/supervision-claude-trial-20261115`,
+  binding `trial`, runtime `claude`, one owned cron entry.
+- Supervisor: a dedicated Claude Code session, `4cd32507-d2b1-4204-a98b-681d24ca4f89`,
+  in the tmux session `kit-supervisor`, started in a clean environment with no
+  typed prompt. Its mandate reaches it in the controller's wake.
+- Targets: PROBLEMI6 `8a1c9706-bec4-4d9d-b8c9-1d6650b2d200` and REMOTE
+  `617dd083-145f-41e1-975e-e50096c231f4`. Operator session: the lead's own,
+  `2c135815-d75a-450a-b4e2-c2f206c2e8e7`.
+- Task `problemi6-closing`: completion, target PROBLEMI6, eight acceptance items
+  that restate the operator's closing mandate of 2026-11-15 16:08 UTC, the spend
+  limit of the configuration default. The ask-first entries on installing and on
+  real runs are removed for this task and cite that message, which orders both.
+
+Observed: the cron tick, in its minimal environment, read the four sessions; the
+wake reached the supervisor at rest and was in its history two seconds later; the
+supervisor loaded the skill, read the lead through `session-read`, and closed its
+first assessment through the CLI with a declared step, in 1 minute 44 seconds and
+889,344 tokens of its own.
+
+Not yet observed: an intervention read by the live lead; a park with its
+challenge launched from cron and the question in the operator session; a spend
+threshold or ceiling with its stop; the conclusion of the task. A task for REMOTE
+needs the operator's statement of the result REMOTE owes.
+
 ## Rollback
 
 Restore the changed paths from the base archive and delete the added files; the
@@ -436,9 +486,7 @@ state: the earlier code refuses a schema-2 root, and both can be deleted.
 
 ## Left for the operator's authorization
 
-The paid native trial of brief acceptance item 6 and the skill's activation
-display of item 7, which need live sessions and model calls; a commit and a
-release; retiring the goal controller and redeploying its service.
+A release, and retiring the goal controller's code.
 
 ## Recorded limits
 
@@ -447,9 +495,16 @@ release; retiring the goal controller and redeploying its service.
   is unverified until the trial.
 - `turn/steer` is not used: a message to a busy target waits in the native
   queue for the turn to end.
-- The Claude adapter has no `observe`. With a Claude binding only observation
-  tasks can be created; the installed Claude Code is outside the adapter's
-  version gate, so the adapter cannot run on this machine at all.
+- A Claude session reports no allowance window: its spend limit is in tokens
+  or currency.
+- The stop a Claude lead receives ends its turn at the next tool boundary, not
+  at once: measured 14 seconds after the send, when the running command ended.
+- A Claude session in bypass-permissions mode holds a kit message for its
+  user's approval; the adapter asserts no mode. Not exercised live.
+- A Claude session records the removal of a queued entry without the entry's
+  identity. The adapter matches a kit message by its event and other messages
+  by text or kind; a session at rest is read as holding no unread message.
+- A turn that the stop ends is recorded as completed, not as interrupted.
 - `task-create --dry-run` returns the rendered authority for the display before
   activation, and a question that was definitely not delivered is offered again
   after ten minutes; neither is in the design text above.

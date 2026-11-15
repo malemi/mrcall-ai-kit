@@ -69,13 +69,18 @@ older than the ledger is of unknown origin. Neither can be cited.
 ```
 
 - `mode` is `completion` or `observation`. An observation task is read and
-  reported; `intervene` refuses it.
+  reported; `intervene` refuses it, and a limit it reaches parks it with no
+  stop sent to its targets.
 - `operator_session_id` is required: the supervisor, a target, or another root
   session of the same runtime. A park's question is delivered there.
 - `acceptance` items get the identifiers `A1`, `A2`, … in the result. In a
   completion task each names its owner among the targets.
-- `limits.spend` is required for a completion task. Its unit is `tokens`,
-  `allowance_percent` (share of the account's allowance window) or `currency`;
+- `limits.spend` is required for a completion task; omitted there, it takes
+  `default_spend_limit` from the kit configuration when the operator wrote one.
+  An observation task has a spend limit only when given one.
+  Its unit is `tokens`, `allowance_percent` (share of the account's allowance
+  window; refused when no session of the task reports a window, as with Claude
+  Code) or `currency`;
   a currency limit also needs `"prices": {"input", "cached_input", "output"}`
   per million tokens, from the operator. `deadline_at` and `max_checks` are
   optional; `max_checks` counts assessments that ended. Every operator limit has `cites`: registry references, or
@@ -103,23 +108,41 @@ Development tasks add `harness: {"repo": "/absolute/worktree", "git_dir":
 
 ### Claude prerequisite and evidence
 
-With a Claude binding only observation tasks can be created: the Claude adapter
-does not yet read sessions for the controller, so a completion task's spend
-baseline is unreadable and its creation is refused.
+A Claude binding runs observation and completion tasks on Linux with the
+client's peer protocol 1. Use `claude agents --json` for exact live root IDs.
+Supervisor and targets must be running interactive sessions with native
+messaging available. `CLAUDE_CONFIG_DIR` selects the native registry and
+histories; `--claude-path /absolute/claude` selects the executable. Activation
+writes the executable into the owned cron command, and the configuration
+directory only when the account's environment sets that variable. No daemon,
+session, inbound-permission setting or Agent Team is created for you.
 
-Claude support is currently Linux, Claude Code 2.1.296, native peerProtocol 1.
-Use `claude agents --json` for exact live root IDs. Both supervisor and targets
-must be running with native messaging available. `CLAUDE_CONFIG_DIR` selects the
-native registry/transcripts; `--claude-path /absolute/claude` selects the executable.
-Activation persists the executable/config location into the owned cron command.
-No daemon, session, inbound-permission setting or Agent Team is created for you.
-
-The adapter reads the owned registry and public JSONL histories; it never writes
-native state. Its socket frame is version-sensitive and gated to the inspected
-version. A successful socket write remains uncertain until a recipient user
-message proves delivery. Held/refused input can require operator action in that
-session; never change permissions or resend to bypass it. When new evidence is
-available, explicit reconciliation can revisit an earlier uncertain observation.
+- Give the spend limit in `tokens` or `currency`: Claude Code reports no
+  allowance window.
+- Every send is `uncertain` when made: nothing acknowledges the socket write.
+  The receipt becomes `consumed` when the recipient's history holds the message.
+  A working target reads a message inside its running turn at the next tool
+  boundary; until then the message is in its native queue and a second
+  `intervene` is refused. The queue counts text a human typed and messages of
+  other sessions, not the session's own task notifications and subagent reports.
+- `session-read` returns one page of a session's history, about 20 kB, newest
+  first: follow `next_cursor` for older records and `newer_cursor` for what is
+  added later. A long text keeps its start and its end and says how much it
+  leaves out; `thread.history_path` names the file that holds all of it.
+  `workers` lists the eight subagents changed last, each with its file and the
+  last words it said, and `workers_omitted` counts the rest.
+- A target whose registry status is `shell` is idle with the flag
+  `backgroundShell`: no turn runs and a background command of its own still
+  does. Close for it with a wait when it waits for that command.
+- At a spend ceiling the lead receives a stop message, at rest or working. A
+  running turn ends at its next tool boundary; `status` lists it as continuing
+  until then.
+- A session in bypass-permissions mode holds a kit message for its user's
+  approval. Never change permissions or resend to get past it: park with what
+  the operator must approve.
+- The supervisor session runs in a prompting permission mode and must be able
+  to run this CLI without a permission prompt; a wake reaches it only while no
+  turn of its own runs.
 
 ## Clock
 

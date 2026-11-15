@@ -82,13 +82,14 @@ def spend_limit(value, registered, required):
     """A spend limit is data the operator supplied: unit, target, ceiling, citations."""
     cited = None
     if value is None:
+        if not required:
+            # The configured default is for the tasks that must have a limit; an observation task has one only when given one.
+            return None
         default = config().get('default_spend_limit')
         if default is None:
-            if required:
-                raise StoreError('a completion task needs limits.spend with a target, a ceiling and the operator message it '
-                                 'cites: ask the operator for a spend limit, or have the operator write default_spend_limit '
-                                 'in the kit configuration')
-            return None
+            raise StoreError('a completion task needs limits.spend with a target, a ceiling and the operator message it '
+                             'cites: ask the operator for a spend limit, or have the operator write default_spend_limit '
+                             'in the kit configuration')
         value, cited = default, ['config:default_spend_limit']
     if not isinstance(value, dict):
         raise StoreError('limits.spend must be an object')

@@ -53,6 +53,7 @@ def create_task(store, transport_for, data, dry_run=False):
     baseline = observe.baseline(store, transport, binding, data, time.time())
     if dry_run:
         task = store.preview_task(data)
+        store._measurable(task, binding)
         unread = [s for s in [binding['session_id'], *task['target_ids']] if not baseline.get(s)] if task['mode'] == 'completion' else []
         return {'dry_run': True, 'task': task, 'authority': shown(store, task), 'operator_session_id': task['operator_session_id'],
                 'unreadable_counters': unread}

@@ -16,8 +16,9 @@ Repository completion evidence remains a separate refusing CLI when invoked.
 
 ## Measured modes
 
-Persistent supervision has separate native transport evidence for Codex 0.164.0
-and Linux Claude Code 2.1.296 in [supervision](supervision.md#measured-support).
+Persistent supervision has separate native evidence for Codex 0.164.0 and
+0.169.0 and for Linux Claude Code 2.1.296 and 2.1.323 in
+[supervision](supervision.md#measured-support).
 Those results do not extend the lifecycle-compliance claims in the table below
 or establish reliable supervisory judgment. OpenCode supervision is unsupported.
 

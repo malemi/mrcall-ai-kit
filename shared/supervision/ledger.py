@@ -7,7 +7,7 @@ import stat
 import time
 
 
-KINDS = ('wake', 'intervention', 'question', 'notice', 'review', 'goal', 'backfill')
+KINDS = ('wake', 'intervention', 'question', 'notice', 'review', 'interrupt', 'goal', 'backfill')
 
 
 class LedgerError(ValueError):

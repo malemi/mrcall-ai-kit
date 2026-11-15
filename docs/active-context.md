@@ -12,13 +12,16 @@ Scope: Volatile snapshot of current verified state, unresolved work, and immedia
 ## State now
 
 The supervision controller and the debugger role are installed locally. Python
-observes the sessions, keeps a trigger clock, measures closures and spend, records
-every kit message in an account ledger, and refuses results, sends and parks its
-records do not support; `supervision.md` states what it enforces and what a model
-judges. Deterministic suites through the real CLI, three local replays of recorded
-runs, and passive native reads of Codex 0.169.0 sessions through the installed CLI
-are verified. Role-discipline and test-blocker judgment remain model instructions
-whose native compliance is unverified. Earlier state roots are readable and are not
+observes Codex and Claude Code sessions, keeps a trigger clock, measures closures
+and spend, records every kit message in an account ledger, and refuses results,
+sends and parks its records do not support; `supervision.md` states what it
+enforces and what a model judges. Deterministic suites through the real CLI, three
+local replays of recorded runs, passive native reads of Codex 0.169.0 sessions and
+a live probe of the Claude adapter on Claude Code 2.1.323 are verified. A native
+trial runs on a Claude Code lead since 2026-11-15: cron wakes a dedicated
+supervisor session, which reads the lead and closes its assessments through the
+CLI. Role-discipline and test-blocker judgment remain model instructions whose
+native compliance is unverified. Earlier state roots are readable and are not
 migrated. The role contract is in
 [the role document](../shared/roles/README.md#diagnostic-handoff).
 
@@ -62,15 +65,17 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 
 ## Unresolved
 
-- The supervision controller has no native trial: `turn/interrupt` on a live turn,
-  a fresh-context review launched from cron, and every judgment a model makes are
-  unverified. No supervision is active.
-- The Claude adapter accepts Claude Code 2.1.296 only and has no observation; the
-  installed client is 2.1.323, so Claude supervision cannot run on this machine.
-- The deployed goal service predates the account ledger and records nothing in it
-  until it is set up again.
-- The working tree holds this repair and earlier uncommitted work; nothing is
-  committed since the baseline.
+- The native trial of the supervision controller is running and not concluded. Not
+  yet observed on live sessions: an intervention read by the lead, a park with its
+  fresh-context review launched from cron, the operator's question and its answer,
+  a spend ceiling with its stop, and the conclusion of a task. `turn/interrupt` on
+  a live Codex turn is unverified.
+- A Claude Code session in bypass-permissions mode holds a kit message for its
+  user's approval; this is read from the client and not exercised.
+- The goal service on this machine is stopped and disabled; its deployed copy
+  predates the account ledger.
+- The controller repair is on the pushed branch `supervision-controller-repair`;
+  `main` and the documentation baseline stay at v9.6.0 until the trial concludes.
 - The critic's documentation read boundary in the shipped build has no native
   trial evidence; native evidence covers the M2 prototype and the pre-repair
   integrated-v2 build. The operator waived a further native matrix.
@@ -94,8 +99,9 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 ## Next
 
 - The [controller repair plan](execution-plans/2026-11-14-supervision-controller-repair.md)
-  waits on the operator for the bounded paid native trial, a commit of the working
-  tree, and the decision on retiring the goal controller.
+  runs its native trial; the trial's outcome precedes the final review, the
+  baseline and the merge to `main`. A release and the goal controller's code wait
+  for the operator.
 - The [supervisor token plan](execution-plans/2026-10-27-supervisor-token-reminder.md)
   keeps its reminder in every kit message to an entrusted session, the question
   for the operator excepted; its native behavioral verification remains pending.
