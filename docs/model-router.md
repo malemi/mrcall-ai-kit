@@ -20,8 +20,9 @@ the flag; `/router off` removes only the flag, leaving registration in place;
 The intended shape: the session model is a cheap engineering lead (Haiku) that
 answers trivial prompts and performs narrow local work itself. It delegates
 only bounded substantive work when the value of a fresh specialist context is
-greater than prompting, waiting, and review: `execute` for execution, `verify`
-for hard judgment, and `reviewer` for a lifecycle gate. Each runs the model
+greater than prompting, waiting, and review: `execute` for execution, `debugger`
+for causal investigation from actual failing data, `verify` for hard judgment,
+and `reviewer` for a lifecycle gate. Each runs the model
 the kit chose for its role at the machine's budget; the session names none.
 That contract reaches supported sessions from the managed `AGENTS.md` block
 and each role agent's own `description`; the hook does not restate it.

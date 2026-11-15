@@ -30,8 +30,10 @@ where that happens the template governs.
 ## Choosing the role
 
 Delegate to the role the job needs: `execute` for work whose decisions are
-already made, `verify` where a plausible-but-wrong answer is expensive, and
-`reviewer` for a lifecycle gate. Never name a model at delegation; the kit
+already made, `debugger` for read-only causal diagnosis from actual failing
+data, `verify` where a plausible-but-wrong answer is expensive, and `reviewer`
+for a lifecycle gate. Give the debugger the failing entry point, exact case
+data and evidence paths, expected result, environment and diagnostic bounds. Never name a model at delegation; the kit
 resolves each role's model from the operator's budget. **Never choose a
 cheaper role than the job needs to save money** — the cheap wrong answer is the
 expensive one, and this kit's own rules call that a bug rather than a saving.

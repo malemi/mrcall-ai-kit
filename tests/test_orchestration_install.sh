@@ -56,6 +56,7 @@ HOME="$test_home" "$KIT_DIR/install.sh" \
   --mode symlink --on-exist skip --yes >/dev/null
 test -f "$test_home/.config/opencode/agents/execute.md"
 test -f "$test_home/.config/opencode/agents/verify.md"
+test -f "$test_home/.config/opencode/agents/debugger.md"
 test ! -e "$test_home/.config/opencode/agents/orchestrator.md"
 none_retired "$test_home"
 echo "workers installs the roles, and only the roles: PASS"

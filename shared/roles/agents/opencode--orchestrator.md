@@ -16,6 +16,7 @@ permission:
     general: allow
     scout: allow
     reviewer: allow
+    debugger: allow
   skill: allow
   todowrite: allow
   webfetch: allow

@@ -134,12 +134,14 @@ Reach for it when the work is large enough that getting the frame wrong is
 expensive. Skip it for a local, obvious, reversible change — the flow says so
 itself, and returns a fast path instead.
 
-<!-- capability: workers | proof: agents/execute.md | covers: execute verify reviewer -->
+<!-- capability: workers | proof: agents/execute.md | covers: execute verify reviewer debugger -->
 ## The role agents — one job each
 
 Subagents that do bounded work in a fresh context and report back briefly:
 `execute` carries out work whose decisions are already made, `verify` judges
-whether something is actually true, and `reviewer` runs a lifecycle gate. Their
+whether something is actually true, `debugger` traces actual failing data to its
+first demonstrated divergence without changing product code, and `reviewer`
+runs a lifecycle gate. Their
 rules are written once in `shared/roles/` and composed into each definition by
 `shared/scripts/build-agents.py`; a gate fails if a shipped file and its source
 disagree.

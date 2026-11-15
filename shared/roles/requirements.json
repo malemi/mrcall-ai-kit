@@ -30,6 +30,10 @@
         "verify": {
           "index": "intelligence",
           "rule": "maximise"
+        },
+        "debugger": {
+          "index": "intelligence",
+          "rule": "maximise"
         }
       }
     },
@@ -58,6 +62,10 @@
           "rule": "maximise"
         },
         "verify": {
+          "index": "intelligence",
+          "rule": "maximise"
+        },
+        "debugger": {
           "index": "intelligence",
           "rule": "maximise"
         }

@@ -27,7 +27,7 @@ placed_as() { # $1=installed path $2=the checkout's rendering $3=mode
 
 check_home() { # $1=home $2=mode $3=the budget the runtimes must read
   local pair runtime dir f name b count
-  for pair in claude:.claude/agents:3 opencode:.config/opencode/agents:6; do
+  for pair in claude:.claude/agents:4 opencode:.config/opencode/agents:7; do
     IFS=: read -r runtime dir count <<< "$pair"
     [[ "$(ls "$1/$dir"/*.md | wc -l)" -eq "$count" ]] || fail "$2: expected $count agents in $dir"
     for f in "$1/$dir"/*.md; do
@@ -73,7 +73,7 @@ for mode in copy symlink; do
   echo high > "$home/.config/mrcall-ai-kit/budget"
   HOME="$home" "$KIT_DIR/install.sh" --environment claude --features router \
     --mode "$mode" --on-exist skip --yes >/dev/null || fail "$mode: router install failed"
-  [[ "$(ls "$home/.claude/agents"/*.md | wc -l)" -eq 3 ]] || fail "$mode: router did not install the three roles"
+  [[ "$(ls "$home/.claude/agents"/*.md | wc -l)" -eq 4 ]] || fail "$mode: router did not install all role agents"
   for f in "$home/.claude/agents"/*.md; do
     name="$(basename "$f")"
     placed_as "$f" "$KIT_DIR/claude/agents/high/$name" "$mode"
@@ -100,7 +100,7 @@ fi
 
 # The help's inventory names the agents, not the budget directories.
 help="$("$KIT_DIR/install.sh" --help)"
-grep -q 'agents:     execute, reviewer, verify' <<< "$help" \
+grep -q 'agents:     debugger, execute, reviewer, verify' <<< "$help" \
   || fail "--help does not list the Claude Code agents by name"
 echo "--help lists the agents by name: PASS"
 

@@ -9,8 +9,8 @@ fail() { echo "$1" >&2; exit 1; }
 
 # The role agents that report to a delegating session, on both runtimes, in
 # every budget's rendering.
-roles=("$KIT_DIR"/claude/agents/{low,medium,high}/{execute,verify,reviewer}.md
-       "$KIT_DIR"/opencode/agents/{low,medium,high}/{execute,verify,reviewer}.md)
+roles=("$KIT_DIR"/claude/agents/{low,medium,high}/{execute,verify,reviewer,debugger}.md
+       "$KIT_DIR"/opencode/agents/{low,medium,high}/{execute,verify,reviewer,debugger}.md)
 for role in "${roles[@]}"; do [[ -f "$role" ]] || fail "missing role agent: $role"; done
 
 # The contract must REACH every role agent; which route it takes is the runtime's

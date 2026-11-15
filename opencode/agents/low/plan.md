@@ -16,6 +16,7 @@ permission:
     explore: allow
     scout: allow
     reviewer: allow
+    debugger: allow
 ---
 
 # Planner

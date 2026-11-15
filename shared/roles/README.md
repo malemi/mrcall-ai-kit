@@ -14,6 +14,7 @@ model.
 | Agent | Role | Runtimes |
 |---|---|---|
 | `execute` | carries out work whose decisions are already made | Claude Code, Codex, OpenCode |
+| `debugger` | traces actual failing data to the first demonstrated divergence; read-only diagnosis | Claude Code, Codex, OpenCode |
 | `verify` | judges whether something is actually true | Claude Code, Codex, OpenCode |
 | `reviewer` | runs a lifecycle gate: brief, plan, milestone, final | Claude Code, Codex, OpenCode |
 | `build`, `orchestrator` | lead the work and delegate to the roles | OpenCode |
@@ -24,7 +25,7 @@ model.
 | File | What it holds |
 |---|---|
 | `agents/<runtime>--<name>.md` | one stub per agent: its frontmatter, which names no model, and for a lead, its own text |
-| `execute.md`, `verify.md`, `review.md`, `plan.md` | role text, shared by the runtimes that use it |
+| `execute.md`, `verify.md`, `debugger.md`, `review.md`, `plan.md` | role text, shared by the runtimes that use it |
 | `common.md` | the non-negotiable rules every role shares |
 | `block-proportional-execution.md`, `block-report-budget.md`, `block-delivery-contract.md` | the three shared blocks |
 | `worker-report.md` | the report format every role returns |
@@ -68,6 +69,33 @@ at delegation: an install places the rendering for the machine's budget, read
 from `~/.config/mrcall-ai-kit/budget` (medium when absent), and every budget's
 rendering in `~/.config/mrcall-ai-kit/agents/`. Codex agents inherit the
 session model and are outside this resolver.
+
+`debugger` uses the same intelligence-maximising requirements as `verify`. Its
+initial selections reuse the recorded verify choices with per-selection provenance;
+future resolver runs select it normally. No fresh catalogue claim is made.
+
+## Diagnostic handoff
+
+Choose `debugger` for a failing case whose cause is uncertain, `execute` for
+applying a decided correction, and `verify` for checking consequential claims.
+Give the debugger the entry command, expected behavior, actual case data and
+evidence paths, revision/environment, authority and resource bounds. It returns
+the first demonstrated divergence, causal chain, evidence limits and smallest
+next check in the common report; detailed traces belong in authorized scratch.
+Codex applies a read-only sandbox; Claude omits edit tools and OpenCode denies
+edit. Shell access can still have side effects: these profiles do not enforce
+purity for arbitrary diagnostic commands. Product changes and production writes
+remain outside this role.
+
+Native Codex CLI acceptance on 2026-10-30 loaded the installed `debugger` in an
+isolated persistent session. It reproduced a misleading timeout wrapper around
+local string arithmetic, traced the original cause and checked an in-memory
+counterfactual in four shell calls, leaving fixture files unchanged. The earlier
+`--ephemeral` attempt failed before the child started because no rollout was
+available. This establishes one diagnostic sample; Claude/OpenCode native
+adherence, production diagnosis and general reliability remain unverified.
+The [delivery plan](../../docs/execution-plans/2026-10-30-debugger-agent.md)
+records the retained evidence and bounded attempts.
 
 ## How each runtime receives the shared parts
 

@@ -19,6 +19,7 @@ permission:
     general: allow
     scout: allow
     reviewer: allow
+    debugger: allow
 ---
 
 # Build Lead
