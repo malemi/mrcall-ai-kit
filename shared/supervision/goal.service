@@ -1,0 +1,18 @@
+[Unit]
+Description=AI-KIT protected persistent goal controller
+After=local-fs.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+ExecStart=/usr/bin/python3 -I /var/lib/mrcall-ai-kit-goals/code/goal_service.py --config /var/lib/mrcall-ai-kit-goals/config.json
+Restart=on-failure
+UMask=0077
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/lib/mrcall-ai-kit-goals
+
+[Install]
+WantedBy=multi-user.target
