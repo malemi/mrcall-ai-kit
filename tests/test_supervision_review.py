@@ -218,9 +218,9 @@ class ReviewTests(unittest.TestCase):
 
     # ---- the convergence review ----
 
-    def close_steps(self, verdict, count):
+    def close_steps(self, verdict, count, challenge=None):
         """Declare a step, then close `count` steps one assessment after another, with `step_bound` 1."""
-        self.plan.write_text(json.dumps({'convergence': verdict}))
+        self.plan.write_text(json.dumps({'convergence': verdict} | ({'challenge': challenge} if challenge else {})))
         self.create(step_bound=1)
         self.native[self.lead].status = 'active'
         execution = self.wake()
@@ -260,13 +260,31 @@ class ReviewTests(unittest.TestCase):
         memory = self.cli('memory-query', {'supervisor_id': 'team', 'task_id': 'task'})
         self.assertIn('Stop the survey and write the report.', [entry['content'].splitlines()[0] for entry in memory if entry['kind'] == 'intervention'])
 
-    def test_a_cut_that_touches_the_operator_parks_without_a_challenge(self):
-        self.close_steps(ASK, 1)
+    def test_a_cut_that_touches_the_operator_parks_only_after_the_second_reading(self):
+        self.close_steps(ASK, 1, UPHOLD)
         status = self.cli('status', identifier='task')
         park = status['measured']['parks'][-1]
-        self.assertEqual((status['status'], park['status'], park['reason']), ('blocked', 'parked', 'operator-input'))
-        self.assertEqual(self.launches('challenge'), [])
-        self.assertIn('Report two costs more than it returns', self.to_operator()[0]['input'][0]['text'])
+        self.assertEqual((status['status'], park['status'], park['reason']), ('blocked', 'challenging', 'operator-input'))
+        self.assertEqual((self.launches('challenge'), self.to_operator()), ([], []))
+        self.cli('tick')
+        park = self.measured()['parks'][-1]
+        self.assertEqual((park['status'], park['positions'][0]['verdict']), ('parked', 'uphold'))
+        challenge = self.launches('challenge')
+        self.assertEqual(len(challenge), 1)
+        self.assertEqual(json.loads((challenge[0] / 'input.json').read_text())['decision_request']['written_by'], 'a convergence review')
+        question = self.to_operator()
+        self.assertEqual(len(question), 1)
+        self.assertIn('Report two costs more than it returns', question[0]['input'][0]['text'])
+        self.assertIn('The operator alone can decide this.', question[0]['input'][0]['text'])
+
+    def test_a_review_park_the_second_reading_rejects_returns_the_task_with_the_action(self):
+        self.close_steps(ASK, 1, REJECT)
+        self.cli('tick')
+        status = self.cli('status', identifier='task')
+        self.assertEqual((status['status'], status['measured']['parks'][-1]['status']), ('active', 'rejected'))
+        self.assertEqual(self.to_operator(), [])
+        carried = [trigger for trigger in json.loads(self.next_wake()['triggers']) if trigger['kind'] == 'park-rejected']
+        self.assertEqual(carried[0]['action'], 'Write the outline first')
 
     def test_each_measure_launches_one_convergence_review(self):
         spend = lambda: {'spend': {'unit': 'tokens', 'target': 1000, 'ceiling': 100000, 'cites': [self.ref]}}

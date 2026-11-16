@@ -206,6 +206,8 @@ spacing waits. Nothing is dispatched while nothing changed.
 - `items` marks every acceptance item. A closed item needs evidence.
 - `steps` names, for each target that owns an open item, the step it is on. A
   new step is numbered `S1`, `S2`, …; name a step that continues by its `id`.
+  A step declared again with the same description and artifact is the open
+  step: its clock runs on, and the result lists it in `steps_continued`.
   `steps_closed` closes a step only when an earlier assessment declared it and
   its artifact was modified after the declaration; the result says which steps
   stayed open and why.

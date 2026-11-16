@@ -67,14 +67,20 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 
 - The native trial of the supervision controller is running and not concluded: its
   task is parked on a question for the operator. Not yet observed on live
-  sessions: the operator's answer reactivating a task, a spend ceiling with its
-  stop, and the conclusion of a task. `turn/interrupt` on a live Codex turn is
-  unverified.
+  sessions: the challenge on a park requested by a convergence review, a spend
+  ceiling with its stop, and the conclusion of a task. `turn/interrupt` on a live
+  Codex turn is unverified.
+- While a task is parked Python enforces no spend ceiling, and a park does not
+  stop the lead: a lead that keeps working under a parked task has no hard stop.
+- Python does not compare acceptance items with later operator messages; a task
+  the supervisor did not update is read as written by every fresh-context run.
 - A Claude Code session in bypass-permissions mode holds a kit message for its
   user's approval; this is read from the client and not exercised.
 - The goal service on this machine is stopped and disabled; its deployed copy
   predates the account ledger.
-- The controller repair is on the pushed branch `supervision-controller-repair`;
+- The controller repair is on the branch `supervision-controller-repair`, pushed
+  up to `88c9138`. Later commits are local, and one of them belongs to another
+  session whose operator ordered no push: a plain push needs the operator.
   `main` and the documentation baseline stay at v9.6.0 until the trial concludes.
 - The critic's documentation read boundary in the shipped build has no native
   trial evidence; native evidence covers the M2 prototype and the pre-repair

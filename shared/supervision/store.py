@@ -836,7 +836,8 @@ class Store:
         previous = self.conn.execute('SELECT * FROM parks WHERE id=?', (state.get('reactivated_park'),)).fetchone() if state.get('reactivated_park') else None
         matters = lambda request: [question['matter'] for question in request['questions']]
         repeated = bool(previous) and previous['reason'] == park['reason'] and matters(json.loads(previous['request'])) == matters(park['request'])
-        challenged = park['reason'] in authority.CHALLENGED and not repeated and actor != 'review'
+        # Whoever wrote the request, a supervisor or a convergence review, the second reading comes before the park takes effect.
+        challenged = park['reason'] in authority.CHALLENGED and not repeated
         park_id = str(uuid.uuid4())
         self.conn.execute('INSERT INTO parks VALUES(?,?,?,?,?,?,?,?,?,?)',
                           (park_id, task['id'], execution_id, park['reason'], json.dumps(park['request']),
@@ -946,7 +947,8 @@ class Store:
             problems.append('every acceptance item is closed: conclude the task with task-state complete, passing the same items, '
                             'instead of recording another assessment')
         known = {r['id']: dict(r) for r in self.conn.execute('SELECT * FROM steps WHERE task_id=?', (task_id,))}
-        declared, named = [], set()
+        declared, continued, named = [], [], set()
+        closing_now = data.get('steps_closed') if isinstance(data.get('steps_closed'), list) else []
         entries = data.get('steps', [])
         if not isinstance(entries, list):
             problems.append('steps must be a list')
@@ -965,8 +967,15 @@ class Store:
                     artifact = text(entry.get('artifact'), 'steps.artifact')
                     if not Path(artifact).is_absolute():
                         raise StoreError('steps.artifact must be the absolute path of the file that will show the step done')
-                    declared.append({'session_id': session, 'description': text(entry.get('description'), 'steps.description'),
-                                     'artifact': artifact, 'estimate_seconds': number(entry.get('estimate_seconds'), 'steps.estimate_seconds')})
+                    description = text(entry.get('description'), 'steps.description')
+                    estimate = number(entry.get('estimate_seconds'), 'steps.estimate_seconds')
+                    same = [step['id'] for step in known.values() if step['status'] == 'open' and step['session_id'] == session
+                            and step['description'] == description and step['artifact'] == artifact and step['id'] not in closing_now]
+                    if same:
+                        # The open step declared again in the same words is that step: its declaration time and estimate stand.
+                        continued.append(same[0])
+                    else:
+                        declared.append({'session_id': session, 'description': description, 'artifact': artifact, 'estimate_seconds': estimate})
                 named.add(session)
             except StoreError as error:
                 problems.append(str(error))
@@ -1061,8 +1070,8 @@ class Store:
                     reactivation_results=None if results is None else results + 1,
                     reactivated_park=None if closes or results else counts['state'].get('reactivated_park'))
         counts = self.counters(task_id)
-        effect = {'closures': closed_items + len(closed_steps), 'steps_declared': declared_ids, 'steps_kept_open': kept_open,
-                  'no_closure_count': counts['no_closure'], 'step_closures': counts['step_closures']}
+        effect = {'closures': closed_items + len(closed_steps), 'steps_declared': declared_ids, 'steps_continued': continued,
+                  'steps_kept_open': kept_open, 'no_closure_count': counts['no_closure'], 'step_closures': counts['step_closures']}
         if park:
             effect['park'] = park
         elif counts['step_closures'] >= task['limits']['step_bound']:

@@ -291,6 +291,44 @@ class ClosingTests(unittest.TestCase):
             self.assertEqual(statuses[old_id], 'open')
             self.assertEqual(statuses[fresh_id], 'closed')
 
+    # ---- a step declared again in the same words ----
+
+    def test_a_step_declared_again_in_the_same_words_keeps_its_clock(self):
+        state_dir, native, supervisor, targets, ref = self.env(1)
+        target = targets[0]
+        root = state_dir.parent
+        native[target].status = 'active'
+        native.cli(state_dir, 'task-create', self.task_data(supervisor, targets, ref))
+        fields = {'outcome': 'completed', 'summary': 'assessment', 'evidence': ['note'], 'items': [{'id': 'A1', 'status': 'open'}], 'closing': []}
+        steps = lambda: native.cli(state_dir, 'status', identifier='task')['measured']['steps']
+        execution = self.tick_take_wake(native, state_dir, supervisor)
+        first = native.cli(state_dir, 'execution-result', fields | {
+            'id': execution['id'], 'generation': execution['generation'], 'steps': [self.new_step(root, target)]})
+        self.assertEqual((first['steps_declared'], first['steps_continued']), (['S1'], []))
+        declared_at = steps()[0]['declared_at']
+
+        execution = self.advance(native, state_dir, supervisor)
+        again = native.cli(state_dir, 'execution-result', fields | {
+            'id': execution['id'], 'generation': execution['generation'], 'steps': [self.new_step(root, target, estimate=9000)]})
+        self.assertEqual((again['steps_declared'], again['steps_continued']), ([], ['S1']))
+        self.assertEqual([(step['id'], step['status'], step['declared_at'], step['estimate_seconds']) for step in steps()],
+                         [('S1', 'open', declared_at, 600)])
+
+        # Other words are another step: the open one is superseded and the new one starts its own clock.
+        execution = self.advance(native, state_dir, supervisor)
+        summary = self.new_step(root, target) | {'description': 'write the summary'}
+        other = native.cli(state_dir, 'execution-result', fields | {
+            'id': execution['id'], 'generation': execution['generation'], 'steps': [summary]})
+        self.assertEqual((other['steps_declared'], other['steps_continued']), (['S2'], []))
+        self.assertEqual({step['id']: step['status'] for step in steps()}, {'S1': 'superseded', 'S2': 'open'})
+
+        # A step closed and declared again in the same result is a new step.
+        (root / 'artifact.txt').write_text('done')
+        execution = self.advance(native, state_dir, supervisor)
+        repeated = native.cli(state_dir, 'execution-result', fields | {
+            'id': execution['id'], 'generation': execution['generation'], 'steps': [summary], 'steps_closed': ['S2']})
+        self.assertEqual((repeated['closures'], repeated['steps_declared'], repeated['steps_continued']), (1, ['S3'], []))
+
     # ---- a closure counts once ----
 
     def test_a_closure_counts_once(self):

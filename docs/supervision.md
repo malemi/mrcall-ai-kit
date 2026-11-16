@@ -74,11 +74,12 @@ open item and is idle with an empty queue, waiting or unreachable, the result
 holds an intervention sent and accepted in that assessment, a wait on a time, a
 file or a process exit with a latest time, a park, or the task is concluded; a
 waiting or unreachable target accepts only a wait. A step closes only when an
-earlier assessment declared it and its artifact is newer. A closure counts once.
-After two results that close nothing while no item-owning target was working,
-only a park or a conclusion is accepted, whatever wait the next result offers. Steps that close while no item closes
-lead to a convergence review and, the second time, to a park. An observation
-task is outside these rules and cannot receive interventions.
+earlier assessment declared it and its artifact is newer; declared again in the
+same words, it keeps its clock. A closure counts once. After two results that
+close nothing while no item-owning target was working, only a park or a
+conclusion is accepted, whatever wait the next result offers. Steps that close
+while no item closes lead to a convergence review and, the second time, to a
+park. An observation task is outside these rules and receives no intervention.
 
 **Receipts.** A kit message is queued until Python finds it in the target's
 history, then consumed with its turn. `intervene` is refused while the target's
@@ -119,12 +120,11 @@ read is its lower bound. A deadline, a count or a spend ceiling reached parks
 the task from the tick. At a spend ceiling of a completion task Python also
 interrupts each target's running turn and `status` reports a turn that
 continues. Workers are not interrupted, and the targets of an observation task
-receive nothing. A
-convergence review, launched like the challenge, runs when a step passes twice
-its estimate, when spend or time since the last item closure reaches half the
-target or the time allowed, when spend reaches the target, and at the step
-bound. Its result is an intervention to the lead, or a park when the cut touches
-the acceptance or the ask-first list.
+receive nothing. A convergence review, launched like the challenge, runs when a
+step passes twice its estimate, when spend or time since the last item closure
+reaches half the target or the time allowed, when spend reaches the target, and
+at the step bound. Its result is an intervention to the lead or, when the cut
+touches the acceptance or the ask-first list, a park with its second reading.
 
 ## What a model judges
 
@@ -134,6 +134,7 @@ Nothing checks these, and the native trial measures them:
 - whether a cited statement supports the claimed restriction, and whether an
   authorized action avoids the operator;
 - whether a closure is real progress;
+- whether the task still states what the operator last asked for;
 - whether the lead's path converges, and what to tell the lead;
 - whether the session that receives a question presents it and waits;
 - whether the supervisor keeps to the CLI: a message sent to a session by other

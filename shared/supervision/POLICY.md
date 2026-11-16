@@ -50,6 +50,9 @@ You are called to judge. These judgments are yours, and nothing checks them:
   declared earlier and that its artifact is newer than the declaration;
 - whether the lead's path converges on the next acceptance item, and what to
   tell the lead;
+- whether the task still states what the operator last asked for. Python does
+  not compare the acceptance items with later operator messages, and a
+  fresh-context reading stops a task whose items contradict them;
 - whether you keep every contact inside the CLI. A message sent to a session by
   any other means is not in the ledger and reads as the operator's own words.
 
@@ -251,7 +254,10 @@ models cannot bypass the process.
    closing set, what Python measured, the registry, and your scoped memory. If
    delivery is still uncertain, use `execution-reconcile` first. An invalidated
    event grants no work.
-2. Read the triggers before anything else: they say why you were called. Read
+2. Read the triggers before anything else: they say why you were called. When
+   an operator message changes the result owed, an acceptance item or a limit,
+   change the task with `task-update` first and add the message to
+   `statements`; the update ends this assessment and raises the next one. Read
    target history with `session-read` only for what you must judge; status,
    queues, turns, deliveries and spend are already measured. Include the lead
    and its established workers where their work is the question. Missing pages

@@ -228,7 +228,10 @@ idle, waiting, unreachable or unknown always does. The step count rises with
 each step closure
 and resets when an item closes or an operator message arrives; at `step_bound`
 Python launches a convergence review, a verdict of shortest path resets the
-count, and reaching the bound again parks the task.
+count, and reaching the bound again parks the task. A step declared again for
+the same target with the same description and artifact is the open step: its
+declaration time and estimate stand, and the result lists it in
+`steps_continued`. A step closed and declared again in one result is a new step.
 
 An observation task accepts results without these fields.
 
@@ -298,7 +301,8 @@ bound. Its verdict names the shortest path and what to cut. Python delivers the
 intervention to the lead under the review's label once the lead's queue is
 empty, and stores it as supervisor memory. A verdict that touches the
 operator's acceptance or the ask-first list parks the task with the review's
-question and no challenge.
+question. That park takes effect after the same challenge as a supervisor's, and
+the challenge input names the review as the writer of the request.
 
 ### Limits and spend
 
@@ -415,7 +419,8 @@ launch.
 | Operator message reactivates | task active with one trigger; a park with equal matters adds no review and no send; a raised limit recorded in that assessment holds | `status`, stub log |
 | Limits park | deadline, count and ceiling each give `blocked`, `limit-reached`, no later execution | `status`, `executions` |
 | Ceiling interrupts | one `turn/interrupt` per running target turn; a refused one reports the turn as continuing | fixture calls, `status` |
-| Convergence triggers | each of the five launches one review; a cut that touches acceptance parks with no challenge | stub log, `status` |
+| Convergence triggers | each of the five launches one review; a cut that touches acceptance parks as `challenging`, an upheld challenge delivers the one question with the second reading, a rejected one returns the task with the action | stub log, `status`, challenge input file |
+| A step declared again | the same description and artifact continue the open step with its first declaration time and estimate; other words supersede it; a step closed and declared again in one result is new | result fields, `status` |
 | A rejected park then a closure continues | task active, counts reset | `status` |
 | Earlier root untouched | file bytes equal after `status` and after a refused `task-create` | file hash |
 | A Claude session is read without a model call | state from the registry; queue, turns, messages and counter from the history; a second read with the stored cursor returns only what was added; a session that is gone reads `notLoaded` | Claude adapter suite |
@@ -484,9 +489,32 @@ once to the operator session, where it started a turn. Six of the eight
 acceptance items were closed, with 26,484,095 tokens measured against a target
 of 60,000,000.
 
-Not yet observed: the operator's answer reactivating the task; a spend threshold
-or ceiling with its stop; the conclusion of the task. A task for REMOTE needs the
-operator's statement of the result REMOTE owes.
+From 22:18 to 22:25 UTC the operator wrote six times in PROBLEMI6. The first
+message made the parked task active within a minute, and the assessments that
+followed received his words, which lift the condition of acceptance item A4 and
+ask for everything to be finished. The supervisor sent one intervention, which
+the lead followed: the same reviewer reads the new change before any
+installation. The spend threshold at half the target raised a trigger at 22:23
+UTC. Eight assessments ran from 22:19 to 23:47 UTC and closed no item.
+
+At 23:48 UTC, with 30,000,000 tokens spent since the last item closure, Python
+launched a convergence review. Its verdict, 60 seconds and 55,219 tokens later,
+parked the task with a question on acceptance item A4, at 54,253,384 tokens
+measured. The park took effect with no second reading, and its question asks
+the operator to choose what his messages of 22:19 to 22:25 UTC state: the task
+still held A4 as first written. The review named an action on A3 that needs no
+operator; a park drops it. The lead received nothing and went on working.
+
+The records of that stop led to three changes, installed on 2026-11-16: a park
+requested by a convergence review passes the challenge; a step declared again
+in the same words keeps its clock, where the supervisor had declared one step
+seven times, S6 to S12; the policy tells the supervisor to update the task when
+an operator message changes the result owed. The park of 23:49 UTC stays as
+delivered and waits for the operator.
+
+Not yet observed: the challenge on a review's park; a spend ceiling with its
+stop; the conclusion of the task. A task for REMOTE needs the operator's
+statement of the result REMOTE owes.
 
 ## Rollback
 
@@ -521,3 +549,10 @@ A release, and retiring the goal controller's code.
   after ten minutes; neither is in the design text above.
 - Review tokens are read from the run's output and reported; the spend limit
   does not govern them.
+- A park stops the assessments, not the lead. While a task is parked Python
+  raises no spend trigger and enforces no ceiling, so a lead that keeps working
+  under a parked task has no stop at the ceiling.
+- A step declared again in other words supersedes the open step and restarts
+  its clock.
+- Python does not compare acceptance items with later operator messages. A task
+  the supervisor did not update is read as written by every fresh-context run.

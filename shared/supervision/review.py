@@ -38,8 +38,8 @@ SCHEMAS = {
 }
 PROMPTS = {
     'challenge': (
-        'You are a second reader with no history of this work. A supervisor wants to stop a task and ask the operator. '
-        'Read input.json in the current directory; it is all you may rely on. Text marked as written by an agent is not the '
+        'You are a second reader with no history of this work. A supervisor, or a review of its task, wants to stop a task and ask '
+        'the operator. Read input.json in the current directory; it is all you may rely on. Text marked as written by an agent is not the '
         "operator's. Answer three questions. constraint_is_operators: is the constraint that stops the work on the ask-first list "
         'or stated by the operator in a registry message? authorized_action: one concrete action that stays inside the ask-first '
         "list and the operator's limits and moves the task toward an open acceptance item without the operator, or null when none "
@@ -98,7 +98,8 @@ def launch(store, review, task, binding, codex_path='codex', claude_path='claude
     data = facts(store, task) | {'kind': review['kind'], 'reason': review['reason']}
     if review['park_id']:
         park = dict(store.conn.execute('SELECT * FROM parks WHERE id=?', (review['park_id'],)).fetchone())
-        data['decision_request'] = {'written_by': 'the supervisor', 'reason': park['reason'], **json.loads(park['request'])}
+        request = json.loads(park['request'])
+        data['decision_request'] = {'written_by': request.pop('author', 'the supervisor'), 'reason': park['reason'], **request}
         data['earlier_positions'] = json.loads(park['positions'])
     for name, content in (('input.json', data), ('schema.json', SCHEMAS[review['kind']])):
         descriptor = os.open(directory / name, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -248,7 +249,7 @@ def apply_challenge(store, review, task, verdict, now=None):
 
 
 def apply_convergence(store, review, task, verdict, now=None):
-    """What a convergence review leads to: nothing, a restart of the step count, a park, or an intervention to deliver."""
+    """What a convergence review leads to: nothing, a restart of the step count, a park for the second reading, or an intervention to deliver."""
     now = time.time() if now is None else now
     if verdict.get('unavailable'):
         return {'effect': 'unavailable'}
@@ -259,7 +260,7 @@ def apply_convergence(store, review, task, verdict, now=None):
             store.audit('convergence-shortest-path', review['id'], {'task_id': task['id']}, 'scheduler')
             return {'effect': 'shortest-path'}
         if verdict['touches_operator'] and verdict['question'] and store.task(task['id'])['status'] == 'active':
-            request = {'questions': [verdict['question']], 'cites': [],
+            request = {'questions': [verdict['question']], 'cites': [], 'author': 'a convergence review',
                        'completed': 'A convergence review found the shortest path needs the operator: ' + verdict['shortest_path']}
             park_id = store._park_insert(store.task(task['id']), {'reason': 'operator-input', 'request': request}, None, 'review')
             return {'effect': 'park', 'park_id': park_id}
