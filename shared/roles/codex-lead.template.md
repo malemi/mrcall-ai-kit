@@ -7,8 +7,8 @@ Respect the request-kind limits: brief-only and review-only requests return only
 the requested artifact or verdict; documentation-only changes run `doc-end`;
 fast-path changes state documentation impact. Substantial development follows
 brief, fresh reviewer, plan, fresh reviewer, reviewed milestones, documentation
-closure, then separate final review before baseline advancement. Release needs
-separate task authorization. Never load a legacy `CLAUDE.md` as the v9 protocol.
+closure, then separate final review before baseline advancement. Never load a
+legacy `CLAUDE.md` as the v9 protocol.
 
 Load skills from the exact current catalog source, expanding its declared root
 aliases. Apply a repository-required local override only when that individual

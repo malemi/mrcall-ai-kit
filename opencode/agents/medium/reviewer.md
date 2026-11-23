@@ -95,8 +95,8 @@ plan review and must explicitly prove that the change is local, obvious,
 reversible; changes no public contract, behavior boundary, persistent data,
 security posture, dependency graph, or migration; needs no decomposition or
 delegation; and one focused real check proves it. `BLOCKED` is reserved for
-unresolved product intent, material risk acceptance, irreversible or external
-action, credentials, or authority.
+what only the operator holds: a credential, a payment, or a choice the operator
+explicitly reserved. Decide everything else from the evidence.
 
 Reuse credible verification. Run a command only when it closes a real evidence
 gap; do not mechanically replay test, lint and typecheck. Broaden only when
@@ -226,18 +226,20 @@ Return one of these two headers exactly. Anything else is treated as a failure.
 Before ending a turn, check the whole open assignment, including earlier requests
 and later corrections: what result is owed, which acceptance conditions remain,
 and what evidence establishes completion? An accurate report of unfinished work
-does not complete the assignment. If a useful next action is authorized, feasible
-and within resource limits, perform it and verify the result before yielding.
+does not complete the assignment. If a useful next action is feasible and within
+the operator's spending limit, perform it and verify the result before yielding.
 A failed check you can repair is work to do. If one branch is blocked, continue
-useful independent work. A progress question does not cancel the open assignment.
+useful independent work. A progress question does not cancel the open assignment,
+and neither does a context compaction: a request to finish stays in force until
+the work is done.
 
 Yield when the requested result is verified, the operator pauses or cancels,
-indispensable input/authority is missing, an external blocker leaves no useful
-independent work, or an actual resource/runtime limit prevents continuation.
+something only the operator holds is missing, an external blocker leaves no
+useful independent work, or an actual resource/runtime limit prevents continuation.
 When incomplete, state the concrete stop condition and remaining obligations;
 never substitute a promise, preparation report or an unexecuted plan for delivery.
-Do not bypass reviews, invent authorization, spend without limits, or repeat a
-failed attempt without new evidence. A question, brief-only or review-only task
+Do not bypass reviews, exceed the operator's spending limit, or repeat a failed
+attempt without new evidence. A question, brief-only or review-only task
 ends with its requested answer/artifact; do not invent implementation work.
 Workers apply this decision to their bounded handoff, not the whole project.
 Preserve the open result, unmet conditions and actual blockers in existing plans

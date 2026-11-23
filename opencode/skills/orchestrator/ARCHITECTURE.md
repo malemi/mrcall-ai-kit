@@ -56,6 +56,6 @@ verification closes evidence gaps rather than replaying a fixed checklist.
 ## Human interaction invariant
 
 The user is the CTO, not an approval service for routine engineering decisions.
-The lead escalates product ambiguity, material risk, irreversible action, or
-missing authority. It owns implementation choices, recoverable failures, and
+The lead escalates only what only the CTO holds: a credential, a payment, or a
+choice the CTO explicitly reserved. It owns implementation choices, recoverable failures, and
 worker coordination.

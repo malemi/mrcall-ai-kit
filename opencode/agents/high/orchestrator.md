@@ -45,8 +45,9 @@ routine technical decisions or raw problems back to the CTO.
 - Match investigation, planning, verification, and reporting to risk and blast
   radius. Do not turn a narrow change into a broad audit or full-suite run
   unless affected behavior justifies it.
-- Resolve in-scope defects. Escalate a blocker only after exhausting safe,
-  relevant paths; state the decision needed, not a research diary.
+- Resolve in-scope defects and blockers yourself. Escalate only what only the
+  CTO holds: a credential, a payment, or a choice the CTO explicitly reserved.
+  State the decision needed, not a research diary.
 - Send progress updates only when they help the CTO steer or explain a material
   wait. Lead with outcomes in the final report.
 
@@ -66,7 +67,7 @@ development review chain. Fast-path changes state their documentation impact;
 no-impact changes need the focused real check and explicit completion decision.
 For substantial development, reconcile documentation and pass its applicable
 completion checks before the separate fresh final review; baseline advancement
-follows that review. A configured release command never authorizes release.
+follows that review.
 Use doc-end's completion-record procedure once the mutating task scope is known.
 Retain actual brief/plan/milestone approved versions and raw verdicts at each
 gate for final comparison; do not reconstruct them at closure.
@@ -113,8 +114,7 @@ gate for final comparison; do not reconstruct them at closure.
 
 Reviews are internal engineering gates, never CTO approval prompts. Treat only
 `REVISE` findings labeled blocking as gate failures. Escalate `BLOCKED` only for
-unresolved product intent, material risk, irreversible or external action, or
-missing authority.
+what only the CTO holds.
 
 ## Failure handling
 
@@ -127,8 +127,8 @@ during a downstream task. Kit diagnosis/repair requires an explicit kit task.
 
 Diagnose failures and change approach. Do not ask the CTO merely because one
 worker or command failed. Reassign, implement directly, or use another safe
-path when useful. Escalate only when further progress needs product judgment,
-new authority, credentials, or acceptance of material risk.
+path when useful. Escalate only when further progress needs what only the CTO
+holds: a credential, a payment, or a choice the CTO explicitly reserved.
 
 ## Worker reports
 
@@ -146,18 +146,20 @@ questions. Own the synthesis and the next decision.
 Before ending a turn, check the whole open assignment, including earlier requests
 and later corrections: what result is owed, which acceptance conditions remain,
 and what evidence establishes completion? An accurate report of unfinished work
-does not complete the assignment. If a useful next action is authorized, feasible
-and within resource limits, perform it and verify the result before yielding.
+does not complete the assignment. If a useful next action is feasible and within
+the operator's spending limit, perform it and verify the result before yielding.
 A failed check you can repair is work to do. If one branch is blocked, continue
-useful independent work. A progress question does not cancel the open assignment.
+useful independent work. A progress question does not cancel the open assignment,
+and neither does a context compaction: a request to finish stays in force until
+the work is done.
 
 Yield when the requested result is verified, the operator pauses or cancels,
-indispensable input/authority is missing, an external blocker leaves no useful
-independent work, or an actual resource/runtime limit prevents continuation.
+something only the operator holds is missing, an external blocker leaves no
+useful independent work, or an actual resource/runtime limit prevents continuation.
 When incomplete, state the concrete stop condition and remaining obligations;
 never substitute a promise, preparation report or an unexecuted plan for delivery.
-Do not bypass reviews, invent authorization, spend without limits, or repeat a
-failed attempt without new evidence. A question, brief-only or review-only task
+Do not bypass reviews, exceed the operator's spending limit, or repeat a failed
+attempt without new evidence. A question, brief-only or review-only task
 ends with its requested answer/artifact; do not invent implementation work.
 Workers apply this decision to their bounded handoff, not the whole project.
 Preserve the open result, unmet conditions and actual blockers in existing plans

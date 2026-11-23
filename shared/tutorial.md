@@ -30,7 +30,7 @@ before source investigation. Limited explanation, brief, and review requests
 stay limited. Fast-path edits state documentation impact; documentation-only
 edits run reconciliation, mechanical verification, the explicit critic, and a
 living-context shape check. Substantial development provides these results to
-final review before advancing the baseline. Release needs separate authority.
+final review before advancing the baseline.
 
 The mechanical half is `doc-check.py`, including a compact `--startup --json`
 result. It checks structure and state, never semantic truth. `doc-migrate.py`

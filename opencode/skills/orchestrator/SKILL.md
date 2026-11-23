@@ -66,8 +66,8 @@ All other development follows these gates in order:
 
 Repair blocking `REVISE` findings and re-review at the same gate. `FAST_PATH` is
 valid only at a brief or plan gate and only when the reviewer explicitly proves
-every fast-path condition. `BLOCKED` is reserved for unresolved product intent,
-material risk, irreversible or external action, credentials, or authority.
+every fast-path condition. `BLOCKED` is reserved for what only the CTO holds:
+a credential, a payment, or a choice the CTO explicitly reserved.
 Reviews are internal engineering gates, never CTO approval prompts.
 
 In read-only plan mode, draft and review brief text first, then draft and review

@@ -88,8 +88,8 @@ Substantial work follows brief → fresh reviewer APPROVED → plan → fresh
 reviewer APPROVED → implementation → milestone review before dependent work →
 separate final review through the final-user path. A `REVISE` finding blocks the
 next stage until repaired and re-reviewed by that reviewer. `FAST_PATH` requires
-proof of every criterion. `BLOCKED` identifies unresolved intent, material risk,
-irreversible or external action, or authority. These are internal gates, not
+proof of every criterion. `BLOCKED` identifies something only the operator holds:
+a credential, a payment, or a choice the operator explicitly reserved. These are internal gates, not
 routine requests for human permission. Without fresh-review capability, make a
 separate pass and disclose the limitation.
 
