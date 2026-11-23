@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
+# The operator's machine may switch session memory off globally; each case sets it itself.
+unset MRCALL_KIT_SESSION_MEMORY
 
 KIT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 TEST_ROOT="$(mktemp -d)"
