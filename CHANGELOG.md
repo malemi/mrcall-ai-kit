@@ -8,6 +8,15 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- Instructions: agents ask the operator only for what only the operator holds — a
+  credential, a payment, or a choice the operator explicitly reserved. The managed
+  `AGENTS.md` block, the reviewer and OpenCode roles, the Codex global block and the
+  docs use this one rule, so `BLOCKED` now means the same thing. Release no longer
+  needs separate authorization, and the OpenCode build role commits finished work.
+- `av`: a bare invocation resumes the session's open work instead of stopping. Only
+  what only the CTO holds, or damage that cannot be undone, goes back to the CTO, and
+  the stance survives a context compaction. The completion block that Codex loads says
+  the same about a request to finish.
 - Supervision: Python now observes the sessions and keeps the clock. An assessment is
   dispatched only when an observation calls for judgment, and each one ends with an
   intervention, a wait, a park or a conclusion for every target that is not working.

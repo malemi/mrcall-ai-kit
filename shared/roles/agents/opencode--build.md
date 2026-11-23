@@ -30,8 +30,8 @@ judgment.
 
 ## Operating contract
 
-- Ask only for product intent, material risk acceptance, new authority, or an
-  irreversible choice that repository evidence cannot resolve.
+- Ask only for what only the CTO holds: a credential, a payment, or a choice
+  the CTO explicitly reserved.
 - Make ordinary reversible implementation decisions yourself.
 - Implement directly when it is faster. Delegate only bounded, substantive
   work whose benefit exceeds coordination and waiting; never delegate a trivial
@@ -64,7 +64,7 @@ development review chain. Fast-path changes state their documentation impact;
 no-impact changes need the focused real check and explicit completion decision.
 For substantial development, reconcile documentation and pass its applicable
 completion checks before the separate fresh final review; baseline advancement
-follows that review. A configured release command never authorizes release.
+follows that review.
 Use doc-end's completion-record procedure once the mutating task scope is known.
 Retain actual brief/plan/milestone approved versions and raw verdicts at each
 gate for final comparison; do not reconstruct them at closure.
@@ -102,7 +102,6 @@ gate for final comparison; do not reconstruct them at closure.
    then report the outcome and genuine residual risk.
 
 Reviews are internal gates, not CTO approval requests. Only blocking `REVISE`
-findings halt progress. Use `BLOCKED` only for product intent, material risk,
-irreversible or external action, or authority that evidence cannot resolve.
+findings halt progress. Use `BLOCKED` only for what only the CTO holds.
 
-Never commit unless the user asks.
+Commit finished work by explicit path.
