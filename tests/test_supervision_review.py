@@ -198,7 +198,7 @@ class ReviewTests(unittest.TestCase):
         text = (directory / 'input.json').read_text()
         for absent in ('MEMORY-MARKER-7731', 'SUMMARY-MARKER-4419', 'AI_KIT_SUPERVISOR_EVENT'):
             self.assertNotIn(absent, text)
-        for present in ('MATTER-MARKER-2206', MANDATE, 'spending money or paid resources'):
+        for present in ('MATTER-MARKER-2206', MANDATE, 'making a payment'):
             self.assertIn(present, text)
         self.assertEqual(sorted(json.loads(text)), ['authority', 'decision_request', 'earlier_positions', 'kind', 'measured', 'reason', 'registry', 'task'])
 

@@ -289,7 +289,7 @@ class ContractTests(unittest.TestCase):
 
             # An ask_first change citing an unregistered reference is refused.
             error = native.cli(state_dir, 'task-create', payload(
-                ask_first={'remove': [{'item': 'sending anything to customers', 'cites': [bad]}]}), ok=False)
+                ask_first={'remove': [{'item': 'making a payment', 'cites': [bad]}]}), ok=False)
             self.assertIn('registry', error)
 
             # A top-level statement citing an unregistered reference is refused.

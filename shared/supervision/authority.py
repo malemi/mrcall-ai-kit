@@ -11,12 +11,8 @@ except ImportError:
 
 
 ASK_FIRST = (
-    'spending money or paid resources',
-    'installing software or changing an installation',
-    'real runs against external providers',
-    'sending anything to customers',
-    'pushing or releasing',
-    'deleting work that someone else made',
+    'using a credential that only the operator holds',
+    'making a payment',
 )
 MARKERS = ('AI_KIT_SUPERVISOR_EVENT ', 'AI_KIT_GOAL_EVENT ', 'AI_KIT_OPERATOR_QUESTION ',
            'AI_KIT_SUPERVISION_NOTICE ', 'AI_KIT_SUPERVISION_MESSAGE ', 'AI_KIT_SUPERVISION_EVENT ')

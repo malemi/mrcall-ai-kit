@@ -724,9 +724,9 @@ class ClosingTests(unittest.TestCase):
 
         with self.subTest(reason='ask-first valid'):
             result = attempt({'reason': 'ask-first',
-                               'questions': [{'matter': 'Should we email the customer now?',
-                                              'options': ['Send it', 'Wait'], 'recommendation': 'Wait'}],
-                               'completed': 'Draft ready.', 'item': 'sending anything to customers'}, ok=True)
+                               'questions': [{'matter': 'Should we pay for the extra seats now?',
+                                              'options': ['Pay', 'Wait'], 'recommendation': 'Wait'}],
+                               'completed': 'Order drafted.', 'item': 'making a payment'}, ok=True)
             self.assertTrue(result['task_state_changed'])
             status = native.cli(state_dir, 'status', identifier='task')
             self.assertEqual(status['status'], 'blocked')
