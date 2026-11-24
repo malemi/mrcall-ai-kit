@@ -78,10 +78,9 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
   user's approval; this is read from the client and not exercised.
 - The goal service on this machine is stopped and disabled; its deployed copy
   predates the account ledger.
-- The controller repair is on the branch `supervision-controller-repair`, pushed
-  up to `88c9138`. Later commits are local, and one of them belongs to another
-  session whose operator ordered no push: a plain push needs the operator.
-  `main` and the documentation baseline stay at v9.6.0 until the trial concludes.
+- The controller repair is merged into `main` without a native trial conclusion,
+  because the operator stopped the trial. The documentation baseline stays at
+  v9.6.0.
 - The critic's documentation read boundary in the shipped build has no native
   trial evidence; native evidence covers the M2 prototype and the pre-repair
   integrated-v2 build. The operator waived a further native matrix.
@@ -105,9 +104,8 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 ## Next
 
 - The [controller repair plan](execution-plans/2026-11-14-supervision-controller-repair.md)
-  runs its native trial; the trial's outcome precedes the final review, the
-  baseline and the merge to `main`. A release and the goal controller's code wait
-  for the operator.
+  is merged into `main`; its final review, the documentation baseline and a
+  release remain.
 - The [supervisor token plan](execution-plans/2026-10-27-supervisor-token-reminder.md)
   keeps its reminder in every kit message to an entrusted session, the question
   for the operator excepted; its native behavioral verification remains pending.
