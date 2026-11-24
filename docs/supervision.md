@@ -128,7 +128,7 @@ touches the acceptance or the ask-first list, a park with its second reading.
 
 ## What a model judges
 
-Nothing checks these, and the native trial measures them:
+Nothing checks these, and no completed native trial has measured them:
 
 - whether the reason of an operator-decision park is true;
 - whether a cited statement supports the claimed restriction, and whether an

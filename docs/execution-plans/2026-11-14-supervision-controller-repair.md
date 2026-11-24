@@ -1,5 +1,5 @@
 ---
-status: active
+status: failed
 created: 2026-11-14
 brief: ../briefs/2026-11-13-supervision-controller-repair.md
 ---
@@ -456,7 +456,8 @@ records without this code.
 
 ## Native trial
 
-The trial runs on this machine since 2026-11-15 17:50 UTC.
+The trial ran on this machine from 2026-11-15 17:50 UTC until the operator
+stopped it on 2026-11-22.
 
 - State root `~/.local/state/mrcall-ai-kit/supervision-claude-trial-20261115`,
   binding `trial`, runtime `claude`, one owned cron entry.
@@ -512,9 +513,16 @@ seven times, S6 to S12; the policy tells the supervisor to update the task when
 an operator message changes the result owed. The park of 23:49 UTC stays as
 delivered and waits for the operator.
 
-Not yet observed: the challenge on a review's park; a spend ceiling with its
-stop; the conclusion of the task. A task for REMOTE needs the operator's
-statement of the result REMOTE owes.
+On 2026-11-22 the operator stopped the trial because the supervision spent
+tokens without moving the work forward. The supervisor's final report measured
+140.8M tokens against the 60M target and the 120M ceiling, about a tenth of them
+its own. It recorded decisions and summarized state, but it neither reduced the
+lead's spend nor found the lead's errors on its own. The task is cancelled, its
+cron entry removed and the supervisor session closed. The repair is merged into
+`main` without a trial conclusion.
+
+Never observed: the challenge on a review's park; a spend ceiling with its stop;
+the conclusion of the task.
 
 ## Rollback
 
@@ -523,9 +531,9 @@ session memory keeps the list. The installer backs up each replaced asset
 beside it. Schema-1 roots are untouched. Schema-2 roots and the ledger are new
 state: the earlier code refuses a schema-2 root, and both can be deleted.
 
-## Left for the operator's authorization
+## Left open
 
-A release, and retiring the goal controller's code.
+A release, and whether to retire the goal controller's code.
 
 ## Recorded limits
 

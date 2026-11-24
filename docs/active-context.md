@@ -18,9 +18,10 @@ sends and parks its records do not support; `supervision.md` states what it
 enforces and what a model judges. Deterministic suites through the real CLI, three
 local replays of recorded runs, passive native reads of Codex 0.169.0 sessions and
 a live probe of the Claude adapter on Claude Code 2.1.323 are verified. A native
-trial runs on a Claude Code lead since 2026-11-15: cron wakes a dedicated
-supervisor session, which reads the lead and closes its assessments through the
-CLI. Role-discipline and test-blocker judgment remain model instructions whose
+trial on a Claude Code lead ran from 2026-11-15 until the operator stopped it on
+2026-11-22: the supervision recorded decisions and summarized state, but it
+neither reduced the lead's spend nor found the lead's errors on its own. No
+supervision cron entry or supervisor session remains. Role-discipline and test-blocker judgment remain model instructions whose
 native compliance is unverified. Earlier state roots are readable and are not
 migrated. The role contract is in
 [the role document](../shared/roles/README.md#diagnostic-handoff).
@@ -65,9 +66,9 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 
 ## Unresolved
 
-- The native trial of the supervision controller is running and not concluded: its
-  task is parked on a question for the operator. Not yet observed on live
-  sessions: the challenge on a park requested by a convergence review, a spend
+- The controller repair is merged into `main` without a native trial
+  conclusion; its [plan](execution-plans/2026-11-14-supervision-controller-repair.md)
+  is failed. Never observed on live sessions: the challenge on a park requested by a convergence review, a spend
   ceiling with its stop, and the conclusion of a task. `turn/interrupt` on a live
   Codex turn is unverified.
 - While a task is parked Python enforces no spend ceiling, and a park does not
@@ -78,9 +79,6 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
   user's approval; this is read from the client and not exercised.
 - The goal service on this machine is stopped and disabled; its deployed copy
   predates the account ledger.
-- The controller repair is merged into `main` without a native trial conclusion,
-  because the operator stopped the trial. The documentation baseline stays at
-  v9.6.0.
 - The critic's documentation read boundary in the shipped build has no native
   trial evidence; native evidence covers the M2 prototype and the pre-repair
   integrated-v2 build. The operator waived a further native matrix.
@@ -103,9 +101,8 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 
 ## Next
 
-- The [controller repair plan](execution-plans/2026-11-14-supervision-controller-repair.md)
-  is merged into `main`; its final review, the documentation baseline and a
-  release remain.
+- Cut a release from `main`, whose unreleased notes carry the supervision
+  repair, and advance the documentation baseline with it.
 - The [supervisor token plan](execution-plans/2026-10-27-supervisor-token-reminder.md)
   keeps its reminder in every kit message to an entrusted session, the question
   for the operator excepted; its native behavioral verification remains pending.
