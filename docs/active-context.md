@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 2b4b45297170eb1914d5705034b81cf1f0aacab7
-doc_baseline_date: 2026-10-27
+doc_baseline_commit: 8579bd90dd068a7410e6c5a504e0788850318531
+doc_baseline_date: 2026-11-10
 ---
 
 # Active Context
@@ -11,90 +11,77 @@ Scope: Volatile snapshot of current verified state, unresolved work, and immedia
 
 ## State now
 
-Persistent Codex and Claude supervision is implemented and installed locally
-without automatic activation. Check counts are uncapped unless explicitly limited; health checkpoints
-do not revoke execution authority. Policy requires waking idle connected leads,
-retaining unresolved failures and respecting operator boundaries. Observation-only
-scope stays read-only. Native Claude transport is verified on Linux 2.1.296 using
-an isolated local model fixture; supervisory judgment remains unverified.
-Delivery uncertainty and later confirmation remain separate audit observations.
-The contract and measured limits are in `supervision.md`.
-TEST-SUPERVISOR2 stays detached and unchanged. The operator creates TEST-SUPERVISOR3;
-this lead observes it externally in read-only mode after confirming its identity.
-Existing task instructions are not migrated by installation.
+The supervision controller and the debugger role are installed locally. Python
+observes Codex and Claude Code sessions, keeps a trigger clock, measures closures
+and spend, records every kit message in an account ledger, and refuses results,
+sends and parks its records do not support; `supervision.md` states what it
+enforces and what a model judges. Deterministic suites through the real CLI, three
+local replays of recorded runs, passive native reads of Codex 0.169.0 sessions and
+a live probe of the Claude adapter on Claude Code 2.1.323 are verified. A native
+trial runs on a Claude Code lead since 2026-11-15: cron wakes a dedicated
+supervisor session, which reads the lead and closes its assessments through the
+CLI. Role-discipline and test-blocker judgment remain model instructions whose
+native compliance is unverified. Earlier state roots are readable and are not
+migrated. The role contract is in
+[the role document](../shared/roles/README.md#diagnostic-handoff).
 
-This repository runs harness v9: one managed protocol block in root AGENTS.md,
-no repository CLAUDE.md, compact startup checks, deterministic migration
-(`doc-migrate.py`), and task-bound completion evidence (`doc-check.py
---completion`). The checker can refuse stale or missing results when invoked.
-It cannot force a client to invoke the lifecycle or authenticate an agent's
-judgment.
+Persistent Codex goals run a Python controller in the existing account by default;
+separate Linux users and sudo are optional protected-deployment requirements.
+Local setup retains existing sessions and lifecycle/acceptance checks. Same-account
+operator authority follows instructions, not a security boundary. Deployment,
+verification status and supported limits are in `supervision.md#persistent-goals`.
+Automatic stasis detection observes consumed lead turns and injects corrective
+prompts after failed acceptance with report-only activity. Installed fixture
+checks cover delivery, restart and execution/unknown/active distinctions. Native corrective delivery is verified for one bound lead. Useful model behavior and product restoration remain separate
+acceptance obligations. The
+[stasis plan](execution-plans/2026-11-01-goal-stasis-intervention.md) retains
+reviewed mechanics and deployment evidence.
 
-The operator's installed commands, skills and checker run v9.
+Harness v9 uses root AGENTS.md and task-bound completion evidence. Installed
+commands/checker use v9; each downstream repository still requires its own profile
+check and explicit migration when needed. The checker rejects stale/missing evidence
+when invoked; whole-lifecycle bypass and agent judgment are not authenticated.
+`documentation-harness.md` owns skill resolution, reviewed delivery, customized
+migration, preservation/rollback and release authorization. Migration compatibility
+reports are optional; measured native support is in `harness-runtime-support.md`.
+Migration staging now preserves relative sibling links and checks references back
+into the target against staged postimages. Eleven CLI regressions and the actual
+authorized mrcall-cs retirement pass; the original false-link refusal is retained.
+No compatibility-policy, client-configuration or completion-binding change follows.
 
-Kit sources resolve filesystem skills from catalog declarations, with only
-required, present local overrides. Nine CLI/install cases cover source selection,
-CS symlinks and template delivery; model obedience remains unverified. The
-installed helper matches the source and resolves the declared doc-start entry;
-complete client instruction refresh remains unverified. Source-linked instruction
-assets follow the checkout; installation limits belong in the harness contract.
+Codex roles inherit the session model; Claude/OpenCode roles follow `/ai-budget`.
+Generated agents carry bounded mandate-completion and final-answer re-read rules.
+Private reasoning and long-session reliability are unverified. Existing sessions
+need discovery refresh for new profiles. Runtime-specific support and installation
+limits remain in `reread-guard.md` and the role contract.
 
-The meta-repository, Desktop, kernel and support clone now have v9 profiles;
-other downstream repositories still declare v8, v3 or no profile. Each target's
-profile and current startup output determine its own prerequisite. The ancestor
-meta-repository CLAUDE.md is absent; this resolves that recorded shadowing cause
-without establishing new native-client compatibility.
-
-Installed doc-create upgrades require no runtime compatibility report or escape
-flag. Supplied reports remain strictly validated; ordinary layout migration
-records compatibility as not evaluated. Routine local documentation repairs
-belong to the authorized upgrade. Installed leaf/meta CLI fixtures cover
-upgrade, clean checker, exact rollback, scoped refusals and opaque child data;
-native client compatibility and broad regression suites remain deferred.
-Customized CLAUDE migration offers a concrete preservation proposal and explicit
-exact-file adoption consent, with original bytes/mode retained for rollback.
-Authorization waits remain pending tasks rather than terminal refusals.
-
-Current client/configuration support boundaries and historical measurements
-are documented in `harness-runtime-support.md`.
-
-Codex custom roles inherit the session model; Claude and OpenCode roles follow
-`/ai-budget`. Generated agents carry the shipped final-answer re-read checklist;
-private reasoning is not observable. Installed-client verification and its
-limits remain in the corresponding durable contracts.
-
-Mandate-completion instructions are installed for Codex leads and all four
-physical role profiles; the operator-owned global instructions are preserved.
-Generated kit agents receive the same bounded decision before yielding. Nine
-isolated native Codex CLI cases pass with real output/check evidence and
-legitimate-stop cases; causal improvement and long-session reliability remain
-unestablished. Ordinary Claude leads are outside the new route. Source-linked
-Claude/OpenCode instruction assets reflect the same source. Entry points,
-restart guidance and measured limits are in `reread-guard.md`.
-
-Release versions are recorded in CHANGELOG.md and matching Git tags. Native
-compatibility verification remains explicitly deferred. Mandatory migration
-prerequisites are superseded by the shipped upgrade UX; report acquisition is
-optional. Release requires separate task authorization. The gate
-enforces `HARNESS_VERSION` against the newest release tag's major in the
-installed checkout, with a named advisory for an in-flight release.
-
-Scope guard is accepted with its documented measured limits; further native
-acceptance trials are waived. Verification warnings read required command
-receipts for an explicitly selected task and never block a session. The CLI,
-registration roundtrips and real adapter callbacks have focused acceptance
-evidence. Installed notification adapters remain dormant on all three clients;
-native display and Codex hook trust are unverified.
-
-Automatic av is disabled. Doc-harness installation removes its owned hooks and
-OpenCode plugin registration on selected runtimes, without installing that
-plugin's dependencies. Manual av remains available. Registration retirement
-preserves foreign hooks and history; already loaded native sessions may need
-restart. Current ownership and verification limits belong in
-`runtime-completion.md`.
+Scope guard is accepted within its measured limits; further native trials are
+waived. Verification notification adapters remain dormant. Direct task-bound
+verification warnings are advisory; native display and Codex hook trust are
+unverified. Their durable contracts retain the actual evidence boundaries.
+Automatic av remains disabled; manual av is available. Installation preserves
+foreign registrations/history and does not reload cached sessions. The protected
+goal service does not reactivate this retired path (`runtime-completion.md`).
 
 ## Unresolved
 
+- The native trial of the supervision controller is running and not concluded: its
+  task is parked on a question for the operator. Not yet observed on live
+  sessions: the challenge on a park requested by a convergence review, a spend
+  ceiling with its stop, and the conclusion of a task. `turn/interrupt` on a live
+  Codex turn is unverified.
+- While a task is parked Python enforces no spend ceiling, and a park does not
+  stop the lead: a lead that keeps working under a parked task has no hard stop.
+- Python does not compare acceptance items with later operator messages; a task
+  the supervisor did not update is read as written by every fresh-context run.
+- A Claude Code session in bypass-permissions mode holds a kit message for its
+  user's approval; this is read from the client and not exercised.
+- The goal service on this machine is stopped and disabled; its deployed copy
+  predates the account ledger.
+- The controller repair is on the branch `supervision-controller-repair`, pushed
+  up to `88c9138`. Later commits are local, and one of them belongs to another
+  session whose operator ordered no push: a plain push needs the operator.
+  `main` and the documentation baseline stay at v9.6.0 until the trial concludes.
 - The critic's documentation read boundary in the shipped build has no native
   trial evidence; native evidence covers the M2 prototype and the pre-repair
   integrated-v2 build. The operator waived a further native matrix.
@@ -116,6 +103,14 @@ restart. Current ownership and verification limits belong in
   installations, and other OpenCode providers are not established.
 
 ## Next
+
+- The [controller repair plan](execution-plans/2026-11-14-supervision-controller-repair.md)
+  runs its native trial; the trial's outcome precedes the final review, the
+  baseline and the merge to `main`. A release and the goal controller's code wait
+  for the operator.
+- The [supervisor token plan](execution-plans/2026-10-27-supervisor-token-reminder.md)
+  keeps its reminder in every kit message to an entrusted session, the question
+  for the operator excepted; its native behavioral verification remains pending.
 
 - Continue downstream orientation from each target's actual profile; migration
   remains an explicit task and legacy profiles must not be upgraded implicitly.

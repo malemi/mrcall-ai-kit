@@ -21,14 +21,14 @@ for mode in copy symlink; do
   test -x "$hook"
   test -f "$router_cmd"
   # The roles the router delegates to, and the skill their rules arrive through.
-  for role in execute verify reviewer; do test -f "$test_home/.claude/agents/$role.md"; done
+  for role in execute verify reviewer debugger; do test -f "$test_home/.claude/agents/$role.md"; done
   test -f "$test_home/.claude/skills/kit-role-rules/SKILL.md"
   if [[ "$mode" == copy ]]; then
     test ! -L "$hook"
   else
     test -L "$hook"
     test -L "$router_cmd"
-    for role in execute verify reviewer; do test -L "$test_home/.claude/agents/$role.md"; done
+    for role in execute verify reviewer debugger; do test -L "$test_home/.claude/agents/$role.md"; done
   fi
   # Only the router's own command: /sc would register a hook script only
   # `--features reread` installs, and scope-guard has a feature of its own.
@@ -58,7 +58,7 @@ HOME="$test_home" "$KIT_DIR/install.sh" \
   --environment claude --features doc-harness,router \
   --mode symlink --on-exist skip --yes >/dev/null
 manifest="$test_home/.config/mrcall-ai-kit/installed.tsv"
-for role in execute verify reviewer; do
+for role in execute verify reviewer debugger; do
   count=$(grep -c "\.claude/agents/$role\.md" "$manifest")
   [[ "$count" -eq 1 ]] || { echo "expected exactly one $role.md manifest entry, got $count" >&2; exit 1; }
 done
@@ -75,7 +75,7 @@ HOME="$test_home" "$KIT_DIR/install.sh" \
 HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes >/dev/null
 test ! -e "$test_home/.claude/commands/router.md"
 test ! -e "$test_home/.config/mrcall-ai-kit/router-hook.py"
-for role in execute verify reviewer; do test ! -e "$test_home/.claude/agents/$role.md"; done
+for role in execute verify reviewer debugger; do test ! -e "$test_home/.claude/agents/$role.md"; done
 echo "router uninstall: PASS"
 
 # ── the hook itself: dormant without the flag, injects with it ─────────────

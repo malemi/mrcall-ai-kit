@@ -40,8 +40,8 @@ KIT_GLOBAL="$HOME/.config/mrcall-ai-kit"   # tool-independent home for doc-check
 MANIFEST="$KIT_GLOBAL/installed.tsv"       # append-only install log, read by ./uninstall.sh
 BACKUPS="$KIT_GLOBAL/backups"              # --on-exist backup of a directory, outside every scan path
 RETIRED_LIST="$SCRIPT_DIR/shared/roles/retired.txt"  # files the kit shipped under names it has retired
-CC_ROLES="execute verify reviewer"          # Claude Code role agents (claude/agents/<budget>/)
-OC_ROLES="execute verify"                   # OpenCode role agents the leads delegate to
+CC_ROLES="execute verify reviewer debugger"          # Claude Code role agents (claude/agents/<budget>/)
+OC_ROLES="execute verify debugger"                   # OpenCode role agents the leads delegate to
 BUDGETS="low medium high"                   # one rendering of every agent per budget
 BUDGET_FILE="$KIT_GLOBAL/budget"            # this machine's budget; medium when absent
 AGENT_HOME="$KIT_GLOBAL/agents"             # every budget's rendering, installed: <runtime>/<budget>/<name>.md
@@ -83,6 +83,8 @@ Usage: ./install.sh [--environment claude|codex|opencode|all|both] [--features L
               the kit edits your live config — and moving or deleting the
               checkout breaks it. Codex custom agents are always copied because
               current Codex clients reject symlinked agent TOML files.
+              Protected goal assets and the Codex transport are also always
+              copied so administrative goal setup can verify regular files.
               copy = a frozen snapshot, unaffected by the
               checkout afterwards; re-run the installer to pick up changes.
   --on-exist: what to do when a target file already exists.
@@ -120,7 +122,7 @@ EOF
   echo "                 ai-budget  (-> ~/.config/mrcall-ai-kit/)"
   echo "     agents:     $(list_entries "$SCRIPT_DIR/claude/agents/medium")  [Claude Code only — the role"
   echo "                 agents the doc-* commands delegate to; installed with doc-harness]"
-  echo "     Codex:      execute, plan, reviewer, verify custom agents (-> ~/.codex/agents/)"
+  echo "     Codex:      debugger, execute, plan, reviewer, verify custom agents (-> ~/.codex/agents/)"
   echo "                 auto-av: removes owned automatic registrations; retains inactive management assets."
   echo
   echo "  shortcuts      [cross-tool -> Claude Code + OpenCode as typed commands; Codex differs, see below]"
@@ -135,6 +137,8 @@ EOF
   echo "     installs:   persistent tasks/memory, minute scheduler, native transport and supervisor skill"
   echo "     setup:      invoke supervisor to prepare its owned Python environment and bind exact sessions"
   echo "                 Installation never enables cron or installs Python dependencies."
+  echo "     goals:      protected goal service/setup assets and Codex transport are always copied."
+  echo "                 Separate root goal_setup.py provisioning is required; installation stays dormant."
   echo
   echo "  orchestration  [OpenCode only]"
   echo "     command:    orchestrator     agents: build, plan, reviewer, orchestrator     skill: orchestrator"
@@ -442,6 +446,7 @@ if $DO_DOC; then
   if $WANT_OC; then
     if ! $DO_WORKERS; then
       add_agent opencode verify "$OC_DIR/agents"
+      add_agent opencode debugger "$OC_DIR/agents"
     fi
   fi
 fi
@@ -499,7 +504,7 @@ if $DO_WARNINGS; then
   fi
 fi
 if $DO_SUPERVISION; then
-  for asset in __init__.py __main__.py cli.py store.py scheduler.py cron.py harness.py control.py runtime.py requirements.txt POLICY.md COMMANDS.md; do
+  for asset in __init__.py __main__.py cli.py store.py scheduler.py cron.py harness.py control.py runtime.py ledger.py observe.py authority.py review.py requirements.txt POLICY.md COMMANDS.md goal_acceptance.py goal_child.py goal_client.py goal_driver.py goal_native.py goal_service.py goal_setup.py goal_store.py goal.service; do
     add_one "$SCRIPT_DIR/shared/supervision/$asset" "$KIT_GLOBAL/supervision/$asset"
   done
   add_one "$SCRIPT_DIR/codex/supervision/transport.py" "$KIT_GLOBAL/supervision/codex_transport.py"
@@ -680,12 +685,18 @@ if $DO_DOC && [[ -e "$KIT_GLOBAL/CLAUDE.template.md" || -L "$KIT_GLOBAL/CLAUDE.t
   fi
 fi
 
+installation_mode() {
+  case "$1" in
+    "$CODEX_AGENTS_DIR/"*|"$KIT_GLOBAL/supervision/goal_"*.py|"$KIT_GLOBAL/supervision/goal.service"|"$KIT_GLOBAL/supervision/codex_transport.py") echo copy ;;
+    *) echo "$MODE" ;;
+  esac
+}
+
 # ── Preview ────────────────────────────────────────────────────────────────
 echo "── Plan (mode: $MODE, on-exist: $ON_EXIST$($DRY_RUN && echo ', DRY-RUN' || true)) ──"
 i=0
 while [[ $i -lt ${#PLAN_SRC[@]} ]]; do
-  preview_mode="$MODE"
-  [[ "${PLAN_DST[$i]}" != "$CODEX_AGENTS_DIR/"* ]] || preview_mode=copy
+  preview_mode="$(installation_mode "${PLAN_DST[$i]}")"
   printf "  %-8s %s\n" "$preview_mode" "${PLAN_DST[$i]}"
   i=$((i+1))
 done
@@ -797,8 +808,8 @@ unchanged_installed_item() { # Only execute/update assets the manifest still own
 }
 
 install_item() { # $1=src $2=dst
-  local src="$1" dst="$2" bak="" item_mode="$MODE"
-  [[ "$dst" != "$CODEX_AGENTS_DIR/"* ]] || item_mode=copy
+  local src="$1" dst="$2" bak="" item_mode
+  item_mode="$(installation_mode "$dst")"
   if [[ -e "$dst" || -L "$dst" ]]; then
     case "$ON_EXIST" in
       skip)      echo "  skip     $dst (exists)"; return ;;
@@ -935,6 +946,7 @@ if $DO_SCOPE; then
   if $WANT_OC && ! $ACTIVATE_OC; then echo "  OpenCode scope guard installed but dormant: run /scope-guard on to activate."; fi
 fi
 $DO_SUPERVISION && echo "  Supervision installed but dormant (Codex and Claude Code): invoke the supervisor skill to set up dependencies and activate exact session bindings. Task and memory history survive uninstall."
+$DO_SUPERVISION && echo "  Protected goals: goal assets and Codex transport use copy mode; existing-file policy still applies. Separate root goal_setup.py provisioning is required; no goal service was activated."
 $DO_WARNINGS && echo "  Verification warnings installed: dormant unless explicitly registered; bind a known runtime session/task for advisories."
 $DO_SHORTCUTS && echo "  Shortcuts installed: /nr and /av on Claude Code/OpenCode; on Codex, ask for the nr or av skill by name."
 $DRY_RUN || echo "  Install log: $MANIFEST  (run ./uninstall.sh to undo exactly these)."

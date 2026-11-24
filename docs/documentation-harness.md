@@ -138,7 +138,8 @@ cost. Runtime measurements and their limitations are in
 
 Delegate bounded substantive work when parallelism, specialist capability, or
 isolation exceeds prompting, waiting, and review costs. Use `execute` for decided
-work, `verify` for consequential truth checks, `plan` for read-only planning,
+work, `debugger` for read-only causal investigation of a failing case,
+`verify` for consequential truth checks, `plan` for read-only planning,
 and `reviewer` for lifecycle gates where those installed roles are available.
 Claude exposes `Agent`, OpenCode `task`, and Codex `spawn_agent`.
 
@@ -248,6 +249,11 @@ validate; failed evidence never silently falls back. Legacy explicit
 combined with a report. Ownership, staging, publication and rollback remain
 enforced in every mode. Native client experiments are a separate task.
 
+Migration staging uses a private temporary sibling of the target repository so
+relative links to other workspace repositories retain their real context. It
+requires permission to create that sibling; allocation failure refuses migration.
+Links back into the target are also checked against staged postimages, so a
+retired file cannot be validated through its still-present original path.
 Migration staging references application and child-repository trees instead of
 copying them. Managed files are isolated copies; documentation directories are
 recreated with read-only checker references to their source files. Mechanical

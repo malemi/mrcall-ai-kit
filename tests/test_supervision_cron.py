@@ -137,6 +137,24 @@ class CronTests(unittest.TestCase):
         with self.assertRaises(StoreError):
             cron.command('relative-codex')
 
+    def test_the_claude_configuration_directory_is_passed_on_only_when_the_account_sets_it(self):
+        cron = Cron('/tmp/state')
+        with patch.dict(os.environ):
+            os.environ.pop('CLAUDE_CONFIG_DIR', None)
+            plain = cron.render('', True, claude_path='/custom/claude')
+            self.assertNotIn('CLAUDE_CONFIG_DIR', plain)
+            self.assertIn('--claude-path /custom/claude', plain)
+            # The entry without the variable is still recognized as owned and kept as it is.
+            self.assertEqual(cron.render(plain, True), plain)
+            self.assertEqual(cron.render(plain, False), '')
+        with patch.dict(os.environ, {'CLAUDE_CONFIG_DIR': '/custom/config'}):
+            moved = cron.render('', True, claude_path='/custom/claude')
+            self.assertIn('CLAUDE_CONFIG_DIR=/custom/config', moved)
+        with patch.dict(os.environ):
+            os.environ.pop('CLAUDE_CONFIG_DIR', None)
+            # An entry that carries the variable keeps it when the entry is rendered again.
+            self.assertEqual(cron.render(moved, True), moved)
+
     def test_activation_detachment_no_native_work(self):
         with tempfile.TemporaryDirectory() as tmp:
             store = Store(Path(tmp) / 'state')

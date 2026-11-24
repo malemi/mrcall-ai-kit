@@ -17,11 +17,12 @@ skill path from another skill's directory. Resolve and validate each source
 before batching reads; report a missing declared source instead of guessing.
 
 The kit installs Codex custom agents `reviewer`, `verify`, `execute`, and
-`plan` in `~/.codex/agents/`. As lead, for a lifecycle gate, spawn `reviewer` by name
+`plan`, plus `debugger` in `~/.codex/agents/`. As lead, for a lifecycle gate, spawn `reviewer` by name
 and give it the artifact, gate kind, and approved brief or plan as applicable.
 Its role rules load as the child's developer instructions. Use `verify` for
 consequential truth checks, `plan` for read-only planning from an approved
-brief, and `execute` for decided work. Do not treat `docs/.doc-profile` as an
+brief, `debugger` for causal diagnosis from actual failing data, and `execute`
+for decided work. Do not treat `docs/.doc-profile` as an
 agent profile. If the custom agents are absent, report that limitation rather
 than claim a kit review occurred.
 {{MANDATE_COMPLETION}}

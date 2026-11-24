@@ -11,7 +11,7 @@ for mode in copy symlink; do
   printf 'name = "foreign"\ndescription = "keep"\ndeveloper_instructions = "keep"\n' > "$test_home/.codex/agents/foreign.toml"
   HOME="$test_home" "$KIT_DIR/install.sh" --environment codex --features doc-harness \
     --mode "$mode" --on-exist skip --yes > "$TEST_ROOT/$mode.out"
-  for role in execute plan reviewer verify; do
+  for role in debugger execute plan reviewer verify; do
     file="$test_home/.codex/agents/$role.toml"
     test -f "$file"
     cmp "$file" "$KIT_DIR/codex/agents/$role.toml"
@@ -24,14 +24,14 @@ for mode in copy symlink; do
   test "$(grep -c 'mrcall-ai-kit:codex-agents:start' "$test_home/.codex/AGENTS.md")" -eq 1
   HOME="$test_home" python3 "$test_home/.config/mrcall-ai-kit/ai-budget.py" \
     > "$TEST_ROOT/$mode.budget"
-  grep -q 'Codex: execute, plan, reviewer, verify inherit the session model' "$TEST_ROOT/$mode.budget"
+  grep -q 'Codex: debugger, execute, plan, reviewer, verify inherit the session model' "$TEST_ROOT/$mode.budget"
   # `all`: the listing hides every runtime but the one it runs in, and this
   # test asserts a Codex row from whichever runtime runs the suite.
   HOME="$test_home" bash "$test_home/.config/mrcall-ai-kit/ai-help.sh" all \
     > "$TEST_ROOT/$mode.help"
   grep -q '| reviewer | inherits session model |' "$TEST_ROOT/$mode.help"
   HOME="$test_home" "$KIT_DIR/uninstall.sh" --yes > /dev/null
-  for role in execute plan reviewer verify; do test ! -e "$test_home/.codex/agents/$role.toml"; done
+  for role in debugger execute plan reviewer verify; do test ! -e "$test_home/.codex/agents/$role.toml"; done
   test -f "$test_home/.codex/agents/foreign.toml"
   test "$(cat "$test_home/.codex/AGENTS.md")" = 'Foreign global rule.'
 done

@@ -13,6 +13,8 @@ lead plus optional workers and a risk-proportional reviewer.
 - `skills/orchestrator/SKILL.md`: reusable orchestration policy.
 - `agents/execute.md`, `agents/verify.md`: the roles the leads delegate to —
   leaf executors and judges with bounded scope and proportionate verification.
+- `agents/debugger.md`: read-only causal diagnosis from actual failing data,
+  followed function by function to the first demonstrated divergence.
 - `agents/reviewer.md`: mandatory internal artifact and integration gate for
   substantial work; optional for the strict direct fast path.
 

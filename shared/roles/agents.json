@@ -1,4 +1,15 @@
 {
+  "claude--debugger": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "debugger",
+    "role": "debugger",
+    "runtime": "claude",
+    "src": "claude/agents/{budget}/debugger.md"
+  },
   "claude--execute": {
     "blocks": [
       "## Delivery contract",
@@ -32,29 +43,56 @@
     "runtime": "claude",
     "src": "claude/agents/{budget}/verify.md"
   },
+  "codex--debugger": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "debugger",
+    "role": "debugger",
+    "runtime": "codex",
+    "src": "codex/agents/debugger.toml"
+  },
   "codex--execute": {
-    "blocks": ["## Delivery contract", "## Proportional execution", "## Report budget"],
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
     "name": "execute",
     "role": "execute",
     "runtime": "codex",
     "src": "codex/agents/execute.toml"
   },
   "codex--plan": {
-    "blocks": ["## Delivery contract", "## Proportional execution", "## Report budget"],
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
     "name": "plan",
     "role": "plan",
     "runtime": "codex",
     "src": "codex/agents/plan.toml"
   },
   "codex--reviewer": {
-    "blocks": ["## Delivery contract", "## Proportional execution", "## Report budget"],
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
     "name": "reviewer",
     "role": "review",
     "runtime": "codex",
     "src": "codex/agents/reviewer.toml"
   },
   "codex--verify": {
-    "blocks": ["## Delivery contract", "## Proportional execution", "## Report budget"],
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
     "name": "verify",
     "role": "verify",
     "runtime": "codex",
@@ -66,6 +104,17 @@
     "role": "orchestrate",
     "runtime": "opencode",
     "src": "opencode/agents/{budget}/build.md"
+  },
+  "opencode--debugger": {
+    "blocks": [
+      "## Delivery contract",
+      "## Proportional execution",
+      "## Report budget"
+    ],
+    "name": "debugger",
+    "role": "debugger",
+    "runtime": "opencode",
+    "src": "opencode/agents/{budget}/debugger.md"
   },
   "opencode--execute": {
     "blocks": [

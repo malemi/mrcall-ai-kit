@@ -154,8 +154,8 @@ else:
         self.assertTrue((self.kit / 'supervision/claude_transport.py').is_file())
         self.cli('activate', {'id': 'team', 'runtime': 'claude', 'session_id': native.thread_id},
                  ('--claude-path', str(native.executable)))
-        self.cli('task-create', {'id': 't', 'supervisor_id': 'team', 'instruction': 'Verify fixture',
-                               'scope': 'fixture', 'acceptance': ['actual result'], 'next_run_at': 0, 'limits': {'provenance': 'fixture'}})
+        self.cli('task-create', {'id': 't', 'supervisor_id': 'team', 'mode': 'observation', 'operator_session_id': native.thread_id,
+                               'instruction': 'Verify fixture', 'scope': 'fixture', 'acceptance': ['actual result'], 'next_run_at': 0})
         self.cli('tick', extra=('--claude-path', str(native.executable)))
         self.assertTrue(native.received.wait(2))
         execution = self.cli('status')['executions'][0]

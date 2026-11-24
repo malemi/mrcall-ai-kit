@@ -203,7 +203,7 @@ home="$TEST_ROOT/status-home" ; mkdir -p "$home"
 install_kit "$home" symlink "$KIT_DIR"
 ai_budget "$home" > "$TEST_ROOT/out"
 grep -q '^Budget: medium (the default: .* is absent)$' "$TEST_ROOT/out" || fail "status: the default budget is not shown"
-for role in execute verify reviewer; do
+for role in execute verify reviewer debugger; do
   grep -qE "^  $role +$(selected claude medium "${role/reviewer/review}")\$" "$TEST_ROOT/out" \
     || fail "status: Claude Code's $role does not show its medium model"
 done

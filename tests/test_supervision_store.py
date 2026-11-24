@@ -1,31 +1,29 @@
 import concurrent.futures
 import json
-import os
 from pathlib import Path
 import sqlite3
 import stat
 import subprocess
 import sys
-import tempfile
 import unittest
 import uuid
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
 CLI = ROOT / 'shared/supervision/cli.py'
+from supervision_fixture import isolate
 
 
 class SupervisionStoreCLI(unittest.TestCase):
     def setUp(self):
-        self.temp = tempfile.TemporaryDirectory()
-        self.state = Path(self.temp.name) / 'state'
+        self.temp = isolate(self)
+        self.state = self.temp / 'state'
         self.supervisor = str(uuid.uuid4())
         self.target = str(uuid.uuid4())
 
-    def tearDown(self):
-        self.temp.cleanup()
-
     def cli(self, command, data=None, ok=True, extra=()):
-        run = subprocess.run([sys.executable, str(CLI), '--state-dir', str(self.state), command, *extra], input=json.dumps(data) if data is not None else '', capture_output=True, text=True)
+        run = subprocess.run([sys.executable, str(CLI), '--state-dir', str(self.state), command, *extra],
+                             input=json.dumps(data) if data is not None else '', capture_output=True, text=True)
         result = json.loads(run.stdout)
         self.assertEqual(run.returncode, 0 if ok else 1, run.stdout + run.stderr)
         self.assertEqual(result['ok'], ok)
@@ -34,15 +32,19 @@ class SupervisionStoreCLI(unittest.TestCase):
     def bind(self):
         return self.cli('bind', {'id': 'lead', 'session_id': self.supervisor, 'target_ids': [self.target]})
 
-    def create(self, task_id='work'):
-        return self.cli('task-create', {'id': task_id, 'instruction': 'Verify delivery evidence', 'supervisor_id': 'lead', 'target_ids': [self.target], 'acceptance': ['Actual result verified'], 'scope': 'Test repository only', 'limits': {'provenance': 'lead planning default'}})
+    def create(self, task_id='work', mode='observation', **changes):
+        data = {'id': task_id, 'supervisor_id': 'lead', 'mode': mode, 'operator_session_id': self.supervisor,
+                'instruction': 'Verify delivery evidence', 'acceptance': ['Actual result verified'],
+                'scope': 'Test repository only'}
+        data.update(changes)
+        return self.cli('task-create', data)
 
     def test_real_cli_task_lifecycle_and_restart(self):
         self.bind()
         task = self.create()
         self.assertEqual(task['interval_seconds'], 600)
         self.assertIsNone(task['limits']['max_checks'])
-        self.assertEqual(task['limits']['parameter_provenance']['max_checks'], 'supervisor-default')
+        self.assertEqual(task['limits']['parameter_provenance']['heartbeat_seconds'], 'supervisor-default')
         paused = self.cli('task-state', {'id': 'work', 'revision': 1, 'action': 'pause', 'reason': 'Operator pause'})
         self.assertEqual(paused['status'], 'paused')
         resumed = self.cli('task-state', {'id': 'work', 'revision': 2, 'action': 'resume', 'reason': 'Operator resume'})
@@ -57,7 +59,8 @@ class SupervisionStoreCLI(unittest.TestCase):
         self.bind()
         self.create()
         def update(index):
-            return subprocess.run([sys.executable, str(CLI), '--state-dir', str(self.state), 'task-update'], input=json.dumps({'id': 'work', 'revision': 1, 'changes': {'instruction': f'Check {index}'}}), text=True, capture_output=True)
+            return subprocess.run([sys.executable, str(CLI), '--state-dir', str(self.state), 'task-update'],
+                                  input=json.dumps({'id': 'work', 'revision': 1, 'changes': {'instruction': f'Check {index}'}}), text=True, capture_output=True)
         with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(update, [1, 2]))
         self.assertEqual(sorted(r.returncode for r in results), [0, 1])
@@ -80,6 +83,14 @@ class SupervisionStoreCLI(unittest.TestCase):
             with self.assertRaises(sqlite3.IntegrityError):
                 conn.execute('DELETE FROM audit')
 
+    def test_decision_memory_requires_undo(self):
+        self.bind()
+        self.create()
+        self.assertIn('undo', self.cli('memory-add', {'id': 'd1', 'supervisor_id': 'lead', 'task_id': 'work', 'kind': 'decision',
+                                                       'content': 'ignored', 'source': 'test', 'what': 'skipped a step', 'why': 'redundant'}, ok=False))
+        self.cli('memory-add', {'id': 'd2', 'supervisor_id': 'lead', 'task_id': 'work', 'kind': 'decision', 'content': 'ignored',
+                                'source': 'test', 'what': 'skipped a step', 'why': 'redundant', 'undo': 're-run the step'})
+
     def test_exact_bindings_and_private_files(self):
         first = self.bind()
         self.assertEqual(self.bind(), first)
@@ -87,7 +98,8 @@ class SupervisionStoreCLI(unittest.TestCase):
         for file in self.state.iterdir():
             self.assertEqual(stat.S_IMODE(file.stat().st_mode), 0o600)
         self.assertIn('exact UUID', self.cli('bind', {'id': 'other', 'session_id': 'newest'}, ok=False))
-        task = {'id': 'bad', 'supervisor_id': 'lead', 'target_ids': [str(uuid.uuid4())], 'instruction': 'Check', 'acceptance': ['Done'], 'scope': 'Only target', 'limits': {'provenance': 'operator'}}
+        task = {'id': 'bad', 'supervisor_id': 'lead', 'mode': 'observation', 'operator_session_id': self.supervisor,
+                'target_ids': [str(uuid.uuid4())], 'instruction': 'Check', 'acceptance': ['Done'], 'scope': 'Only target'}
         self.assertIn('outside', self.cli('task-create', task, ok=False))
         self.state.chmod(0o755)
         self.assertIn('unsafe', self.cli('status', ok=False))
@@ -101,7 +113,7 @@ class SupervisionStoreCLI(unittest.TestCase):
         self.assertIn('newer schema', self.cli('status', ok=False))
         self.assertEqual(before, db.read_bytes())
         db.unlink()
-        external = Path(self.temp.name) / 'foreign'
+        external = self.temp / 'foreign'
         external.write_text('untouched')
         db.symlink_to(external)
         self.assertIn('unsafe', self.cli('init', ok=False))
@@ -110,40 +122,45 @@ class SupervisionStoreCLI(unittest.TestCase):
     def test_block_detach_and_stale_execution_results(self):
         self.bind()
         self.create()
-        blocked = self.cli('task-state', {'id': 'work', 'revision': 1, 'action': 'block', 'reason': 'External wait', 'remaining': ['Read result'], 'resume_condition': 'Result arrives'})
-        self.assertEqual(blocked['status'], 'blocked')
+        park = {'reason': 'operator-input', 'questions': [{'matter': 'External wait', 'options': ['Wait', 'Stop'], 'recommendation': 'Wait'}],
+                'completed': 'Nothing else can proceed', 'cites': []}
+        paused = self.cli('task-state', {'id': 'work', 'revision': 1, 'action': 'pause', 'reason': 'External wait'})
+        self.assertEqual(paused['status'], 'paused')
         self.cli('task-state', {'id': 'work', 'revision': 2, 'action': 'resume', 'reason': 'Result arrived'})
+        self.cli('tick')
         with sqlite3.connect(self.state / 'state.sqlite3') as conn:
-            conn.execute("INSERT INTO executions(id,task_id,supervisor_id,generation,binding_generation,status,scheduled_at) VALUES('ex','work','lead',3,1,'delivered',1)")
-            conn.execute("INSERT INTO outbox(id,execution_id,status,payload,client_message_id,created_at,updated_at) VALUES('event','ex','pending','{}','msg',1,1)")
+            running = conn.execute("SELECT id,generation FROM executions WHERE task_id='work'").fetchone()
         detached = self.cli('detach', {'id': 'lead', 'reason': 'Operator detached'})
         self.assertEqual(detached['status'], 'detached')
         self.assertEqual(self.cli('status', extra=('--id', 'work'))['status'], 'paused')
         attached = self.bind()
         self.assertEqual(attached['status'], 'active')
-        self.assertEqual(attached['generation'], 3)
         self.assertEqual(self.cli('status', extra=('--id', 'work'))['status'], 'paused')
-        self.assertIn('stale execution', self.cli('execution-result', {'id': 'ex', 'generation': 3, 'outcome': 'completed', 'summary': 'Late result', 'evidence': ['late']}, ok=False))
+        self.assertIn('stale execution', self.cli('execution-result', {'id': running[0], 'generation': running[1], 'outcome': 'completed', 'summary': 'Late result', 'evidence': ['late']}, ok=False))
         with sqlite3.connect(self.state / 'state.sqlite3') as conn:
-            self.assertEqual(conn.execute("SELECT status FROM outbox WHERE id='event'").fetchone()[0], 'cancelled')
+            self.assertEqual(conn.execute("SELECT status FROM outbox WHERE execution_id=?", (running[0],)).fetchone()[0], 'cancelled')
             self.assertFalse(json.loads(conn.execute("SELECT details FROM audit WHERE action='detach'").fetchone()[0])['underlying_sessions_cancelled'])
 
     def test_blocked_metadata_survives_instruction_update_and_restart(self):
         self.bind()
         self.create()
-        self.cli('task-state', {'id': 'work', 'revision': 1, 'action': 'block', 'reason': 'Awaiting external receipt', 'remaining': ['Verify delivered artifact'], 'evidence': ['failed-check.json'], 'resume_condition': 'Receipt becomes available'})
+        park = {'reason': 'operator-input', 'questions': [{'matter': 'Awaiting external receipt', 'options': ['Wait', 'Stop'], 'recommendation': 'Wait'}],
+                'completed': 'Nothing else can proceed', 'cites': []}
+        self.cli('task-state', {'id': 'work', 'revision': 1, 'action': 'block', 'reason': 'Awaiting external receipt',
+                                'remaining': ['Verify delivered artifact'], 'evidence': ['failed-check.json'], 'park': park})
         updated = self.cli('task-update', {'id': 'work', 'revision': 2, 'changes': {'instruction': 'Inspect the receipt when available'}})
         self.assertEqual(updated['revision'], 3)
         restored = self.cli('status', extra=('--id', 'work'))
         self.assertEqual(restored['status'], 'blocked')
         self.assertEqual(restored['reason'], 'Awaiting external receipt')
-        self.assertEqual(restored['resume_condition'], 'Receipt becomes available')
         self.assertEqual(restored['remaining'], ['Verify delivered artifact'])
         self.assertEqual(restored['evidence'], ['failed-check.json'])
         self.assertEqual(restored['instruction'], 'Inspect the receipt when available')
-        resumed = self.cli('task-state', {'id': 'work', 'revision': 3, 'action': 'resume', 'reason': 'Receipt arrived'})
-        self.assertNotIn('resume_condition', resumed)
-        self.assertEqual(resumed['reason'], 'Receipt arrived')
+        # A park ends with the operator's words, not with a bare resume.
+        refused = self.cli('task-state', {'id': 'work', 'revision': 3, 'action': 'resume', 'reason': 'Receipt arrived'}, ok=False)
+        self.assertIn('waits for the operator', refused)
+        self.assertEqual(self.cli('status', extra=('--id', 'work'))['status'], 'blocked')
+
 
 if __name__ == '__main__':
     unittest.main()

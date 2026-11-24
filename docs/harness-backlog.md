@@ -85,3 +85,7 @@ that settled it. A document listed here is never asked about again.
   **keep whole**, 421 lines, 2026-10-27. One capability's implementation and
   native verification record stays together for its owner; the size advisory
   does not justify reorganizing an unrelated workstream during activation.
+- `docs/execution-plans/2026-11-14-supervision-controller-repair.md` — **keep whole**, 2026-11-15, at 512 lines:
+  its verification table is the brief's required map from each property to its observation, and it holds the
+  record of the native trial while the trial runs.
+

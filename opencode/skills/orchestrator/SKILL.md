@@ -100,8 +100,10 @@ When delegating:
    the CTO verbatim.
 
 Delegate to the role the job needs: `execute` for work whose decisions are
-already made, `verify` where a plausible-but-wrong answer is expensive, and
-`reviewer` for a lifecycle gate. Never choose a model, and do not introduce a
+already made, `debugger` for read-only causal diagnosis from actual failing
+data, `verify` where a plausible-but-wrong answer is expensive, and `reviewer`
+for a lifecycle gate. Give the debugger the failing entry point, exact case
+data and evidence paths, expected result, environment and diagnostic bounds. Never choose a model, and do not introduce a
 model-selection conversation with the CTO; the kit resolves each role's model.
 
 ## Verification

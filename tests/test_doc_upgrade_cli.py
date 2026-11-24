@@ -1,6 +1,7 @@
 """Focused deterministic upgrade acceptance; no native clients or runtime claims."""
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -10,6 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPTS = ROOT / "shared/scripts"
@@ -185,6 +187,63 @@ class UpgradeCLI(unittest.TestCase):
         check = subprocess.run([sys.executable, str(SCRIPTS / "doc-check.py"), "--repo", str(self.root), "--json"], capture_output=True, text=True, timeout=20)
         self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
         self.assertEqual(self.invoke("rollback", "--transaction", self.transaction)["state"], "rolled_back")
+        self.assertEqual(before, self.tree())
+
+    def test_sibling_links_survive_cli_migration_and_rollback(self):
+        sibling = self.base / "shared"
+        sibling.mkdir()
+        target = sibling / "guide.md"
+        target.write_text("Sibling documentation must stay unchanged.\n")
+        target.chmod(0o640)
+        (self.root / "README.md").write_text("[Guide](../shared/guide.md)\n")
+        (self.root / "docs/README.md").write_text(SCOPE + "[Guide](../../shared/guide.md)\n")
+        before = self.tree()
+        sibling_before = (target.read_bytes(), target.stat().st_mode)
+        for action in ("inspect", "dry-run"):
+            self.assertTrue(self.invoke(action)["ready"])
+            self.assertEqual(before, self.tree())
+            self.assertEqual(list(self.base.glob(".doc-migrate-stage-*")), [])
+        self.assertEqual(self.invoke("apply", "--transaction", self.transaction)["state"], "applied")
+        check = subprocess.run([sys.executable, str(SCRIPTS / "doc-check.py"), "--repo", str(self.root), "--json"], capture_output=True, text=True, timeout=20)
+        self.assertEqual(check.returncode, 0, check.stdout + check.stderr)
+        self.invoke("rollback", "--transaction", self.transaction)
+        self.assertEqual(before, self.tree())
+        self.assertEqual(sibling_before, (target.read_bytes(), target.stat().st_mode))
+        self.assertEqual(list(self.base.glob(".doc-migrate-stage-*")), [])
+
+    def test_missing_sibling_refuses_without_mutation(self):
+        (self.root / "README.md").write_text("[Missing](../shared/absent.md)\n")
+        before = self.tree()
+        for action in ("inspect", "apply"):
+            result = self.invoke(action, "--transaction", self.transaction, expected=1)
+            self.assertIn("DEAD LINKS", result["mechanical_validation"]["violations"])
+            self.assertEqual(before, self.tree())
+            self.assertFalse(self.transaction.exists())
+            self.assertEqual(list(self.base.glob(".doc-migrate-stage-*")), [])
+
+    def test_backreferences_cannot_use_live_retired_preimage(self):
+        alias = self.base / "retired-link"
+        alias.symlink_to(self.root / "CLAUDE.md")
+        for target in ("../repo/CLAUDE.md", str(self.root / "CLAUDE.md"), "../retired-link"):
+            with self.subTest(target=target):
+                (self.root / "README.md").write_text(f"[Retired]({target})\n")
+                before = self.tree()
+                result = self.invoke("apply", "--transaction", self.transaction, expected=1)
+                self.assertIn("DEAD LINKS", result["mechanical_validation"]["violations"])
+                self.assertEqual(before, self.tree())
+                self.assertFalse(self.transaction.exists())
+                self.assertEqual(list(self.base.glob(".doc-migrate-stage-*")), [])
+        (self.root / "README.md").write_text("[Retained](../repo/AGENTS.md)\n")
+        self.assertTrue(self.invoke("dry-run")["ready"])
+
+    def test_stage_allocation_failure_is_precise_and_preserves_tree(self):
+        spec = importlib.util.spec_from_file_location("migration_stage_test", SCRIPTS / "doc-migrate.py")
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        before = self.tree()
+        with mock.patch.object(module.tempfile, "TemporaryDirectory", side_effect=PermissionError("denied")):
+            with self.assertRaisesRegex(module.Refusal, "cannot create migration staging beside"):
+                module.validate_stage(self.root, [], str(self.root / ".git"))
         self.assertEqual(before, self.tree())
 
     def test_existing_root_alias_cannot_hide_retired_claude(self):

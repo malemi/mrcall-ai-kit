@@ -58,6 +58,7 @@ BLOCK_FILES = {
 ROLE_FILES = {
     "execute": "execute.md",
     "verify": "verify.md",
+    "debugger": "debugger.md",
     "review": "review.md",
 }
 CODEX_ROLE_FILES = {**ROLE_FILES, "plan": "plan.md"}
@@ -201,7 +202,7 @@ def codex_body(entry: dict) -> str:
         f"description = {json.dumps(descriptions[0], ensure_ascii=False)}",
         f"developer_instructions = {json.dumps(instructions, ensure_ascii=False)}",
     ]
-    if role in ("review", "verify", "plan"):
+    if role in ("review", "verify", "plan", "debugger"):
         fields.append('sandbox_mode = "read-only"')
     return "\n".join(fields) + "\n"
 
