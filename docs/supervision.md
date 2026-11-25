@@ -115,10 +115,11 @@ assessment.
 task was created, summed over the supervisor, the targets and their workers, in
 tokens, as a share of the allowance window, or in currency with the operator's
 prices. When a counter cannot be read, spend is reported unknown and what was
-read is its lower bound. A deadline, a count or a spend ceiling reached parks
-an active task from the tick; a parked task is not checked against its limits,
-because a park stops the assessments, not the lead. At a spend ceiling of a completion task Python also
-interrupts each target's running turn and `status` reports a turn that
+read is its lower bound. A deadline, a count or a spend ceiling reached parks an
+active task from the tick. A parked task is not checked against its limits: a
+park stops the assessments, not the lead, so a lead that keeps working under a
+parked task meets no ceiling. At a spend ceiling of a completion task Python
+also interrupts each target's running turn and `status` reports a turn that
 continues. Workers are not interrupted, and the targets of an observation task
 receive nothing. A convergence review, launched like the challenge, runs when a
 step passes twice its estimate, when spend or time since the last item closure

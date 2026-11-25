@@ -21,18 +21,20 @@ Release, after an optional first line naming the commit.
   the stance survives a context compaction. The completion block that Codex loads says
   the same about a request to finish.
 - Supervision: Python now observes the sessions and keeps the clock. An assessment is
-  dispatched only when an observation calls for judgment, and each one ends with an
-  intervention, a wait, a park or a conclusion for every target that is not working.
+  dispatched only when an observation calls for judgment. For each target that owns
+  an open acceptance item and is not working, it ends with an intervention, a wait,
+  a park or a conclusion.
 - Supervision: a task carries the operator's limits as cited data, a required spend
   limit measured from the sessions' own token counters, acceptance items with owners
   and an operator session. A limit reached parks an active task; a spend ceiling
   also interrupts the targets' running turns. A parked task is not checked against
   its limits, so its lead meets no ceiling.
 - Supervision: every kit message is recorded in one account ledger and rendered in
-  labeled parts that quote the operator verbatim. A stop that needs the operator is
-  read a second time in a fresh context, then waits as one question in the operator
-  session. The token reminder is a labeled part of every message to an entrusted
-  session; the question for the operator carries none.
+  labeled parts that quote the operator verbatim. A park for an ask-first action, an
+  operator restriction, an operator input or the closure bounds is read a second time
+  in a fresh context; a park then waits as one question in the operator session. The
+  token reminder is a labeled part of every message to an entrusted session; the
+  question for the operator carries none.
 - Supervision: state roots created by earlier versions stay readable and stoppable and
   are not migrated; new supervision uses a new state root.
 - Supervision: Claude Code sessions are observed like Codex ones, so a Claude binding

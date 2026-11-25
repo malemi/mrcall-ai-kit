@@ -1,6 +1,6 @@
 ---
-doc_baseline_commit: 8579bd90dd068a7410e6c5a504e0788850318531
-doc_baseline_date: 2026-11-10
+doc_baseline_commit: da8e444b90ab5e15d4d0c09c5515a008eea5794a
+doc_baseline_date: 2026-11-25
 ---
 
 # Active Context
@@ -43,12 +43,13 @@ commands/checker use v9; each downstream repository still requires its own profi
 check and explicit migration when needed. The checker rejects stale/missing evidence
 when invoked; whole-lifecycle bypass and agent judgment are not authenticated.
 `documentation-harness.md` owns skill resolution, reviewed delivery, customized
-migration, preservation/rollback and release authorization. Migration compatibility
-reports are optional; measured native support is in `harness-runtime-support.md`.
-Migration staging now preserves relative sibling links and checks references back
-into the target against staged postimages. Eleven CLI regressions and the actual
-authorized mrcall-cs retirement pass; the original false-link refusal is retained.
-No compatibility-policy, client-configuration or completion-binding change follows.
+migration, preservation/rollback and releases. Migration compatibility reports are
+optional; measured native support is in `harness-runtime-support.md`. Migration
+staging now preserves relative sibling links and checks references back into the
+target against staged postimages. Eleven CLI regressions and an actual authorized
+retirement in a downstream repository pass; the original false-link refusal is
+retained. No compatibility-policy, client-configuration or completion-binding change
+follows.
 
 Codex roles inherit the session model; Claude/OpenCode roles follow `/ai-budget`.
 Generated agents carry bounded mandate-completion and final-answer re-read rules.

@@ -87,15 +87,14 @@ edit. Shell access can still have side effects: these profiles do not enforce
 purity for arbitrary diagnostic commands. Product changes and production writes
 remain outside this role.
 
-Native Codex CLI acceptance on 2026-10-30 loaded the installed `debugger` in an
-isolated persistent session. It reproduced a misleading timeout wrapper around
-local string arithmetic, traced the original cause and checked an in-memory
-counterfactual in four shell calls, leaving fixture files unchanged. The earlier
-`--ephemeral` attempt failed before the child started because no rollout was
-available. This establishes one diagnostic sample; Claude/OpenCode native
-adherence, production diagnosis and general reliability remain unverified.
-The [delivery plan](../../docs/execution-plans/2026-10-30-debugger-agent.md)
-records the retained evidence and bounded attempts.
+Native Codex CLI acceptance on 2026-10-30 loaded the installed `debugger` in
+an isolated persistent session. It reproduced a misleading timeout wrapper
+around local string arithmetic, traced the original cause and checked an
+in-memory counterfactual in four shell calls, leaving fixture files unchanged.
+This establishes one diagnostic sample; Claude/OpenCode native adherence,
+production diagnosis and general reliability remain unverified. The [delivery
+plan](../../docs/execution-plans/2026-10-30-debugger-agent.md) records the
+retained evidence and bounded attempts.
 
 ## How each runtime receives the shared parts
 

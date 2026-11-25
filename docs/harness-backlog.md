@@ -87,5 +87,8 @@ that settled it. A document listed here is never asked about again.
   does not justify reorganizing an unrelated workstream during activation.
 - `docs/execution-plans/2026-11-14-supervision-controller-repair.md` — **keep whole**, 2026-11-15, at 512 lines:
   its verification table is the brief's required map from each property to its observation, and it holds the
-  record of the native trial while the trial runs.
+  record of the native trial.
+- `docs/supervision.md` — **keep whole**, 402 lines, 2026-11-25. It is one
+  capability's durable contract, read by section: what Python enforces, what a
+  model judges, the Claude adapter, removal and measured support.
 

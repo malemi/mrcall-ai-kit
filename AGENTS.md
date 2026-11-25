@@ -169,7 +169,8 @@ Codex and Claude persistent session supervision is documented in [`docs/supervis
   migration tooling.
 - `install.sh` / `uninstall.sh` — global installer / uninstaller.
 - `CHANGELOG.md` — release notes per version. `doc-end` cuts a release through
-  `shared/scripts/release.sh` whenever `Unreleased` is not empty (rule and
+  `shared/scripts/release.sh` after every passing closure whose `Unreleased` is not
+  empty, unless the operator withholds it (rule and
   refusals: `docs/documentation-harness.md`, "Releasing").
 
 ### Conventions
