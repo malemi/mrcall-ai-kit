@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 COMPAT = SCRIPTS / "doc-compat.py"
@@ -25,6 +26,11 @@ class DocCompatTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name)
+        self.home = self.base / "home"
+        self.home.mkdir()
+        home_patch = mock.patch.dict(os.environ, {"HOME": str(self.home)})
+        home_patch.start()
+        self.addCleanup(home_patch.stop)
 
         # Hierarchy: self.base / "parent" / "repo"
         # This allows testing ancestor instruction mirroring.
@@ -168,6 +174,38 @@ sys.exit(1)
                 self.assertIn(".opencode override", str(ctx.exception))
             finally:
                 opencode_dir.rmdir()
+
+    def test_environment_files_read_symlinked_instruction_files(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("doc_compat", COMPAT)
+        doc_compat = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(doc_compat)
+
+        shared = self.home / ".agents" / "AGENTS.md"
+        shared.parent.mkdir()
+        shared.write_text("Shared instructions.\n")
+        links = [self.home / ".codex" / "AGENTS.md", self.home / ".config" / "opencode" / "AGENTS.md"]
+        for link in links:
+            link.parent.mkdir(parents=True)
+            link.symlink_to(shared)
+
+        before = doc_compat.environment_files(self.root)
+        recorded = {item["path"]: item["sha256"] for item in before}
+        for link in links:
+            self.assertEqual(recorded[str(link)], hashlib.sha256(shared.read_bytes()).hexdigest())
+
+        links[0].unlink()
+        self.assertNotEqual(before, doc_compat.environment_files(self.root))
+        links[0].symlink_to(shared)
+        self.assertEqual(before, doc_compat.environment_files(self.root))
+        shared.write_text("Changed shared instructions.\n")
+        self.assertNotEqual(before, doc_compat.environment_files(self.root))
+
+        dangling = self.home / ".claude" / "CLAUDE.md"
+        dangling.parent.mkdir()
+        dangling.symlink_to(self.home / "missing.md")
+        with self.assertRaises(doc_compat.Refusal):
+            doc_compat.environment_files(self.root)
 
     def test_prepare_refusals_leave_target_untouched(self):
         before = self.tree()

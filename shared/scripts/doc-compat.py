@@ -113,14 +113,15 @@ def environment_files(root: Path | str) -> list[dict[str, str]]:
     if opencode_config:
         candidates.add(Path(opencode_config).expanduser())
 
+    # Clients read these files through symlinks, as when one AGENTS.md serves
+    # every client, so the inventory does too: each location the clients read is
+    # recorded with the bytes read there.
     result = []
-    for path in sorted(candidates, key=lambda p: str(p.resolve())):
+    for path in candidates:
         if path.exists() or path.is_symlink():
             if not path.is_file():
                 raise Refusal(f"unreadable environment file: {path}")
-            safe_path(path)
-            data = path.read_bytes()
-            result.append({"path": str(path.resolve()), "sha256": digest(data)})
+            result.append({"path": os.path.abspath(path), "sha256": digest(path.read_bytes())})
     result.sort(key=lambda item: item["path"])
     return result
 

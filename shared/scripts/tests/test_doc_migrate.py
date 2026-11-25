@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 SCRIPTS = Path(__file__).resolve().parents[1]
 MIGRATE = SCRIPTS / "doc-migrate.py"
@@ -22,6 +23,11 @@ class MigrationTests(unittest.TestCase):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name)
+        home = self.base / "home"
+        home.mkdir()
+        home_patch = mock.patch.dict(os.environ, {"HOME": str(home)})
+        home_patch.start()
+        self.addCleanup(home_patch.stop)
         self.root = self.base / "repo"
         self.root.mkdir()
         (self.root / "docs").mkdir()
