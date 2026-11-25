@@ -8,6 +8,8 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+## v9.7.0 — 2026-11-25
+
 - `doc-end` releases at every passing closure whose `Unreleased` section is not empty;
   a release no longer needs separate authorization. An operator who withholds the
   release in the current task skips it.
