@@ -70,6 +70,8 @@ combined with a report.
 Codex 0.160.1 and OpenCode 1.18.34 version identities are accepted on the strict
 report path with an extended `environment_files` inventory. Their native
 verification is pending; the measured-mode table remains historical evidence.
+The inventory reads instruction and configuration files through symlinks, as the
+clients do, and records each location with a digest of the bytes read there.
 
 When separately requested, `--compatibility` supplies a report bound to the
 target repository, observed

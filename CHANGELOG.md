@@ -49,6 +49,9 @@ Release, after an optional first line naming the commit.
   sets `CLAUDE_CONFIG_DIR` only when the account does.
 - Supervision: the targets of an observation task receive nothing at a limit, and the
   configured default spend limit applies to completion tasks only.
+- `doc-compat.py` reads instruction and configuration files through symlinks, as the
+  clients do, and records each location with a digest of the bytes read there. One `AGENTS.md`
+  linked into every client no longer makes a compatibility report refuse.
 
 ## v9.6.0 — 2026-10-27
 
