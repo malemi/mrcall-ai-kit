@@ -1,5 +1,5 @@
 ---
-doc_baseline_commit: da8e444b90ab5e15d4d0c09c5515a008eea5794a
+doc_baseline_commit: 13d7d26773d9436d5bddc6bd88800898de08094c
 doc_baseline_date: 2026-11-25
 ---
 
@@ -102,8 +102,6 @@ goal service does not reactivate this retired path (`runtime-completion.md`).
 
 ## Next
 
-- Cut a release from `main`, whose unreleased notes carry the supervision
-  repair, and advance the documentation baseline with it.
 - The [supervisor token plan](execution-plans/2026-10-27-supervisor-token-reminder.md)
   keeps its reminder in every kit message to an entrusted session, the question
   for the operator excepted; its native behavioral verification remains pending.
