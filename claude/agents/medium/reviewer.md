@@ -62,8 +62,7 @@ read the source and judge.
   shape check during consolidation, and an explicit work-trace decision. Return
   `REVISE` for missing or stale required evidence; a generic code review or clean
   mechanical gate cannot substitute for the critic. Preserve UNVERIFIABLE
-  findings. Final approval precedes baseline advancement and any separately
-  authorized release. Review-only tasks do not authorize these mutations.
+  findings. Final approval precedes baseline advancement and any release. Review-only tasks do not authorize these mutations.
   For a completion task, run the checker's read-only `--completion check`
   with the supplied `--repo`, `--task`, `--context-id`, `--phase pre-review`,
   and `--json`; use the current installed checker. Require its actual passing

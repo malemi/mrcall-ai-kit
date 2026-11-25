@@ -700,11 +700,11 @@ def check_protocol_release(root: Path) -> tuple[list[str], list[str]]:
     if pending:
         return [], [
             f"protocol v{protocol} release pending: CHANGELOG.md carries a v{protocol} section but no "
-            f"v{protocol}.x tag exists — complete the authorized release (doc-end Phase 5 retry exit).{stale}"
+            f"v{protocol}.x tag exists — complete the release (doc-end Phase 5 retry exit).{stale}"
         ]
     return [
         f"HARNESS_VERSION {protocol} is ahead of the newest release tag {newest_tag}: unreleased "
-        "protocol — cut the authorized release via doc-end Phase 5, or revert the bump." + stale
+        "protocol — cut the release via doc-end Phase 5, or revert the bump." + stale
     ], []
 
 

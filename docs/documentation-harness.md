@@ -216,7 +216,7 @@ claims honestly. Repository artifacts remain English.
 | `index_file` | Root `AGENTS.md`; includes both managed and project-owned content. |
 | `inventory_ignore` | Optional comma-separated top-level directory names excluded from meta inventory. |
 | `build`, `smoke` | Optional known real commands; commented examples are not configuration. |
-| `release` | Optional command accepting one `vX.Y.Z`; configures release mechanics and changelog format, not task authorization. |
+| `release` | Optional command accepting one `vX.Y.Z`; opts the repository into a release at each passing closure and sets its changelog format. |
 | `index_max_lines` | Optional nonnegative thin-index limit; `0` disables it. |
 | `doc_max_lines` | Optional nonnegative advisory limit, default `400`; `0` disables it. |
 
@@ -287,7 +287,7 @@ do not glob unrelated sessions to reconstruct a history.
 
 Order is lead reconciliation → mechanical and affected-document semantic
 checks → explicit completion check and applicable final review → baseline
-finalization → separately authorized release. A documentation-only change still
+finalization → release. A documentation-only change still
 needs explicit completion even without a development reviewer. Missing or stale
 required evidence blocks closure. Changed code, docs, instructions, or reviewed
 artifacts require the affected results to be refreshed; a receipt cannot restore
@@ -370,26 +370,27 @@ immediately but do not install new assets.
 
 The kit checkout ties the enforced protocol to the release tags:
 `HARNESS_VERSION` equals the major of the newest release tag. A protocol bump
-is an authorized release act — developed in a linked worktree or separate
+is a release act — developed in a linked worktree or separate
 clone, never by checking a protocol branch out in the installed checkout,
 whose working tree the symlinks expose to every session on the machine. The
 gate enforces the tie mechanically in the kit repository: on `main` — and in
 the checkout the installed `doc-check.py` resolves into, on every branch and
 detached HEAD — a constant different from the newest tag's major is a
 blocking violation, except that an ahead constant with a `## vN.x.y` heading
-in `CHANGELOG.md` (a release in flight, or retained pending an authorized
+in `CHANGELOG.md` (a release in flight, or retained pending a
 retry) downgrades to a named advisory; when no release tag is visible at all
 (a fresh or shallow clone), the finding is likewise an advisory, not a
 violation. Recorded limits: a raw push from
 another clone is caught only when this checkout pulls it; a retained version
-section whose release run died stays an advisory until an authorized retry
+section whose release run died stays an advisory until a retry
 completes it; the gate reads local tags only and never fetches.
 
-`CHANGELOG.md` contains `Unreleased` and dated version sections. Release requires
-authorization in the current task as well as a configured command. When
-authorized, `doc-end` Phase 5 owns version selection, changelog/commit ordering,
-baseline update, push, and invocation; unrelated tracked work is not included.
-The profile setting alone never authorizes publication or commits.
+`CHANGELOG.md` contains `Unreleased` and dated version sections. With a configured
+command, `doc-end` Phase 5 releases at every passing closure whose `Unreleased`
+section is not empty; it needs no separate authorization, and an operator who
+withholds the release in the current task skips it. Phase 5 owns version
+selection, changelog/commit ordering, baseline update, push, and invocation;
+unrelated tracked work is not included.
 
 `shared/scripts/release.sh` runs from the checkout, never the installed command
 directory. It checks semver, matching protocol major, tag absence, nonempty

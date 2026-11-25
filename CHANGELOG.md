@@ -8,6 +8,9 @@ Release, after an optional first line naming the commit.
 
 ## Unreleased
 
+- `doc-end` releases at every passing closure whose `Unreleased` section is not empty;
+  a release no longer needs separate authorization. An operator who withholds the
+  release in the current task skips it.
 - Instructions: agents ask the operator only for what only the operator holds — a
   credential, a payment, or a choice the operator explicitly reserved. The managed
   `AGENTS.md` block, the reviewer and OpenCode roles, the Codex global block and the
