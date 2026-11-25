@@ -11,8 +11,8 @@ Release, after an optional first line naming the commit.
 - Instructions: agents ask the operator only for what only the operator holds — a
   credential, a payment, or a choice the operator explicitly reserved. The managed
   `AGENTS.md` block, the reviewer and OpenCode roles, the Codex global block and the
-  docs use this one rule, so `BLOCKED` now means the same thing. Release no longer
-  needs separate authorization, and the OpenCode build role commits finished work.
+  docs use this one rule, so `BLOCKED` now means the same thing. The OpenCode build
+  role commits finished work.
 - `av`: a bare invocation resumes the session's open work instead of stopping. Only
   what only the CTO holds, or damage that cannot be undone, goes back to the CTO, and
   the stance survives a context compaction. The completion block that Codex loads says
@@ -22,8 +22,9 @@ Release, after an optional first line naming the commit.
   intervention, a wait, a park or a conclusion for every target that is not working.
 - Supervision: a task carries the operator's limits as cited data, a required spend
   limit measured from the sessions' own token counters, acceptance items with owners
-  and an operator session. A limit reached parks the task; a spend ceiling also
-  interrupts the targets' running turns.
+  and an operator session. A limit reached parks an active task; a spend ceiling
+  also interrupts the targets' running turns. A parked task is not checked against
+  its limits, so its lead meets no ceiling.
 - Supervision: every kit message is recorded in one account ledger and rendered in
   labeled parts that quote the operator verbatim. A stop that needs the operator is
   read a second time in a fresh context, then waits as one question in the operator

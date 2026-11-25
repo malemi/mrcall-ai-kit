@@ -88,9 +88,8 @@ target, and for a working target when only the heartbeat raised the assessment.
 A message in neither queue nor history at its latest time, or still queued on a
 target that is not working, is unresolved. Nothing is resent.
 
-**Authority.** The ask-first list is fixed in code: spending, installation, real
-runs against providers, sends to customers, push and release, deleting someone
-else's work. A task changes it only with a citation. Operator limits are data —
+**Authority.** The ask-first list is fixed in code: using a credential that only
+the operator holds, and making a payment. A task changes it only with a citation. Operator limits are data —
 a deadline, an assessment count, a spend limit — each with citations; a
 completion task without a spend limit is refused. Every wake, intervention,
 notice and question is rendered in labeled parts: the result owed, the ask-first
@@ -117,7 +116,8 @@ task was created, summed over the supervisor, the targets and their workers, in
 tokens, as a share of the allowance window, or in currency with the operator's
 prices. When a counter cannot be read, spend is reported unknown and what was
 read is its lower bound. A deadline, a count or a spend ceiling reached parks
-the task from the tick. At a spend ceiling of a completion task Python also
+an active task from the tick; a parked task is not checked against its limits,
+because a park stops the assessments, not the lead. At a spend ceiling of a completion task Python also
 interrupts each target's running turn and `status` reports a turn that
 continues. Workers are not interrupted, and the targets of an observation task
 receive nothing. A convergence review, launched like the challenge, runs when a

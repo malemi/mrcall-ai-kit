@@ -33,6 +33,10 @@ session gets a shared-memory file,
 `docs/active-context.md`: a living snapshot, never a log, same anti-drift
 discipline, same repo, readable with `cat`.
 
+A process that keeps no session memory, such as a scheduled headless run that
+starts, does one job and exits, sets `MRCALL_KIT_SESSION_MEMORY=off` in its
+environment. The hook then prints nothing for it and pins no path.
+
 **Where it lives**: the repository the session started in, decided once and
 then fixed for the rest of the session. The hook's payload carries the shell's
 working directory, and that moves with every `cd`, so deriving the path from it

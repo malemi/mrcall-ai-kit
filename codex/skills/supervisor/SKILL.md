@@ -54,8 +54,9 @@ LOAD: `${MRCALL_KIT_HOME:-$HOME/.config/mrcall-ai-kit}/supervision/POLICY.md`, c
 OPERATIONS: also load `COMMANDS.md` from that directory.
 MISSING FILE: explicit diagnostic; no guessed path or instruction-only timer.
 ACTIVATE: scan the registry; build the task from the operator's words; where the mandate
-states no spend limit, ask the operator for one. Before creating the task show the
-`task-create --dry-run` authority text exactly, the operator session and the identities.
+states no spend limit and the kit configuration holds no default, ask the operator for one.
+Before creating the task show the `task-create --dry-run` authority text exactly, the
+operator session and the identities.
 OPERATOR SESSION: where the operator gave the mandate, unless the operator names another.
 USE: installed CLI + persistent memory; recover existing target mandate.
 INTENT: short operator prompt suffices; apply these rules without repeated prompting.
